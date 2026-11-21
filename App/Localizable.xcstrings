@@ -16794,6 +16794,76 @@
         }
       }
     },
+    "本机模型输出超过长度限制，请缩短成品要求后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local model reached its output limit. Ask for a shorter result and try again."
+          }
+        }
+      }
+    },
+    "改写要求太长，本机模型无法容纳，请缩短要求后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The instructions exceed the local model’s context. Shorten them and try again."
+          }
+        }
+      }
+    },
+    "本机模型上下文不足，无法整理这段材料。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local model does not have enough context to process this material."
+          }
+        }
+      }
+    },
+    "本机模型没有返回分段要点，请重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local model returned no notes for a section. Try again."
+          }
+        }
+      }
+    },
+    "本机模型未能压缩长材料，请重试或选择更简洁的改写要求。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local model could not condense the material. Try again or simplify the instructions."
+          }
+        }
+      }
+    },
+    "材料过长，本机模型未能完成分层整理。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The material is too long for the local model to finish summarizing."
+          }
+        }
+      }
+    },
+    "本机模型上下文不足。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local model does not have enough context."
+          }
+        }
+      }
+    },
     "高阶网关/密盒": {
       "localizations": {
         "en": {
