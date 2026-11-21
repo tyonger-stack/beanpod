@@ -1,4 +1,4 @@
-# 密盒助手（基于 BeanPod）
+# 密盒助手
 
 **简体中文** | [English](README.en.md)
 

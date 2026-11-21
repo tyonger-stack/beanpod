@@ -1,4 +1,4 @@
-# Mi Box Assistant (based on BeanPod)
+# Mi Box Assistant
 
 [简体中文](README.md) | **English**
 
