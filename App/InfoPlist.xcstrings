@@ -7,7 +7,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod"
+            "value": "Mi Box Assistant"
           }
         }
       }
@@ -17,9 +17,19 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod uses Bluetooth to connect to your bean recorder."
+            "value": "Mi Box Assistant uses Bluetooth to connect to Mi Box."
           }
         }
+      }
+    },
+    "CFBundleName": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Mi Box Assistant" } }
+      }
+    },
+    "NSLocalNetworkUsageDescription": {
+      "localizations": {
+        "en": { "stringUnit": { "state": "translated", "value": "Connect to the Mi Box you configured on your network to transcribe audio or process text." } }
       }
     },
     "NSMicrophoneUsageDescription": {
@@ -27,7 +37,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When the bean isn't connected, BeanPod records with this Mac's microphone."
+            "value": "When Mi Box isn't connected, Mi Box Assistant records with this Mac's microphone."
           }
         }
       }
@@ -37,7 +47,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod uses speech recognition to turn recordings into text, entirely on this Mac."
+            "value": "Mi Box Assistant uses speech recognition to turn recordings into text, entirely on this Mac."
           }
         }
       }

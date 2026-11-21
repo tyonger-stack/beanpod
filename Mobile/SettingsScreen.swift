@@ -31,7 +31,7 @@ struct SettingsScreen: View {
 
                 Section("录完之后") {
                     Toggle("录完先问一句留不留", isOn: $settings.askKeep)
-                    Toggle("自动从录音豆下载", isOn: $settings.autoDownload)
+                    Toggle("自动从密盒下载", isOn: $settings.autoDownload)
                     Toggle("自动转写并整理", isOn: $settings.autoProcess)
                 }
 
@@ -101,7 +101,7 @@ struct SettingsScreen: View {
                     LabeledContent("版本", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—")
                     LabeledContent("这台手机上的录音", value: "\(store.recordings.filter(\.downloaded).count) 条")
                 } footer: {
-                    Text("手机和 Mac 上的豆仓现在各存各的，还不会互相同步。")
+                    Text("手机和 Mac 上的密盒助手现在各存各的，还不会互相同步。")
                 }
             }
             .navigationTitle("设置")

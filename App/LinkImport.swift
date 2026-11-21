@@ -110,7 +110,7 @@ extension BeanStore {
             } else if Self.needsLogin(result.errors), !login.isEmpty {
                 // 已经登录过还是被拦：再弹登录窗口只会原地打转
                 problem = Problem(title: String(localized: "这条\(platform)链接没能导入"),
-                                  detail: String(localized: "已经带着你在豆仓里的\(platform)登录状态试过了，还是被拦下。可能是登录过期了（去设置的「连接」里清掉重新登录），也可能是\(platform)改了接口。"))
+                                  detail: String(localized: "已经带着你在密盒助手里的\(platform)登录状态试过了，还是被拦下。可能是登录过期了（去设置的「连接」里清掉重新登录），也可能是\(platform)改了接口。"))
             } else {
                 problem = Problem(title: String(localized: "这条\(platform)链接没能导入"), detail: Self.explain(result.errors, platform: platform))
             }
@@ -149,7 +149,7 @@ extension BeanStore {
         let before = Set(recordings.map(\.id))
         importFile(audio, consume: true, processNow: false)
         guard let k = recordings.firstIndex(where: { !before.contains($0.id) }) else {
-            problem = Problem(title: String(localized: "这条\(platform)链接没能导入"), detail: String(localized: "声音下下来了，但豆仓读不出这个音频文件。"))
+            problem = Problem(title: String(localized: "这条\(platform)链接没能导入"), detail: String(localized: "声音下下来了，但密盒助手读不出这个音频文件。"))
             return
         }
         let rid = recordings[k].id
@@ -207,7 +207,7 @@ extension BeanStore {
         let e = errors.lowercased()
         if e.contains("unsupported url") { return String(localized: "认不出这是哪个平台的视频链接。确认贴的是某一条作品的链接，不是主页或搜索页。") }
         if needsLogin(errors) {
-            return String(localized: "\(platform)要登录之后才给看这条内容。可以用别的工具把它下载成文件，再拖进豆仓的窗口。")
+            return String(localized: "\(platform)要登录之后才给看这条内容。可以用别的工具把它下载成文件，再拖进密盒助手的窗口。")
         }
         if e.contains("private") { return String(localized: "这条内容是私密的，不能导入。") }
         if looksLikeRegionBlock(errors) {
@@ -488,7 +488,7 @@ extension BeanStore {
         guard !mine.isEmpty else { return 0 }
         // 元宝没扫码时也会种几条访客 cookie，要看到登录票据才算登好了
         if platform == "视频号", !mine.contains(where: { $0.name == "hy_token" && !$0.value.isEmpty }) { return 0 }
-        var lines = ["# Netscape HTTP Cookie File", "# 豆仓的登录窗口导出，只用于下载你自己能看的内容"]
+        var lines = ["# Netscape HTTP Cookie File", "# 密盒助手的登录窗口导出，只用于下载你自己能看的内容"]
         for c in mine {
             let domain = c.domain.hasPrefix(".") ? c.domain : "." + c.domain
             let expiry = Int(c.expiresDate?.timeIntervalSince1970 ?? Date.now.addingTimeInterval(86400 * 30).timeIntervalSince1970)
@@ -511,12 +511,12 @@ struct LinkLoginSheet: View {
     @State private var saving = false
     @State private var note: String?
 
-    private var then: String { request.continueImport ? String(localized: "，豆仓会接着导入") : String(localized: "回到导入") }
+    private var then: String { request.continueImport ? String(localized: "，密盒助手会接着导入") : String(localized: "回到导入") }
     private var onItsPage: Bool { BeanStore.loginURL(platform: request.platform, link: request.url).absoluteString == request.url }
     /// 登录窗口顶上的说明
     private var intro: String {
         if request.platform == "视频号" {
-            return String(localized: "\(request.hint)视频号网页版不给下载地址，豆仓借腾讯元宝的视频号解析拿视频。在下面点「登录」用微信扫码，登好了点右边的按钮\(then)。只要登一次。")
+            return String(localized: "\(request.hint)视频号网页版不给下载地址，密盒助手借腾讯元宝的视频号解析拿视频。在下面点「登录」用微信扫码，登好了点右边的按钮\(then)。只要登一次。")
         }
         if onItsPage {
             let kind = request.platform == "小红书" ? String(localized: "笔记") : String(localized: "作品")

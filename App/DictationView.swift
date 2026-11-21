@@ -55,7 +55,7 @@ struct DictationView: View {
                     VStack(spacing: 10) {
                         Image(systemName: "keyboard").font(.system(size: 30)).foregroundStyle(Theme.warm400)
                         Text(query.isEmpty ? "还没有说过话" : "没找到「\(query)」").font(.headline).foregroundStyle(Theme.warm700)
-                        Text(query.isEmpty ? (store.settings.dictationEnabled ? "按住快捷键对着录音豆说话，松开后文字会打进当前的软件，也会记在这里。" : "语音输入还没打开，可以在 设置 → 语音输入 里打开。") : "换个词试试。")
+                        Text(query.isEmpty ? (store.settings.dictationEnabled ? "按住快捷键对着密盒说话，松开后文字会打进当前的软件，也会记在这里。" : "语音输入还没打开，可以在 设置 → 语音输入 里打开。") : "换个词试试。")
                             .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity, minHeight: 260)

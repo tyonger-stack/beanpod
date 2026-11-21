@@ -65,16 +65,16 @@ extension BeanStore {
             var tap: SystemAudioTap?
             if source.usesMic {
                 guard await AVCaptureDevice.requestAccess(for: .audio) else {
-                    problem = Problem(title: String(localized: "豆仓用不了\(Self.thisDevice)的麦克风"),
-                                      detail: String(localized: "到系统设置的「隐私与安全性 → 麦克风」里把豆仓打开，再点一次录音。"), action: .micPermission)
+                    problem = Problem(title: String(localized: "密盒助手用不了\(Self.thisDevice)的麦克风"),
+                                      detail: String(localized: "到系统设置的「隐私与安全性 → 麦克风」里把密盒助手打开，再点一次录音。"), action: .micPermission)
                     return
                 }
             }
             if source.usesSystem {
                 let t = SystemAudioTap()
                 do { try await t.start() } catch {
-                    problem = Problem(title: String(localized: "豆仓还不能录电脑里的声音"),
-                                      detail: String(localized: "系统要你亲自允许一次：到「系统设置 → 隐私与安全性 → 屏幕与系统音频录制」里把豆仓打开，然后退出豆仓再重新打开。\n豆仓只取其中的声音，不会保存屏幕画面。"), action: .screenPermission)
+                    problem = Problem(title: String(localized: "密盒助手还不能录电脑里的声音"),
+                                      detail: String(localized: "系统要你亲自允许一次：到「系统设置 → 隐私与安全性 → 屏幕与系统音频录制」里把密盒助手打开，然后退出密盒助手再重新打开。\n密盒助手只取其中的声音，不会保存屏幕画面。"), action: .screenPermission)
                     addLog("系统声音没开始：\(error.localizedDescription)")
                     return
                 }
@@ -179,7 +179,7 @@ extension BeanStore {
             for u in [micURL, systemURL].compactMap({ $0 }) { try? FileManager.default.removeItem(at: u) }
             guard let mixed else {
                 problem = Problem(title: String(localized: "这次没有录到声音"),
-                                  detail: source.usesSystem ? String(localized: "电脑里这段时间没有播放任何声音，或者系统没有把声音交给豆仓。") : String(localized: "麦克风没有录到内容。"))
+                                  detail: source.usesSystem ? String(localized: "电脑里这段时间没有播放任何声音，或者系统没有把声音交给密盒助手。") : String(localized: "麦克风没有录到内容。"))
                 return
             }
             let before = Set(recordings.map(\.id))

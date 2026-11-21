@@ -24,18 +24,18 @@ struct DeviceScreen: View {
     }
 
     @ViewBuilder private var connected: some View {
-        MascotView(mood: .idle, power: store.mascotPower, inPod: true).frame(width: 210, height: 210)
+        DevicePhotoView().frame(width: 210, height: 210)
         VStack(spacing: 6) {
             Text(store.displayDeviceName).font(.title.weight(.bold))
             HStack(spacing: 6) {
                 Circle().fill(Theme.ok).frame(width: 8, height: 8)
-                Text(store.inCase ? "已连接 · 正在充电盒里充电" : "已连接").foregroundStyle(.secondary)
+                Text(store.inCase ? "已连接 · 正在充电" : "已连接").foregroundStyle(.secondary)
             }
             .font(.subheadline)
         }
         if let info = store.info {
             HStack(spacing: 14) {
-                ring("录音豆", value: Double(info.micBattery) / 100, text: "\(info.micBattery)%")
+                ring("密盒", value: Double(info.micBattery) / 100, text: "\(info.micBattery)%")
                 ring("充电盒", value: Double(info.caseBattery) / 100, text: info.caseBattery > 0 ? "\(info.caseBattery)%" : "—")
                 ring("已用空间", value: info.totalKB > 0 ? Double(info.usedKB) / Double(info.totalKB) : 0,
                      text: ByteCountFormatter.string(fromByteCount: Int64(info.usedKB) * 1024, countStyle: .file))
@@ -43,11 +43,11 @@ struct DeviceScreen: View {
             let onDevice = store.recordings.filter(\.onDevice)
             let waiting = onDevice.filter { !$0.downloaded && !$0.inProgress }.count
             VStack(spacing: 12) {
-                fact("录音豆里的录音", waiting == 0 ? "\(onDevice.count) 条，都已下载" : "\(onDevice.count) 条，\(waiting) 条没下载")
+                fact("密盒里的录音", waiting == 0 ? "\(onDevice.count) 条，都已下载" : "\(onDevice.count) 条，\(waiting) 条没下载")
                 Divider()
                 fact("还能录", "约 \(Int(Double(info.freeKB) / 8 / 3600)) 小时")
                 Divider()
-                fact("录音豆固件", info.firmware)
+                fact("密盒固件", info.firmware)
                 Divider()
                 fact("充电盒固件", info.caseFirmware.isEmpty ? "—" : info.caseFirmware)
                 Divider()
@@ -62,14 +62,14 @@ struct DeviceScreen: View {
             }
         }
         Button("断开连接", role: .destructive) { store.disconnect() }.padding(.top, 4)
-        Text("录音豆同一时间只让一台设备连。手机连着的时候，Mac 上的豆仓搜不到它，反过来也一样。")
+        Text("密盒同一时间只让一台设备连。手机连着的时候，Mac 上的密盒助手搜不到它，反过来也一样。")
             .font(.footnote).foregroundStyle(.tertiary).multilineTextAlignment(.center)
     }
 
     @ViewBuilder private var notConnected: some View {
-        MascotView(mood: .sleeping, power: .unknown).frame(width: 190, height: 190)
+        DevicePhotoView().frame(width: 190, height: 190)
         VStack(spacing: 6) {
-            Text("录音豆还没连上").font(.title2.weight(.bold))
+            Text("密盒还没连上").font(.title2.weight(.bold))
             Text(hint).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
         if store.link == .scanning || store.link == .connecting { ProgressView().padding(.top, 2) }
@@ -89,20 +89,20 @@ struct DeviceScreen: View {
             .card()
         }
         if store.link == .idle || store.link == .scanning {
-            Button { store.scan() } label: { Text(store.link == .scanning ? "正在搜索…" : "搜索录音豆").frame(maxWidth: .infinity, minHeight: 30) }
+            Button { store.scan() } label: { Text(store.link == .scanning ? "正在搜索…" : "搜索密盒").frame(maxWidth: .infinity, minHeight: 30) }
                 .buttonStyle(.bordered).disabled(store.link == .scanning)
         }
-        Text("没有录音豆也能用：点底部中间的红色按钮，直接用这台 iPhone 的麦克风录。")
+        Text("没有密盒也能用：点底部中间的红色按钮，直接用这台 iPhone 的麦克风录。")
             .font(.footnote).foregroundStyle(.tertiary).multilineTextAlignment(.center)
     }
 
     private var hint: String {
         switch store.link {
         case .off: "手机的蓝牙没有打开，或者这台设备没有蓝牙。"
-        case .unauthorized: "豆仓没有蓝牙权限。到「设置 → 豆仓」里把蓝牙打开。"
-        case .scanning: "正在找附近的录音豆…"
-        case .connecting: store.waitingForKnownDevice ? "正在等上次那颗录音豆出现…" : "正在连接…"
-        default: "把录音豆从充电盒里拿出来，放在手机旁边。"
+        case .unauthorized: "密盒助手没有蓝牙权限。到「设置 → 密盒助手」里把蓝牙打开。"
+        case .scanning: "正在找附近的密盒…"
+        case .connecting: store.waitingForKnownDevice ? "正在等上次那台密盒出现…" : "正在连接…"
+        default: "把密盒放在手机旁边，并确认已开机。"
         }
     }
 

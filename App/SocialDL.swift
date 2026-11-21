@@ -47,7 +47,7 @@ extension BeanStore {
                         : "")
                 } else {
                     problem = Problem(title: String(localized: "这条\(platform)链接没能导入"),
-                                      detail: String(localized: "已经带着你在豆仓里的\(platform)登录状态试过了，还是被拦在登录页。可能是登录过期了，去设置的「连接」里退出后重新登录。"))
+                                      detail: String(localized: "已经带着你在密盒助手里的\(platform)登录状态试过了，还是被拦在登录页。可能是登录过期了，去设置的「连接」里退出后重新登录。"))
                 }
                 return true
             }
@@ -114,7 +114,7 @@ nonisolated enum SocialDL {
         // 每次都从豆仓里拷一份最新的脚本过去（脚本跟着豆仓的版本走）
         for name in scripts {
             let base = (name as NSString).deletingPathExtension
-            guard let src = Bundle.main.url(forResource: base, withExtension: "py") else { return (nil, "豆仓里没找到 \(name)") }
+            guard let src = Bundle.main.url(forResource: base, withExtension: "py") else { return (nil, "密盒助手里没找到 \(name)") }
             let dst = home.appendingPathComponent(name)
             if fm.contentsEqual(atPath: src.path, andPath: dst.path) { continue }
             try? fm.removeItem(at: dst)

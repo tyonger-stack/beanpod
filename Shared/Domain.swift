@@ -418,7 +418,7 @@ nonisolated struct Recording: Identifiable, Equatable, Codable {
         var id: String { rawValue }
         var name: String {
             switch self {
-            case .bean: String(localized: "录音豆")
+            case .bean: String(localized: "密盒")
             case .card: String(localized: "录音卡")
             case .feishu: String(localized: "飞书")
             case .mac: "Mac"
@@ -445,9 +445,9 @@ nonisolated struct Recording: Identifiable, Equatable, Codable {
         /// 悬停时的一句解释。
         var help: String {
             switch self {
-            case .bean: String(localized: "在录音豆上录的，连上后同步过来")
+            case .bean: String(localized: "在密盒上录的，连上后同步过来")
             case .card: String(localized: "在得到录音卡上录的，连上后同步过来")
-            case .feishu: String(localized: "手机录音豆 App 同步进飞书妙记的，从飞书拉回来")
+            case .feishu: String(localized: "手机设备配套 App 同步进飞书妙记的，从飞书拉回来")
             case .mac: String(localized: "用这台 Mac 录的")
             case .iphone: String(localized: "用 iPhone 录的")
             case .imported: String(localized: "从文件导入的音频")
@@ -575,8 +575,8 @@ nonisolated struct WiFiSync: Equatable {
 
     var text: String {
         switch phase {
-        case .opening: String(localized: "正在让录音豆打开 Wi‑Fi…")
-        case .joining: String(localized: "正在连到录音豆上…")
+        case .opening: String(localized: "正在让密盒打开 Wi‑Fi…")
+        case .joining: String(localized: "正在连到密盒上…")
         case .connecting: String(localized: "连上了，马上开始传…")
         case .transferring: total > 1 ? String(localized: "Wi‑Fi 快传 · 第 \(index) / \(total) 条") : String(localized: "Wi‑Fi 快传中…")
         case .closing: String(localized: "传完了，正在连回原来的 Wi‑Fi…")

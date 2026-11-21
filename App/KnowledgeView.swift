@@ -72,7 +72,7 @@ struct KnowledgeView: View {
     @ViewBuilder private var askBox: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
-                MascotView(mood: store.asking ? .thinking : .idle, power: .mid).frame(width: 110, height: 110).accessibilityHidden(true)
+                DevicePhotoView().frame(width: 110, height: 110).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("问问你的录音").font(.system(size: 36, weight: .bold, design: .rounded))
                     Text("聊过的事，都有迹可循").font(.title3).foregroundStyle(.secondary)
@@ -118,7 +118,7 @@ struct KnowledgeView: View {
                     if store.asking {
                         HStack(spacing: 8) { ProgressView().controlSize(.small); Text("正在翻你的录音…").foregroundStyle(.secondary) }
                     } else if let answer = store.answer {
-                        Label("小豆帮你整理好了", systemImage: "sparkles").font(.callout).foregroundStyle(Theme.accent)
+                        Label("已整理好", systemImage: "sparkles").font(.callout).foregroundStyle(Theme.accent)
                         MarkdownView(text: answer)
                         if !store.answerSources.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {

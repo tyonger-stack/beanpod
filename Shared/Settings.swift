@@ -5,24 +5,71 @@ import Observation
 @Observable
 final class AppSettings {
     enum Engine: String, CaseIterable, Identifiable {
-        case qwen, apple, cloud
+        case qwen, apple, cloud, miBox
         var id: String { rawValue }
         var name: String {
             switch self {
-            case .qwen: String(localized: "Qwen3‑ASR（本机）")
+            case .qwen: String(localized: "本机模型")
             case .apple: String(localized: "系统语音识别")
             case .cloud: String(localized: "云端转写")
+            case .miBox: String(localized: "密盒")
             }
         }
         /// 这台机器上能选的引擎。手机上跑不动本机模型。
         static var available: [Engine] {
             #if os(macOS)
-            [.qwen, .apple, .cloud]
+            [.qwen, .apple, .cloud, .miBox]
             #else
             [.cloud, .apple]
             #endif
         }
     }
+
+    nonisolated enum LocalASRModel: String, CaseIterable, Identifiable, Sendable {
+        case qwen, gemma, paraformer, nano
+        var id: String { rawValue }
+        var funASR: FunASRModel? {
+            switch self {
+            case .qwen, .gemma: nil
+            case .paraformer: .paraformer
+            case .nano: .nano
+            }
+        }
+        var pickerTitle: String {
+            switch self {
+            case .qwen: "Qwen3-ASR"
+            case .gemma: "Gemma 4 E2B"
+            case .paraformer: "Paraformer"
+            case .nano: "Fun-ASR-Nano"
+            }
+        }
+        var asrName: String {
+            switch self {
+            case .qwen: "Qwen3-ASR 0.6B"
+            case .gemma: "Gemma 4 E2B BF16"
+            case .paraformer: "Paraformer Q8"
+            case .nano: "Fun-ASR-Nano-2512"
+            }
+        }
+        var asrSize: String {
+            switch self {
+            case .qwen: String(localized: "约 1 GB")
+            case .gemma: String(localized: "约 10.3 GB")
+            case .paraformer: String(localized: "约 237 MB")
+            case .nano: String(localized: "约 1.27 GB")
+            }
+        }
+    }
+
+    nonisolated enum LocalModel: String, CaseIterable, Identifiable, Sendable {
+        case qwen, gemma
+        var id: String { rawValue }
+        var analysisName: String { self == .qwen ? "Qwen3-4B" : "Gemma 4 E2B BF16" }
+        var analysisSize: String { self == .qwen ? String(localized: "约 2.5 GB") : String(localized: "约 10.3 GB") }
+    }
+
+    var localASRModel: LocalASRModel { didSet { save("localASRModel", localASRModel.rawValue) } }
+    var localAnalysisModel: LocalModel { didSet { save("localAnalysisModel", localAnalysisModel.rawValue) } }
 
     enum Appearance: String, CaseIterable, Identifiable {
         case system, light, dark
@@ -47,13 +94,14 @@ final class AppSettings {
 
     /// 整理纪要用哪边的模型。
     enum AnalysisMode: String, CaseIterable, Identifiable {
-        case auto, cloud, local
+        case auto, cloud, local, miBox
         var id: String { rawValue }
         var name: String {
             switch self {
             case .auto: String(localized: "云端优先，连不上时用本机")
             case .cloud: String(localized: "只用云端")
             case .local: String(localized: "只用本机")
+            case .miBox: String(localized: "密盒")
             }
         }
     }
@@ -115,6 +163,36 @@ final class AppSettings {
         asrBaseURL.isEmpty || asrModel.isEmpty ? nil : ASRConfig(baseURL: asrBaseURL, model: asrModel, key: asrKey)
     }
 
+    var miBoxASRBaseURL: String { didSet { save("miBoxASRBaseURL", miBoxASRBaseURL) } }
+    var miBoxASRModel: String { didSet { save("miBoxASRModel", miBoxASRModel) } }
+    var miBoxASRKey: String { didSet { Keychain.set(miBoxASRKey, for: "miBoxASRKey") } }
+    var miBoxLLMBaseURL: String { didSet { save("miBoxLLMBaseURL", miBoxLLMBaseURL) } }
+    var miBoxLLMModel: String { didSet { save("miBoxLLMModel", miBoxLLMModel) } }
+    var miBoxLLMKey: String { didSet { Keychain.set(miBoxLLMKey, for: "miBoxLLMKey") } }
+
+    var miBoxASRConfig: ASRConfig? {
+        guard let endpoint = Self.miBoxEndpoint(miBoxASRBaseURL),
+              !miBoxASRModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return ASRConfig(baseURL: endpoint, model: miBoxASRModel.trimmingCharacters(in: .whitespacesAndNewlines), key: miBoxASRKey.trimmingCharacters(in: .whitespacesAndNewlines), api: .openAI)
+    }
+
+    var miBoxLLMConfig: LLMConfig? {
+        guard let endpoint = Self.miBoxEndpoint(miBoxLLMBaseURL),
+              !miBoxLLMModel.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return LLMConfig(baseURL: endpoint, model: miBoxLLMModel.trimmingCharacters(in: .whitespacesAndNewlines), key: miBoxLLMKey.trimmingCharacters(in: .whitespacesAndNewlines), source: .miBox)
+    }
+
+    static func miBoxEndpoint(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.contains(where: { $0.isWhitespace }),
+              let url = URLComponents(string: trimmed),
+              let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
+              let host = url.host, !host.isEmpty,
+              url.user == nil, url.password == nil, url.query == nil, url.fragment == nil,
+              url.port.map({ (1...65535).contains($0) }) ?? true else { return nil }
+        return trimmed.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+
     var llamaServerPath: String { didSet { save("llamaServerPath", llamaServerPath) } }
     var exportFolder: String { didSet { save("exportFolder", exportFolder) } }
 
@@ -123,6 +201,8 @@ final class AppSettings {
 
     init() {
         let d = UserDefaults.standard
+        localASRModel = LocalASRModel(rawValue: d.string(forKey: "localASRModel") ?? "") ?? .qwen
+        localAnalysisModel = LocalModel(rawValue: d.string(forKey: "localAnalysisModel") ?? "") ?? .qwen
         analysisMode = AnalysisMode(rawValue: d.string(forKey: "analysisMode") ?? "") ?? .auto
         #if os(macOS)
         appearance = Appearance(rawValue: d.string(forKey: "appearance") ?? "") ?? .dark
@@ -165,6 +245,12 @@ final class AppSettings {
         asrBaseURL = d.string(forKey: "asrBaseURL") ?? ""
         asrModel = d.string(forKey: "asrModel") ?? ""
         asrKey = Keychain.migrate("asrKey")
+        miBoxASRBaseURL = d.string(forKey: "miBoxASRBaseURL") ?? ""
+        miBoxASRModel = d.string(forKey: "miBoxASRModel") ?? ""
+        miBoxASRKey = Keychain.migrate("miBoxASRKey")
+        miBoxLLMBaseURL = d.string(forKey: "miBoxLLMBaseURL") ?? ""
+        miBoxLLMModel = d.string(forKey: "miBoxLLMModel") ?? ""
+        miBoxLLMKey = Keychain.migrate("miBoxLLMKey")
         llamaServerPath = d.string(forKey: "llamaServerPath") ?? ""
         exportFolder = d.string(forKey: "exportFolder") ?? ""
     }

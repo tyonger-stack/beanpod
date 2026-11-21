@@ -12,8 +12,7 @@ extension BeanStore {
     // MARK: 流水线
 
     func refreshASRAvailability() {
-        asrAvailable = QwenASR.locateServer(custom: settings.llamaServerPath) != nil && QwenASR.locateModel() != nil
-        localLLMReady = QwenASR.locateServer(custom: settings.llamaServerPath) != nil && LocalLLM.modelURL != nil
+        modelAvailabilityRevision += 1
     }
 
     /// 云端（或用户自己填的任何服务）的配置。
@@ -27,22 +26,30 @@ extension BeanStore {
         case .cloud: cloudConfig != nil
         case .local: localLLMReady
         case .auto: cloudConfig != nil || localLLMReady
+        case .miBox: settings.miBoxLLMConfig != nil
         }
     }
 
     /// 按设置的先后顺序，挨个试能用的模型，直到有一个成功。
     func withLLM<T: Sendable>(_ work: @Sendable (LLMConfig) async throws -> T) async throws -> T {
+        let mode = settings.analysisMode
+        if mode == .miBox {
+            guard let config = settings.miBoxLLMConfig else { throw MiBoxError.analysisNotConfigured }
+            do { return try await work(config) }
+            catch { throw MiBoxError.requestFailed(error.localizedDescription) }
+        }
+        let cloud = cloudConfig, localReady = localLLMReady
+        let serverPath = settings.llamaServerPath, selection = settings.localAnalysisModel
         var lastError: Error = AnalyzerError.notConfigured
-        if settings.analysisMode != .local, let cloud = cloudConfig {
+        if mode != .local, let cloud {
             do { return try await work(cloud) } catch {
                 lastError = error
                 addLog("云端分析模型失败：\(error.localizedDescription)")
             }
         }
-        if settings.analysisMode != .cloud, localLLMReady {
+        if mode != .cloud, localReady {
             do {
-                let local = try await LocalLLM.shared.ensureRunning(serverPath: settings.llamaServerPath)
-                return try await work(local)
+                return try await LocalLLM.shared.withRunning(serverPath: serverPath, selection: selection, work: work)
             } catch {
                 lastError = error
                 addLog("本机分析模型失败：\(error.localizedDescription)")
@@ -141,21 +148,30 @@ extension BeanStore {
             do {
                 let segments: [Segment], engine: String
                 refreshASRAvailability()
-                if settings.engine == .cloud || viaCloud.contains(id), let asr = settings.asrConfig {
+                let useMiBox = settings.engine == .miBox && !viaCloud.contains(id)
+                if useMiBox || viaCloud.contains(id) || (settings.engine == .cloud && settings.asrConfig != nil) {
+                    guard let asr = useMiBox ? settings.miBoxASRConfig : settings.asrConfig else {
+                        if useMiBox { throw MiBoxError.transcriptionNotConfigured }
+                        throw CloudASRError.badURL
+                    }
                     // 云端转写：录音会发给用户自己填的那家服务商
                     segments = try await CloudASR.transcribe(wavURL(id), config: asr, language: settings.language) { fraction in
                         Task { @MainActor [weak self] in
                             if case .transcribing = self?.stages[id] { self?.stages[id] = .transcribing(fraction) }
                         }
                     }
-                    engine = "云端 · \(asr.model)"
-                } else if settings.engine == .qwen, asrAvailable {
-                    segments = try await QwenASR.shared.transcribe(wavURL(id), serverPath: settings.llamaServerPath) { fraction in
+                    engine = "\(useMiBox ? String(localized: "密盒") : "云端") · \(asr.model)"
+                } else if settings.engine == .qwen, asrAvailable || settings.localASRModel.funASR != nil {
+                    let selection = settings.localASRModel
+                    if selection.funASR != nil, !asrAvailable {
+                        throw ASRError.startFailed(localASRReadinessHint ?? String(localized: "本机转写程序还没准备好。"))
+                    }
+                    segments = try await QwenASR.shared.transcribe(wavURL(id), serverPath: settings.llamaServerPath, selection: selection) { fraction in
                         Task { @MainActor [weak self] in
                             if case .transcribing = self?.stages[id] { self?.stages[id] = .transcribing(fraction) }
                         }
                     }
-                    engine = QwenASR.displayName
+                    engine = selection.asrName
                 } else {
                     let text = try await Transcriber.transcribe(wavURL(id), language: settings.language)
                     segments = text.isEmpty ? [] : [Segment(start: 0, text: text)]
@@ -164,6 +180,7 @@ extension BeanStore {
                 guard let i = index(id) else { return }
                 recordings[i].segments = segments.map { Segment(start: $0.start, text: applyVocabulary($0.text)) }
                 recordings[i].transcript = recordings[i].segments.map(\.text).joined(separator: "\n")
+                recordings[i].translation = nil
                 recordings[i].transcribedBy = engine
                 saveLibrary()
             } catch {
@@ -188,19 +205,24 @@ extension BeanStore {
             saveLibrary()
             return
         }
-        stages[id] = .analyzing
         let fixed = recordings[i].sceneLocked ? recordings[i].scene : nil
+        stages[id] = .analyzing
+        await QwenASR.shared.stop()
         var result: Analysis
         refreshASRAvailability()
-        if analysisAvailable {
-            // 转写模型和分析模型不同时占内存
-            await QwenASR.shared.stop()
+        let useMiBoxAnalysis = settings.analysisMode == .miBox
+        if analysisAvailable || useMiBoxAnalysis {
             let profession = settings.profession, duration = rec.duration
             do {
                 result = try await withLLM { config in
-                    try await Analyzer.analyze(transcript: transcript, duration: duration, profession: profession, fixedScene: fixed, config: config)
+                    return try await Analyzer.analyze(transcript: transcript, duration: duration, profession: profession, fixedScene: fixed, config: config)
                 }
             } catch {
+                if error is MiBoxError {
+                    problem = Problem(title: String(localized: "「\(rec.displayTitle)」没出完整纪要"),
+                                      detail: error.localizedDescription, action: .settings)
+                    return
+                }
                 problem = Problem(title: String(localized: "「\(rec.displayTitle)」没出完整纪要"), detail: String(localized: "分析模型这次没接通，先按关键词粗略分了类。\n原因：\(error.localizedDescription)\n检查一下设置里的分析模型，然后在这条录音上点「重新整理纪要」。"), action: .settings)
                 result = Analyzer.fallback(transcript: spoken, duration: rec.duration, fixedScene: fixed)
             }
@@ -233,13 +255,19 @@ extension BeanStore {
         guard !raw.isEmpty, raw.contains(where: { $0.clean == nil }) else { return }
         guard result.source != "关键词规则" else {
             // 没有分析模型时，至少用规则把语气词去掉
-            for n in recordings[j].segments.indices { recordings[j].segments[n].clean = stripFillers(recordings[j].segments[n].text) }
+            for n in recordings[j].segments.indices where recordings[j].segments[n].clean == nil {
+                recordings[j].segments[n].clean = stripFillers(recordings[j].segments[n].text)
+            }
+            recordings[j].translation = nil
             saveLibrary()
             return
         }
         if let cleaned = try? await withLLM({ config in try await Analyzer.polish(raw.map(\.text), config: config) }),
            let k = index(id), recordings[k].segments.count == cleaned.count {
-            for n in cleaned.indices where !cleaned[n].isEmpty { recordings[k].segments[n].clean = applyVocabulary(cleaned[n]) }
+            for n in cleaned.indices where !cleaned[n].isEmpty && raw[n].clean == nil && recordings[k].segments[n] == raw[n] {
+                recordings[k].segments[n].clean = applyVocabulary(cleaned[n])
+                recordings[k].translation = nil
+            }
             saveLibrary()
         }
     }
@@ -256,7 +284,13 @@ extension BeanStore {
         let old = clean ? (recordings[i].segments[n].clean ?? recordings[i].segments[n].text) : recordings[i].segments[n].text
         let text = newText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard text != old, !text.isEmpty else { return }
-        if clean { recordings[i].segments[n].clean = text } else { recordings[i].segments[n].text = text }
+        if clean {
+            recordings[i].segments[n].clean = text
+        } else {
+            recordings[i].segments[n].text = text
+            recordings[i].segments[n].clean = nil
+        }
+        recordings[i].translation = nil
         recordings[i].transcript = recordings[i].segments.map(\.text).joined(separator: "\n")
         saveLibrary()
         if let (wrong, right) = Self.changedSpan(from: old, to: text) {
@@ -545,7 +579,7 @@ extension BeanStore {
     func beginLiveTranscript(reset: Bool = true) {
         refreshASRAvailability()
         guard settings.liveTranscribe, asrAvailable, encryptionReady, pull == nil, live == nil else {
-            liveNote = settings.liveTranscribe && !asrAvailable ? String(localized: "还没有转写模型，这次不能实时出字。") : nil
+            liveNote = settings.liveTranscribe && !asrAvailable ? localASRReadinessHint : nil
             return
         }
         var capture = LiveCapture()
@@ -572,7 +606,7 @@ extension BeanStore {
         }
         liveTask?.cancel()
         liveTask = Task { [weak self] in
-            await QwenASR.shared.warmUp(serverPath: server)
+            await QwenASR.shared.warmUp(serverPath: server, selection: self?.settings.localASRModel ?? .qwen)
             var cursor: UInt32?            // 下一段从哪一帧开始
             var origin: UInt32?            // 这次录音收到的第一帧，用来算时间
             while let self, self.liveActive, !Task.isCancelled {
@@ -654,7 +688,7 @@ extension BeanStore {
         }
         livePending = Double(Int(n) - cut) * 0.02
         guard Self.hasSpeech(piece) else { return }                         // 这一段没人说话，不送去识别
-        guard let text = try? await QwenASR.shared.transcribe(samples: piece, serverPath: settings.llamaServerPath),
+        guard let text = try? await QwenASR.shared.transcribe(samples: piece, serverPath: settings.llamaServerPath, selection: settings.localASRModel),
               !text.isEmpty, !Self.isFiller(text) else { return }
         liveSegments.append(Segment(start: Double(start - base) * 0.02, text: applyVocabulary(text)))
         addLog("实时转写 [\(clock(Double(start - base) * 0.02))] \(cut) 帧：\(text)")
@@ -883,7 +917,7 @@ extension BeanStore {
         panel.canChooseDirectories = false
         panel.allowedContentTypes = [.audio, .movie, .plainText, .text]
         panel.prompt = String(localized: "导入")
-        panel.message = String(localized: "选择录音文件（m4a、mp3、wav 等）或文字文件，豆仓会转写并整理。")
+        panel.message = String(localized: "选择录音文件（m4a、mp3、wav 等）或文字文件，密盒助手会转写并整理。")
         guard panel.runModal() == .OK else { return }
         panel.urls.forEach { importFile($0, consume: false) }
     }
@@ -1004,45 +1038,99 @@ extension BeanStore {
         ModelFile(name: QwenASR.modelName, repo: "ggml-org/Qwen3-ASR-0.6B-GGUF", revision: "928ab958557df9aa2ef1c93e0e83c7ad0933fae2",
                   size: 804_749_248, sha256: "bca259818b50ca7c4c05e9bdb35a5dc04fa039653a6d6f3f0f331f96f6aa1971"),
     ]
+    /// 转写模型：Gemma 4 E2B BF16（约 10.3 GB），固定版本，SHA‑256 校验。
+    static let gemmaFiles = [
+        ModelFile(name: LocalLLM.gemmaProjectorName, repo: "ggml-org/gemma-4-E2B-it-GGUF", revision: "2a8538c2e2d4687953a86c422c7c623cfd022880",
+                  size: 986_833_696, sha256: "81a9cc75a12f1cd9fa91d69896794e1791489c423a59fbf0d50cf5ad633493c0"),
+        ModelFile(name: LocalLLM.gemmaFileName, repo: "ggml-org/gemma-4-E2B-it-GGUF", revision: "2a8538c2e2d4687953a86c422c7c623cfd022880",
+                  size: 9_311_299_520, sha256: "64fd524bfc9d53be67c27a63ddd98df0930883a4bcb855f8bc60470f6c4ef5ee"),
+    ]
+
     /// 本机整理模型：Qwen3‑4B Q4_K_M（约 2.5 GB）。
     static let llmFiles = [
         ModelFile(name: LocalLLM.fileName, repo: "Qwen/Qwen3-4B-GGUF", revision: "bc640142c66e1fdd12af0bd68f40445458f3869b",
                   size: 2_497_280_256, sha256: "7485fe6f11af29433bc51cab58009521f205840f5b4ae3a32fa7f92e8534fdf5"),
     ]
 
-    /// 下载（或接着下载）转写模型。断了从断点接着下，HuggingFace 慢就换国内镜像。
+    private enum ModelDownload: CaseIterable { case qwenASR, qwenLLM, gemma, paraformer, nano }
+
+    private func downloadJob(_ kind: ModelDownload) -> DownloadJob? {
+        switch kind {
+        case .qwenASR: qwenASRJob
+        case .qwenLLM: qwenLLMJob
+        case .gemma: gemmaJob
+        case .paraformer: paraformerJob
+        case .nano: nanoASRJob
+        }
+    }
+
+    private func setDownloadJob(_ job: DownloadJob?, for kind: ModelDownload) {
+        switch kind {
+        case .qwenASR: qwenASRJob = job
+        case .qwenLLM: qwenLLMJob = job
+        case .gemma: gemmaJob = job
+        case .paraformer: paraformerJob = job
+        case .nano: nanoASRJob = job
+        }
+    }
+
+    private func makeDownloadJob(_ kind: ModelDownload) -> DownloadJob {
+        let files: [ModelFile] = switch kind {
+        case .qwenASR: Self.asrFiles
+        case .qwenLLM: Self.llmFiles
+        case .gemma: Self.gemmaFiles
+        case .paraformer: FunASRModel.paraformer.files
+        case .nano: FunASRModel.nano.files
+        }
+        let folder: URL = switch kind {
+        case .qwenASR: QwenASR.modelFolder
+        case .qwenLLM, .gemma: LocalLLM.folder
+        case .paraformer: FunASRModel.paraformer.directory
+        case .nano: FunASRModel.nano.directory
+        }
+        let job = DownloadJob(files: files, folder: folder)
+        job.onFinish = { [weak self, weak job] ok in
+            guard let self, self.downloadJob(kind) === job else { return }
+            self.setDownloadJob(nil, for: kind)
+            self.refreshASRAvailability()
+            if ok { self.addLog("本机模型下载好了") }
+        }
+        return job
+    }
+
+    private func startDownload(_ kind: ModelDownload) {
+        let job = downloadJob(kind) ?? makeDownloadJob(kind)
+        setDownloadJob(job, for: kind)
+        job.start()
+    }
+
     func downloadASRModel() {
-        if let job = asrJob { job.start(); return }
-        let job = DownloadJob(files: Self.asrFiles, folder: QwenASR.modelFolder)
-        job.onFinish = { [weak self] ok in self?.asrJob = nil; self?.refreshASRAvailability(); if ok { self?.addLog("转写模型下载好了") } }
-        asrJob = job
-        job.start()
+        let kind: ModelDownload = switch settings.localASRModel {
+        case .qwen: .qwenASR
+        case .gemma: .gemma
+        case .paraformer: .paraformer
+        case .nano: .nano
+        }
+        startDownload(kind)
     }
 
-    /// 下载（或接着下载）本机整理模型。
+    func localASRSelectionChanged() {
+        refreshASRAvailability()
+        let selection = settings.localASRModel
+        guard selection.funASR != nil, !QwenASR.modelInstalled(selection: selection), asrJob == nil else { return }
+        downloadASRModel()
+    }
+
     func downloadLocalLLM() {
-        if let job = llmJob { job.start(); return }
-        let job = DownloadJob(files: Self.llmFiles, folder: LocalLLM.folder)
-        job.onFinish = { [weak self] ok in self?.llmJob = nil; self?.refreshASRAvailability(); if ok { self?.addLog("本机整理模型下载好了") } }
-        llmJob = job
-        job.start()
+        startDownload(settings.localAnalysisModel == .gemma ? .gemma : .qwenLLM)
     }
 
-    /// 上次没下完的（模型文件夹里有 .part），打开设置时显示成「已暂停」，点继续就接着下。
     func restorePausedDownloads() {
-        func paused(_ files: [ModelFile], _ folder: URL) -> DownloadJob? {
-            guard files.contains(where: { FileManager.default.fileExists(atPath: DownloadJob.part($0, in: folder).path) }) else { return nil }
-            let job = DownloadJob(files: files, folder: folder)
+        for kind in ModelDownload.allCases where downloadJob(kind) == nil {
+            let job = makeDownloadJob(kind)
+            guard job.files.contains(where: { FileManager.default.fileExists(atPath: DownloadJob.part($0, in: job.folder).path) }) else { continue }
             job.state = .paused
-            return job
-        }
-        if asrJob == nil, let j = paused(Self.asrFiles, QwenASR.modelFolder) {
-            j.onFinish = { [weak self] _ in self?.asrJob = nil; self?.refreshASRAvailability() }
-            asrJob = j
-        }
-        if llmJob == nil, let j = paused(Self.llmFiles, LocalLLM.folder) {
-            j.onFinish = { [weak self] _ in self?.llmJob = nil; self?.refreshASRAvailability() }
-            llmJob = j
+            setDownloadJob(job, for: kind)
         }
     }
 
@@ -1083,6 +1171,18 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
             NSApp.activate(ignoringOtherApps: true)
             #endif
             if let id { NotificationCenter.default.post(name: Self.open, object: UInt32(id)) }
+        }
+    }
+}
+
+nonisolated enum MiBoxError: LocalizedError {
+    case transcriptionNotConfigured, analysisNotConfigured, requestFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .transcriptionNotConfigured: String(localized: "请在模型设置中填写有效的密盒转写接口地址和模型。")
+        case .analysisNotConfigured: String(localized: "请在模型设置中填写有效的密盒分析接口地址和模型。")
+        case .requestFailed(let reason): String(localized: "密盒请求失败：\(reason)")
         }
     }
 }

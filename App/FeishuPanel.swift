@@ -15,7 +15,7 @@ struct FeishuPanel: View {
                 case .noTool:
                     hint(String(localized: "这台 Mac 没装飞书命令行工具 lark-cli。在终端里运行 npm install -g @larksuite/cli，再运行 lark-cli config init 和 lark-cli auth login --domain minutes 授权后回来点「现在检查」。"))
                 case .notLoggedIn:
-                    hint(String(localized: "还没授权豆仓读取你的飞书妙记。在终端里运行 lark-cli auth login --domain minutes，在浏览器里确认后回来点「现在检查」。"))
+                    hint(String(localized: "还没授权密盒助手读取你的飞书妙记。在终端里运行 lark-cli auth login --domain minutes，在浏览器里确认后回来点「现在检查」。"))
                 case .failed(let why):
                     hint(String(localized: "没连上飞书：\(why)"))
                 default:
@@ -23,11 +23,11 @@ struct FeishuPanel: View {
                 }
                 actions
                 if sync.audioDenied {
-                    Text("飞书没给音频：你的飞书应用还没开通「导出妙记音视频」权限，先拉回的是飞书的文字稿。开通后再拉，就能拿到音频、由豆仓自己转写。")
+                    Text("飞书没给音频：你的飞书应用还没开通「导出妙记音视频」权限，先拉回的是飞书的文字稿。开通后再拉，就能拿到音频、由密盒助手自己转写。")
                         .font(.caption).foregroundStyle(Theme.amber).fixedSize(horizontal: false, vertical: true)
                 }
                 Divider().overlay(Theme.warm200.opacity(0.6))
-                Text("拉回来的录音来源标成「飞书」。有音频的由豆仓自己转写整理；拿不到音频时先用飞书的文字稿。")
+                Text("拉回来的录音来源标成「飞书」。有音频的由密盒助手自己转写整理；拿不到音频时先用飞书的文字稿。")
                     .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -40,7 +40,7 @@ struct FeishuPanel: View {
                 .frame(width: 40, height: 40).background(Theme.warm100, in: .rect(cornerRadius: Theme.Radius.card))
             VStack(alignment: .leading, spacing: 4) {
                 Text("飞书妙记").font(.system(size: 15, weight: .bold)).foregroundStyle(Theme.warm900)
-                Text("手机上的录音豆 App 把录音同步到飞书后，录音豆上就没有了。豆仓从飞书把它们拉回来。")
+                Text("手机上的设备配套 App 把录音同步到飞书后，密盒上就没有了。密盒助手从飞书把它们拉回来。")
                     .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 12)
@@ -122,10 +122,10 @@ struct FeishuPanel: View {
                 Text("新的").font(.caption.weight(.medium)).foregroundStyle(Theme.accent)
                     .padding(.horizontal, 8).padding(.vertical, 3).background(Theme.accent.opacity(0.12), in: .capsule)
             case .inLibrary(let id):
-                Button { nav.route = .all; nav.selection = id } label: { Label("已在豆仓", systemImage: "checkmark") }
+                Button { nav.route = .all; nav.selection = id } label: { Label("已在密盒助手", systemImage: "checkmark") }
                     .buttonStyle(.plain).font(.caption).foregroundStyle(.secondary).help("打开这条录音")
             case .removed:
-                Text("拉回后删掉了").font(.caption).foregroundStyle(.tertiary).help("在豆仓里删掉过，不会再自动拉回")
+                Text("拉回后删掉了").font(.caption).foregroundStyle(.tertiary).help("在密盒助手里删掉过，不会再自动拉回")
             case .skipped:
                 Text("没要").font(.caption).foregroundStyle(.tertiary)
             case .pulling:

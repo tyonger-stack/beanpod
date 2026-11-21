@@ -215,7 +215,7 @@ struct KeepCard: View {
                     Text("\(clock(just.seconds)) · 来自 \(just.from)").font(.callout).foregroundStyle(.secondary).monospacedDigit()
                 }
             }
-            Text(discarding ? (just.onMac ? "马上从这台 iPhone 上删掉，删了找不回来。" : "马上从录音豆里删掉，删了找不回来。")
+            Text(discarding ? (just.onMac ? "马上从这台 iPhone 上删掉，删了找不回来。" : "马上从密盒里删掉，删了找不回来。")
                  : (store.settings.autoProcess ? "留着的话，会自动转成文字并整理成纪要。" : "留着的话，它会出现在录音列表里。"))
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             if discarding {
@@ -331,7 +331,7 @@ struct RecordingRow: View {
         if !recording.textOnly { parts.append(clock(recording.duration)) }
         else if recording.recordedOn != .note { parts.append("文字") }
         if let scene = recording.scene { parts.append(scene.name) }
-        else if !recording.downloaded { parts.append("还在录音豆里") }
+        else if !recording.downloaded { parts.append("还在密盒里") }
         else if recording.transcript == nil { parts.append("还没转成文字") }
         else if !recording.isAnalyzed { parts.append("还没整理") }
         return parts.joined(separator: " • ")

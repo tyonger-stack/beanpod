@@ -60,15 +60,15 @@ extension BeanStore {
         var waited = 0.0
         while wifiReply == nil, waited < 15, link == .ready { try? await Task.sleep(for: .milliseconds(100)); waited += 0.1 }
         guard let r = wifiReply?.raw, r[4] & 0x0F == 1, r.count >= 15 else {
-            note("录音豆没有打开 Wi‑Fi：\(wifiReply.map { $0.raw.hex } ?? "没有回包")")
+            note("密盒没有打开 Wi‑Fi：\(wifiReply.map { $0.raw.hex } ?? "没有回包")")
             wifi = nil
-            problem = Problem(title: String(localized: "录音豆没能打开 Wi‑Fi"), detail: String(localized: "这次改用蓝牙下载。可以把录音豆从充电盒里拿出来、放在电脑旁边再试。"))
+            problem = Problem(title: String(localized: "密盒没能打开 Wi‑Fi"), detail: String(localized: "这次改用蓝牙下载。可以把密盒放在电脑旁边，确认连接后再试。"))
             ids.forEach { download($0) }
             return
         }
         let ip = "\(r[12]).\(r[11]).\(r[10]).\(r[9])"
         let port = Int(r[13]) | (Int(r[14]) << 8)
-        note("录音豆的地址 \(ip):\(port)")
+        note("密盒的地址 \(ip):\(port)")
 
         // 从这里开始动了网络：后面无论如何都要走到「恢复」
         let session = sessionCrypto
@@ -96,7 +96,7 @@ extension BeanStore {
             wifi?.phase = .connecting
             (failure, stored) = await pullAll(ids, ip: ip, port: port, session: session, note: note)
         } else {
-            failure = String(localized: "这台 Mac 没能连上录音豆的 Wi‑Fi")
+            failure = String(localized: "这台 Mac 没能连上密盒的 Wi‑Fi")
         }
 
         // 4. 恢复 Wi‑Fi 和蓝牙
@@ -157,7 +157,7 @@ extension BeanStore {
             }
             return err
         }
-        if let err = await connect() { return (String(localized: "连不上录音豆（\(err)）"), stored) }
+        if let err = await connect() { return (String(localized: "连不上密盒（\(err)）"), stored) }
         // 只用于自测断线续传：收到这么多个切片后故意把连接掐断一次
         var testCut = UserDefaults.standard.integer(forKey: "wifiDebugCutAfterSlices")
 
@@ -208,7 +208,7 @@ extension BeanStore {
                                 note("\(id)：文件头到了（等了 \(String(format: "%.1f", Date.now.timeIntervalSince(asked))) 秒），长 \(p.raw.count)，结果码 \(code)，文件编号\(headID == id ? "对得上" : "是 \(headID)，不是这一条")")
                                 guard headID == id else { continue }
                                 headSeen = true
-                                if code == 1 || code == 2 { note("\(id)：录音豆说这个文件不在了或读不了（\(code)）"); skip = true; break receive }
+                                if code == 1 || code == 2 { note("\(id)：密盒说这个文件不在了或读不了（\(code)）"); skip = true; break receive }
                                 if let head = FileHead(packet: p) {
                                     expected = head.audioBytes ?? expected
                                     decryptor = session.fileDecryptor(head: head)
@@ -244,7 +244,7 @@ extension BeanStore {
                                 s.sendText(Command.wifiDoneText())
                                 break receive
                             case (0x1A, 0x06):
-                                return await finish(String(localized: "录音豆开始录音了，快传中止"))
+                                return await finish(String(localized: "密盒开始录音了，快传中止"))
                             default:
                                 note("\(id)：其他帧 \(p.raw.prefix(20).hex)（长 \(p.raw.count)）")
                             }
@@ -258,7 +258,7 @@ extension BeanStore {
                 guard reconnects <= 2 else { return await finish(String(localized: "连接反复中断")) }
                 // 末尾可能是半截，退回到整帧
                 data = data.prefix(data.count / OggOpus.frameSize * OggOpus.frameSize)
-                if let err = await connect() { return (String(localized: "重连不上录音豆（\(err)）"), stored) }
+                if let err = await connect() { return (String(localized: "重连不上密盒（\(err)）"), stored) }
             }
             if skip { continue }
 
@@ -413,7 +413,7 @@ nonisolated final class WiFiSocket: @unchecked Sendable {
                 switch meta.opcode {
                 case .text: self.push(.text(String(decoding: data ?? Data(), as: UTF8.self)))
                 case .binary: self.push(.binary(data ?? Data()))
-                case .close: self.push(.closed("录音豆关了连接")); return
+                case .close: self.push(.closed("密盒关了连接")); return
                 default: break
                 }
             }

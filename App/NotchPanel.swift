@@ -20,9 +20,8 @@ final class NotchPanel {
     var notchSize = CGSize(width: 0, height: 24)
     /// 菜单「录音」里可以关掉
     var visible = UserDefaults.standard.object(forKey: "notchPanel") as? Bool ?? true
-    /// 正在播的动画（开始录音时探头、录完打印胶片），和开始的时刻
+    /// 录音开始和结束时短暂显示的状态。
     var show: Show?
-    var showStart = Date.distantPast
 
     struct Clip: Equatable {
         var url: String
@@ -40,11 +39,9 @@ final class NotchPanel {
     @ObservationIgnored private var clickMonitor: Any?
     @ObservationIgnored private var localMonitor: Any?
     @ObservationIgnored private var showEnd: Task<Void, Never>?
-    @ObservationIgnored private var sampler: Task<Void, Never>?
-    /// 这次录音一路记下来的音量，录完印在胶片上
-    @ObservationIgnored private var wave: [Float] = []
-    @ObservationIgnored private var lastElapsed: TimeInterval = 0
-    /// 动画开始和结束的那一下窗口直接换大小，不走 0.3 秒的过渡（画面自己在动）
+    @ObservationIgnored private var recordingSince: Date?
+    @ObservationIgnored private var elapsedBase: TimeInterval = 0
+    /// 状态提示直接调整窗口大小，照片不做缩放动画。
     @ObservationIgnored private var instantResize = false
 
     func attach(_ store: BeanStore) {
@@ -133,7 +130,7 @@ final class NotchPanel {
     func hover(_ inside: Bool) {
         collapseTask?.cancel()
         if inside {
-            guard show == nil else { return }       // 动画播着的时候不展开
+            guard show == nil else { return }
             if !expanded { refreshClip(); expanded = true }
         } else if !pinned {
             // 稍等一下再收：鼠标从刘海滑进面板的那一瞬间会先出后进
@@ -169,59 +166,36 @@ final class NotchPanel {
         clip = Clip(url: url, platform: LinkTools.platform(of: url), title: title, author: author)
     }
 
-    // MARK: 动画
-
-    /// 录音开始、结束时由面板调用
     func recStateChanged(from old: BeanStore.RecState, to new: BeanStore.RecState) {
-        if old == .idle, new != .idle {
-            startSampling()
-            play(.peek)
-        } else if old != .idle, new == .idle {
-            sampler?.cancel()
-            play(.printing(Ticket(title: String(localized: "录音 · \(NotchView.clock(lastElapsed))"), date: .now, wave: wave)))
+        if new == .idle {
+            let elapsed = elapsedBase + (recordingSince.map { max(0, Date.now.timeIntervalSince($0)) } ?? 0)
+            recordingSince = nil
+            elapsedBase = 0
+            if old != .idle { play(.recordingEnded(elapsed: elapsed, preview: false)) }
+        } else {
+            recordingSince = store?.recordingSince
+            elapsedBase = store?.elapsedBase ?? 0
+            if old == .idle { play(.recordingStarted(preview: false)) }
         }
     }
 
-    /// 菜单「小豆」里看看效果
-    func preview(peek: Bool) {
-        let demo: [Float] = (0..<60).map { i -> Float in
-            let x = Double(i)
-            let v: Double = abs(sin(x * 0.37) * sin(x * 0.11 + 1))
-            return Float(0.2 + 0.8 * v)
-        }
-        play(peek ? .peek : .printing(Ticket(title: String(localized: "录音 · \("00:48")"), date: .now, wave: demo)))
+    func preview(started: Bool) {
+        play(started ? .recordingStarted(preview: true) : .recordingEnded(elapsed: 48, preview: true))
     }
 
-    func play(_ s: Show) {
-        guard visible, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion else { return }
+    private func play(_ state: Show) {
+        guard visible else { return }
         collapseTask?.cancel()
         expanded = false
         pinned = false
         instantResize = true
-        show = s
-        showStart = .now
-        if case .printing = s { PrintSound.shared.play() }
+        show = state
         showEnd?.cancel()
-        guard Self.freezeAt == nil else { return }      // 定格调试时一直停在那一帧
         showEnd = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(s.duration))
-            guard let self, !Task.isCancelled, self.show == s else { return }
+            try? await Task.sleep(for: .seconds(state.duration))
+            guard let self, !Task.isCancelled, self.show == state else { return }
             self.instantResize = true
             self.show = nil
-        }
-    }
-
-    /// 录音时每 0.4 秒记一下音量和时长：结束那一刻录音状态已经清零，读不到了
-    private func startSampling() {
-        wave = []
-        lastElapsed = 0
-        sampler?.cancel()
-        sampler = Task { [weak self] in
-            while !Task.isCancelled, let self, let store = self.store, store.recState != .idle {
-                if store.recState == .recording { self.wave.append(store.liveLevels.suffix(6).max() ?? 0) }
-                self.lastElapsed = store.elapsed(at: .now)
-                try? await Task.sleep(for: .milliseconds(400))
-            }
         }
     }
 
@@ -270,13 +244,11 @@ struct NotchView: View {
     /// 各个样子要多大的窗口
     private var target: CGSize {
         let n = panel.notchSize
-        switch panel.show {
-        case .peek: return CGSize(width: n.width + 2 * 92, height: n.height + 100)
-        case .printing: return CGSize(width: max(n.width, 150) + 230, height: n.height + 300)
-        case nil: break
+        if panel.show != nil {
+            return CGSize(width: max(320, n.width + 184), height: n.height + 102)
         }
         if panel.expanded {
-            var h = n.height + 84
+            var h = n.height + 92
             if panel.clip != nil { h += 66 }
             if job != nil { h += 40 }
             return CGSize(width: max(360, n.width + 170), height: h)
@@ -289,7 +261,7 @@ struct NotchView: View {
         let size = target
         Group {
             if let show = panel.show {
-                NotchShowView(show: show, start: panel.showStart, notch: panel.notchSize, size: size, ears: AnyView(ears))
+                NotchShowView(show: show, notch: panel.notchSize, size: size)
             } else {
                 panelBody(size)
             }
@@ -334,14 +306,14 @@ struct NotchView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 22, height: 22)
+            DevicePhotoView().frame(width: 30, height: 30).accessibilityHidden(true)
             if store.link == .ready {
                 Text(store.displayDeviceName).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                 Circle().fill(Theme.ok).frame(width: 6, height: 6).padding(.leading, 2)
                 Text(store.info.map { String(localized: "已连接 · 电量 \($0.micBattery)%") } ?? String(localized: "已连接"))
                     .font(.system(size: 12)).foregroundStyle(.white.opacity(0.6))
             } else {
-                Text(store.recordingOnMac ? "正在用这台 Mac 录" : "录音豆没连上 · 可以用这台 Mac 录")
+                Text(store.recordingOnMac ? "正在用这台 Mac 录" : "密盒没连上 · 可以用这台 Mac 录")
                     .font(.system(size: 12)).foregroundStyle(.white.opacity(0.6))
             }
             Spacer(minLength: 0)
@@ -355,7 +327,7 @@ struct NotchView: View {
         case .idle:
             HStack(spacing: 8) {
                 if store.link == .ready {
-                    pill(String(localized: "用录音豆录"), primary: true) { Circle().fill(.white).frame(width: 7, height: 7) } action: { store.startRecording() }
+                    pill(String(localized: "用密盒录"), primary: true) { Circle().fill(.white).frame(width: 7, height: 7) } action: { store.startRecording() }
                 }
                 pill(String(localized: "用 Mac 录"), primary: store.link != .ready) {
                     Image(systemName: "laptopcomputer").font(.system(size: 10, weight: .semibold))
@@ -472,7 +444,10 @@ struct NotchView: View {
 
     private var timer: some View {
         TimelineView(.periodic(from: .now, by: 1)) { ctx in
-            Text(Self.clock(store.elapsed(at: ctx.date))).monospacedDigit()
+            let elapsed = store.elapsed(at: ctx.date)
+            Text(Self.clock(elapsed)).monospacedDigit()
+                .accessibilityLabel("已录时长")
+                .accessibilityValue(spokenDuration(elapsed))
         }
     }
 
@@ -482,31 +457,21 @@ struct NotchView: View {
     }
 }
 
-/// 耳朵里的小声波：有实时音量就用实时音量，没有就做个轻微的起伏，表示在录。
+/// 显示实际音量；没有音量数据时保持静止。
 private struct Bars: View {
     let levels: [Float]
     let live: Bool
     let color: Color
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 0.12, paused: !live)) { ctx in
-            let t = ctx.date.timeIntervalSinceReferenceDate
-            HStack(alignment: .center, spacing: 2) {
-                ForEach(0..<9, id: \.self) { i in
-                    Capsule().fill(color).frame(width: 2.5, height: max(2, 12 * height(i, t)))
-                }
+        let recent = Array(levels.suffix(9))
+        HStack(alignment: .center, spacing: 2) {
+            ForEach(0..<9, id: \.self) { index in
+                let level = live && recent.indices.contains(index) ? CGFloat(recent[index]) : 0
+                Capsule().fill(color).frame(width: 2.5, height: max(2, 12 * min(1, max(0, level * 6))))
             }
         }
-    }
-
-    private func height(_ i: Int, _ t: Double) -> CGFloat {
-        guard live else { return 0.15 }
-        let recent = levels.suffix(9)
-        if recent.count == 9 {
-            let v = CGFloat(recent[recent.index(recent.startIndex, offsetBy: i)])
-            return min(1, max(0.15, v * 6))
-        }
-        return 0.3 + 0.5 * CGFloat(abs(sin(t * 5 + Double(i) * 0.9)))
+        .accessibilityHidden(true)
     }
 }
 

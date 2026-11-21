@@ -25,7 +25,7 @@ nonisolated final class SystemAudioTap: NSObject, SCStreamOutput, SCStreamDelega
         let filter = SCContentFilter(display: display, excludingWindows: [])
         let config = SCStreamConfiguration()
         config.capturesAudio = true
-        config.excludesCurrentProcessAudio = true      // 不把豆仓自己放的声音录进去
+        config.excludesCurrentProcessAudio = true      // 不把密盒助手自己放的声音录进去
         config.sampleRate = 48000
         config.channelCount = 2
         // 画面用不上：开到最小、最慢，省电

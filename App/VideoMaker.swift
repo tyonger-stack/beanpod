@@ -2,13 +2,8 @@ import AppKit
 import AVFoundation
 import SwiftUI
 
-/// 把一篇口播稿做成带完整包装的数字人口播视频。
-///
-/// 豆仓自己不剪，也不在后台跑模型：整条片子交给 Claude 桌面版——在里面新开一个 Claude Code 会话（工作目录就是这条视频的
-/// 工程文件夹，提示词已经填好），由它按 Renoise MCP 上托管的两个 skill 做：
-/// ai-avatar（写稿、分镜、生成数字人出镜段、检查、拼成 A-roll）→ talking-head-editor（在 Renoise 云端沙盒里
-/// 粗剪、字幕花字、信息卡、画中画、B-roll、音效音乐、渲染质检）。报价和确认都在 Claude 对话里，用的是用户桌面版的账号。
-/// 豆仓负责三件事：让用户选风格和主播、把任务交过去、盯着工程文件夹里的 quote/progress/result 把进度和成片接回来。
+/// 建立口播视频工程，交由用户在 TeleAgent 中发送任务并确认报价。
+/// 通过工程目录的 quote/progress/result 文件接回进度和成片。
 @Observable
 final class VideoMaker {
     /// talking-head-editor 的包装风格。
@@ -62,7 +57,7 @@ final class VideoMaker {
     static let steps = [String(localized: "生成口播"), String(localized: "检查拼接"), String(localized: "剪辑规划"),
                         String(localized: "包装配乐"), String(localized: "渲染质检"), String(localized: "下载交付")]
 
-    /// waiting：已交给 Claude 桌面版，等它规划报价；quoted：报价出来了，等用户在 Claude 里确认；producing：确认后在出片。
+    /// waiting 等待用户发送任务及报价，quoted 等待用户确认，producing 表示已收到进度。
     enum Phase: Equatable { case idle, choosing, waiting, quoted, producing, finished(URL), failed(String) }
 
     static let renoiseMCP = "https://renoise.ai/api/public/mcp"
@@ -80,8 +75,7 @@ final class VideoMaker {
     var stepIndex = 0
     var stepDetail = ""
     var started: Date?
-    var claudeAppMissing = false
-    var renoiseMCPMissing = false
+    var teleAgentAppMissing = false
     var setupNote = ""
 
     var recording: UInt32 = 0
@@ -97,8 +91,8 @@ final class VideoMaker {
     /// 录音页上那一行的说明
     var statusLine: String {
         switch phase {
-        case .waiting: String(localized: "已交给 Claude 桌面版，等它规划报价…")
-        case .quoted: String(localized: "报价出来了，在 Claude 里回复确认就开始")
+        case .waiting: String(localized: "等待在 TeleAgent 发送任务并规划报价…")
+        case .quoted: String(localized: "报价出来了，在 TeleAgent 里回复确认就开始")
         case .producing: String(localized: "正在做视频：\(stepIndex > 0 ? Self.steps[min(stepIndex, Self.steps.count) - 1] : String(localized: "准备"))…")
         default: ""
         }
@@ -106,7 +100,7 @@ final class VideoMaker {
 
     // MARK: 准备
 
-    /// 打开「做成视频」时调用：读主播、按稿子推荐风格、看看 Claude 桌面版和 Renoise MCP 在不在。
+    /// 读取主播、推荐风格并检查 TeleAgent 是否安装。
     func prepare(text: String, recording: UInt32, title: String, template: String) {
         guard !busy else { pending = (text, recording, title, template); return }
         pending = nil
@@ -122,8 +116,7 @@ final class VideoMaker {
     }
 
     func checkSetup() {
-        claudeAppMissing = Self.claudeApp == nil
-        renoiseMCPMissing = !Self.renoiseMCPConfigured
+        teleAgentAppMissing = Self.teleAgentApp == nil
     }
 
     func loadHosts() {
@@ -135,13 +128,13 @@ final class VideoMaker {
         if hosts.contains(where: { !$0.usable || $0.face == nil }) { Task { await library.refreshFaces() } }
     }
 
-    // MARK: 交给 Claude 桌面版
+    // MARK: 交给 TeleAgent
 
-    /// 建工程文件夹、写好任务说明，然后在 Claude 桌面版里新开一个会话。不花积分：报价出来后要用户在 Claude 里点头才生成。
+    /// 建工程文件夹、写好任务说明，然后打开 TeleAgent。不花积分：报价出来后要用户在 TeleAgent 里点头才生成。
     func start(store: BeanStore) {
         guard let host, host.usable, !busy else { return }
         checkSetup()
-        guard !claudeAppMissing else { return }
+        guard !teleAgentAppMissing else { return }
         let stamp = Int(Date.now.timeIntervalSince1970)
         let folder = Self.jobsRoot(store).appendingPathComponent("\(recording)-\(stamp)", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
@@ -160,31 +153,42 @@ final class VideoMaker {
                    to: folder.appendingPathComponent("job.json"))
         let header = "Job folder (absolute): \(folder.path)\nEvery ./ path below means a file in this job folder. If your working directory is somewhere else, cd here first or use the absolute path.\n\n"
         try? (header + Self.task).write(to: folder.appendingPathComponent("TASK.md"), atomically: true, encoding: .utf8)
-        store.addLog("做视频：交给 Claude 桌面版（\(style.name) · \(ratio) · \(host.name) · \(model)），工程在 \(folder.path)")
+        store.addLog("做视频：工程已准备，等待用户在 TeleAgent 发送（\(style.name) · \(ratio) · \(host.name) · \(model)），工程在 \(folder.path)")
         phase = .waiting
         started = .now
         openSession()
         Task { await watch(store) }
     }
 
-    /// 在 Claude 桌面版里新开 Claude Code 会话：工作目录是工程文件夹，提示词填好，用户按发送开始。
     func openSession() {
+        showTeleAgent()
+    }
+
+    func copyTask() {
         guard let job else { return }
-        var c = URLComponents()
-        c.scheme = "claude"; c.host = "code"; c.path = "/new"
-        c.queryItems = [URLQueryItem(name: "folder", value: job.path), URLQueryItem(name: "q", value: Self.prompt(job))]
-        if let url = c.url { NSWorkspace.shared.open(url) }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(Self.prompt(job), forType: .string)
+        setupNote = String(localized: "任务指令已复制。在 TeleAgent 新建会话，选择工程目录，粘贴后发送。")
     }
 
-    /// 切回 Claude 桌面版（报价确认、看它在做什么）。
-    func showClaude() {
-        if let app = Self.claudeApp { NSWorkspace.shared.openApplication(at: app, configuration: .init()) }
+    func showTeleAgent() {
+        guard let app = Self.teleAgentApp else {
+            setupNote = String(localized: "未找到 TeleAgent，请先安装并登录。")
+            return
+        }
+        NSWorkspace.shared.openApplication(at: app, configuration: .init()) { _, error in
+            if let error {
+                Task { @MainActor in
+                    self.setupNote = String(localized: "TeleAgent 打开失败：\(error.localizedDescription)")
+                }
+            }
+        }
     }
 
-    /// 不再跟这一条：Claude 里那个会话要在 Claude 里自己停。
+    /// 不再跟这一条：TeleAgent 里那个会话要在 TeleAgent 里自己停。
     func abandon(store: BeanStore) {
         if let job { FileManager.default.createFile(atPath: job.appendingPathComponent(".closed").path, contents: nil) }
-        store.addLog("做视频：豆仓不再跟进 \(job?.lastPathComponent ?? "")")
+        store.addLog("做视频：密盒助手不再跟进 \(job?.lastPathComponent ?? "")")
         job = nil
         quote = nil; stepIndex = 0; stepDetail = ""; started = nil
         phase = .idle
@@ -199,7 +203,7 @@ final class VideoMaker {
         }
     }
 
-    /// 交出去很久还没动静：多半是 Claude 里没按发送，或者那边停了
+    /// 交出去很久还没动静：多半是 TeleAgent 里没按发送，或者那边停了
     var stalledMinutes: Int? {
         guard let started else { return nil }
         let minutes = Int(Date.now.timeIntervalSince(started) / 60)
@@ -217,15 +221,10 @@ final class VideoMaker {
         if let job { NSWorkspace.shared.activateFileViewerSelecting([job]) }
     }
 
-    /// 给 Claude Code 加上 Renoise MCP（用户范围）。只加地址，不放任何密钥：第一次用时用户在 Claude 里 /mcp 自己登录。
-    func connectRenoiseMCP() async {
-        guard let claude = Self.claudePath else {
-            setupNote = String(localized: "没找到命令行版 claude，没法自动加。可以在 Claude 桌面版里自己加 MCP：\(Self.renoiseMCP)")
-            return
-        }
-        let r = await Self.shell("'\(claude)' mcp add --transport http --scope user renoise \(Self.renoiseMCP)")
-        checkSetup()
-        setupNote = renoiseMCPMissing ? String(localized: "没加上：\(Self.tail(r.output))") : String(localized: "加好了。第一次用时 Claude 会让你输入 /mcp 登录 Renoise。")
+    func copyRenoiseMCP() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(Self.renoiseMCP, forType: .string)
+        setupNote = String(localized: "Renoise MCP 地址已复制。请在 TeleAgent 的 MCP 设置中添加并登录授权。")
     }
 
     // MARK: 跟进度
@@ -286,7 +285,7 @@ final class VideoMaker {
                 if let error = q["error"] as? String { phase = .failed(error); continue }
                 quote = Self.parseQuote(q)
                 phase = .quoted
-                store.addLog("做视频：报价 \(Int(quote?.credits ?? 0)) 积分，\(quote?.segments ?? 0) 段 \(quote?.seconds ?? 0) 秒，等用户在 Claude 里确认")
+                store.addLog("做视频：报价 \(Int(quote?.credits ?? 0)) 积分，\(quote?.segments ?? 0) 段 \(quote?.seconds ?? 0) 秒，等用户在 TeleAgent 里确认")
             }
         }
     }
@@ -335,7 +334,7 @@ final class VideoMaker {
         let out = store.folder.appendingPathComponent(name)
         do { try fm.copyItem(at: local, to: out) } catch { close(String(localized: "成片拷不进录音库：\(error.localizedDescription)")); return }
         var c = clip(file: name)
-        // 封面：Claude 给了就用它的，没给就从成片里取一帧
+        // 封面：TeleAgent 给了就用它的，没给就从成片里取一帧
         let coverName = "\(rec)-video-\(stamp).jpg"
         let coverOut = store.folder.appendingPathComponent(coverName)
         if let given = (r["cover"] as? String).map({ $0.hasPrefix("/") ? URL(fileURLWithPath: $0) : folder.appendingPathComponent($0) }),
@@ -390,46 +389,29 @@ final class VideoMaker {
         store.folder.deletingLastPathComponent().appendingPathComponent("Videos", isDirectory: true)
     }
 
-    static var claudeApp: URL? {
-        NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.anthropic.claudefordesktop")
-            ?? (FileManager.default.fileExists(atPath: "/Applications/Claude.app") ? URL(fileURLWithPath: "/Applications/Claude.app") : nil)
+    static var teleAgentApp: URL? {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.teleai.superagent")
+            ?? (FileManager.default.fileExists(atPath: "/Applications/TeleAgent.app") ? URL(fileURLWithPath: "/Applications/TeleAgent.app") : nil)
     }
 
-    static var claudePath: String? {
-        let home = FileManager.default.homeDirectoryForCurrentUser.path
-        return ["\(home)/.local/bin/claude", "/opt/homebrew/bin/claude", "/usr/local/bin/claude", "\(home)/.claude/local/claude"]
-            .first { FileManager.default.isExecutableFile(atPath: $0) }
-    }
-
-    /// Claude Code 的用户配置里有没有接 Renoise MCP（任意名字，只看地址）
-    static var renoiseMCPConfigured: Bool {
-        let config = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".claude.json")
-        guard let servers = readJSON(config)?["mcpServers"] as? [String: Any] else { return false }
-        return servers.values.contains { ($0 as? [String: Any])?["url"] as? String == renoiseMCP }
-    }
-
-    // MARK: 给 Claude 的话
-
-    /// 填进 Claude 输入框的那句话（用户看得到，按发送才开始）
-    /// 带上工程文件夹的完整路径：Claude 桌面版打开新会话时不一定用链接里给的文件夹（实测落在了桌面），不能靠「当前目录」
     private static func prompt(_ job: URL) -> String {
-        "这是豆仓发来的视频任务。工程文件夹：\(job.path)\n先 cd 到这个文件夹，照里面的 TASK.md，用 Renoise MCP 的 ai-avatar 和 talking-head-editor 两个 skill，把 source.md 这篇口播稿做成带完整包装的数字人口播视频。先规划报价，我确认了再花积分。"
+        "这是密盒助手发来的视频任务。工程文件夹：\(job.path)\n先 cd 到这个文件夹，照里面的 TASK.md，用 Renoise MCP 的 ai-avatar 和 talking-head-editor 两个 skill，把 source.md 这篇口播稿做成带完整包装的数字人口播视频。先规划报价，我确认了再花积分。"
     }
 
     private static let task = """
-    # BeanPod video job
+    # Mi Box Assistant video job
 
-    This job was started from the BeanPod app (豆仓). The user is in this conversation: talk to them in Simplified Chinese, briefly.
+    This job was started from the Mi Box Assistant (密盒助手). The user is in this conversation: talk to them in Simplified Chinese, briefly.
 
     Goal: turn the Chinese talking-head script in ./source.md into a finished, fully packaged AI-avatar talking-head video, using the Renoise MCP tools and the Renoise hosted skills:
     ai-avatar (script and performance, takes, generate, check, join the A-roll) → talking-head-editor (rough cut, sentence-by-sentence edit plan, captions and keyword big text, info cards, picture-in-picture, B-roll, sound effects, music, render, QA, in the Renoise cloud sandbox).
-    ./brief.json holds what the user already chose in BeanPod: edit style, aspect ratio, model, host reference material, platform, sandbox project folder. Those are the answers to the skills' clarifying questions; do not ask them again.
-    BeanPod watches this folder for ./quote.json, ./progress.json and ./result.json, so always write them exactly as below.
+    ./brief.json holds what the user already chose in Mi Box Assistant: edit style, aspect ratio, model, host reference material, platform, sandbox project folder. Those are the answers to the skills' clarifying questions; do not ask them again.
+    Mi Box Assistant watches this folder for ./quote.json, ./progress.json and ./result.json, so always write them exactly as below.
 
     ## 0. Renoise MCP
-    Use the Renoise MCP tools (mcp__renoise__*). If they are not available or the server needs sign-in:
-    - First check the Renoise CLI: run `renoise account status` (it may be at ~/.local/bin/renoise). If it shows a balance, the CLI is already signed in: do not wait for the MCP. Read `renoise contract` and `renoise model` to learn the commands and prices, and do the same job with the CLI (`renoise task create`, `renoise task wait`/`get`, `renoise upload`); do the edit locally in this folder instead of the cloud sandbox. If ~/.claude/skills/digital-human-koubo/SKILL.md exists, follow that skill for writing, takes, generation, checks and packaging instead of ai-avatar / talking-head-editor. The quote-before-spending rule below still applies, and so do the files BeanPod watches.
-    - Only if the CLI is missing or not signed in, tell the user in one line: 输入 /mcp，选 renoise 登录授权，好了回我一句。 Then wait.
+    Use the Renoise MCP tools available in TeleAgent. If they are not available or the server needs sign-in:
+    - First check the Renoise CLI: run `renoise account status` (it may be at ~/.local/bin/renoise). If it shows a balance, the CLI is already signed in: do not wait for the MCP. Read `renoise contract` and `renoise model` to learn the commands and prices, and do the same job with the CLI (`renoise task create`, `renoise task wait`/`get`, `renoise upload`); do the edit locally in this folder instead of the cloud sandbox. The quote-before-spending rule below still applies, and so do the files Mi Box Assistant watches.
+    - Only if the CLI is missing or not signed in, tell the user in one line: 请在 TeleAgent 的 MCP 设置中连接 Renoise 并登录授权，好了回我一句。 Then wait.
     Never ask for, print or store API keys or tokens yourself.
 
     ## 1. Plan and quote (no credits)
@@ -452,7 +434,7 @@ final class VideoMaker {
     Each time you start a stage, overwrite ./progress.json with {"index": n, "total": 6, "step": "<name>", "detail": "<one short Chinese sentence>"}.
     Stages in order: 1 生成口播, 2 检查拼接, 3 剪辑规划, 4 包装配乐, 5 渲染质检, 6 下载交付.
     While the sandbox engineer works, check its PROGRESS.md at least every 5 minutes (the sandbox pauses after 15 idle minutes) and keep progress.json current.
-    When done, write ./result.json: {"video": "out/final.mp4", "cover": "out/cover.jpg (a frame or the designed cover; optional)", "seconds": n, "material": "Renoise material id of the final cut", "credits_spent": n, "script": "成片里实际念的口播全文，一段一行", "summary": "一两句中文：用了哪些包装", "checks": "一句中文：质检结果"}, and tell the user it is in BeanPod.
+    When done, write ./result.json: {"video": "out/final.mp4", "cover": "out/cover.jpg (a frame or the designed cover; optional)", "seconds": n, "material": "Renoise material id of the final cut", "credits_spent": n, "script": "成片里实际念的口播全文，一段一行", "summary": "一两句中文：用了哪些包装", "checks": "一句中文：质检结果"}, and tell the user it is in Mi Box Assistant.
     On any blocker, write ./result.json {"error": "一句中文原因", "credits_spent": n}; never stop silently.
     """
 
@@ -502,7 +484,7 @@ final class VideoMaker {
     }
 }
 
-/// 「做成视频」：选风格和主播 → 交给 Claude 桌面版（报价、确认都在那边）→ 这里跟进度，成片自动回来。
+/// 「做成视频」：选风格和主播 → 交给 TeleAgent（报价、确认都在那边）→ 这里跟进度，成片自动回来。
 struct VideoSheet: View {
     @Environment(BeanStore.self) private var store
     @Environment(VideoMaker.self) private var maker
@@ -515,10 +497,10 @@ struct VideoSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
-                MascotView(mood: maker.busy ? .writing : .idle, power: .mid).frame(width: 64, height: 64).accessibilityHidden(true)
+                DevicePhotoView().frame(width: 64, height: 64).accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("做成数字人口播").font(.system(size: 22, weight: .bold, design: .rounded))
-                    Text("交给 Claude 桌面版，用 Renoise 的数字人和口播剪辑 skill 一条龙做：写稿、生成出镜、在 Renoise 云端剪辑包装（字幕花字、信息卡、B-roll、音乐），成片自动回到这里。")
+                    Text("交给 TeleAgent，用 Renoise 的数字人和口播剪辑 skill 一条龙做：写稿、生成出镜、在 Renoise 云端剪辑包装（字幕花字、信息卡、B-roll、音乐），成片自动回到这里。")
                         .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -587,25 +569,25 @@ struct VideoSheet: View {
                 .labelsHidden().frame(width: 300)
             }
         }
-        if maker.claudeAppMissing {
-            Label("这台 Mac 上没装 Claude 桌面版，做视频要靠它。", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.accent)
-        } else if maker.renoiseMCPMissing {
+        if maker.teleAgentAppMissing {
+            Label("这台 Mac 上没装 TeleAgent，做视频要靠它。", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.accent)
+        } else {
             HStack {
-                Label("Claude 里还没接 Renoise MCP。", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.accent)
+                Label("请确认 TeleAgent 已连接 Renoise MCP。", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.accent)
                 Spacer()
-                Button("接上 Renoise MCP") { Task { await maker.connectRenoiseMCP() } }
+                Button("复制 MCP 地址") { maker.copyRenoiseMCP() }
             }
         }
         if !maker.setupNote.isEmpty { Text(maker.setupNote).font(.callout).foregroundStyle(.secondary) }
         Divider()
         HStack {
-            Text(maker.recording == 0 ? "这是预览，不能提交。要做视频，从录音的「改写」页打开" : maker.hosts.isEmpty ? "先添加一个主播" : "会在 Claude 桌面版新开一个会话，报价确认后才花积分")
+            Text(maker.recording == 0 ? "这是预览，不能提交。要做视频，从录音的「改写」页打开" : maker.hosts.isEmpty ? "先添加一个主播" : "请在 TeleAgent 新建会话并粘贴任务，报价确认后才花积分")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Spacer()
             Button("先不做") { dismiss() }
             if maker.library.busy { ProgressView().controlSize(.small) }
-            Button("交给 Claude 做") { Task { await handOff() } }
-                .buttonStyle(.glassProminent).disabled(maker.recording == 0 || maker.host?.usable != true || maker.claudeAppMissing || maker.library.busy)
+            Button("交给 TeleAgent 做") { Task { await handOff() } }
+                .buttonStyle(.glassProminent).disabled(maker.recording == 0 || maker.host?.usable != true || maker.teleAgentAppMissing || maker.library.busy)
         }
         .controlSize(.large)
         .sheet(isPresented: $addingHost) {
@@ -619,17 +601,17 @@ struct VideoSheet: View {
                 renaming = nil
             }
         }
-        .confirmationDialog("从豆仓移除「\(removing?.name ?? "")」？", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })) {
+        .confirmationDialog("从密盒助手移除「\(removing?.name ?? "")」？", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } })) {
             Button("移除", role: .destructive) {
                 if let h = removing { maker.library.remove(h); if maker.host?.id == h.id { maker.host = nil }; maker.loadHosts() }
                 removing = nil
             }
         } message: {
-            Text("只从豆仓里去掉。这张照片在你 Renoise 账号里的素材不会被删除。")
+            Text("只从密盒助手里去掉。这张照片在你 Renoise 账号里的素材不会被删除。")
         }
     }
 
-    /// 示例主播第一次用时先传到用户自己的 Renoise 账号，再交给 Claude。
+    /// 示例主播第一次用时先传到用户自己的 Renoise 账号，再交给 TeleAgent。
     private func handOff() async {
         guard var h = maker.host else { return }
         if h.material.isEmpty {
@@ -642,7 +624,7 @@ struct VideoSheet: View {
             maker.host = up
             maker.setupNote = ""
             guard up.usable else {
-                maker.setupNote = String(localized: "示例主播已经传上去了，Renoise 正在审核人像，过一会儿再点「交给 Claude 做」。")
+                maker.setupNote = String(localized: "示例主播已经传上去了，Renoise 正在审核人像，过一会儿再点「交给 TeleAgent 做」。")
                 return
             }
         }
@@ -670,22 +652,23 @@ struct VideoSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 ProgressView().controlSize(.small)
-                Text("已交给 Claude 桌面版").font(.headline)
+                Text("工程已准备好，等待 TeleAgent 报价").font(.headline)
                 Spacer()
                 if let start = maker.started { Text(start, style: .timer).monospacedDigit().foregroundStyle(.secondary) }
             }
             VStack(alignment: .leading, spacing: 6) {
-                step(1, String(localized: "在 Claude 里按发送。"))
-                step(2, String(localized: "第一次用会让你输入 /mcp 登录 Renoise，登好回它一句。"))
+                step(1, String(localized: "点击「复制任务指令」，在 TeleAgent 新建会话并选择工程目录。"))
+                step(2, String(localized: "粘贴任务指令后发送；首次使用请在 TeleAgent 的 MCP 设置中连接 Renoise 并登录。"))
                 step(3, String(localized: "它写稿、逐项核价，报价会同时显示在这里，不花积分。"))
             }
             .padding(12).panel(radius: Theme.Radius.card)
             TimelineView(.periodic(from: .now, by: 30)) { _ in
                 if let m = maker.stalledMinutes {
-                Label("交出去 \(m) 分钟了还没有报价。在 Claude 里按发送了吗？没看到那个会话就点「再开一次」。", systemImage: "exclamationmark.circle")
+                Label("交出去 \(m) 分钟了还没有报价。请在 TeleAgent 新建会话、粘贴任务指令并发送。", systemImage: "exclamationmark.circle")
                     .font(.callout).foregroundStyle(Theme.accent).fixedSize(horizontal: false, vertical: true)
                 }
             }
+            if !maker.setupNote.isEmpty { Text(maker.setupNote).font(.callout).foregroundStyle(.secondary) }
             footer(stop: true)
         }
     }
@@ -721,7 +704,7 @@ struct VideoSheet: View {
                 ForEach(q.notes, id: \.self) { note in
                     Label(note, systemImage: "exclamationmark.triangle.fill").font(.callout).foregroundStyle(Theme.accent).fixedSize(horizontal: false, vertical: true)
                 }
-                Label("要做就在 Claude 对话里回复确认，它按这个报价加 10% 余量封顶。豆仓会自动跟进度。", systemImage: "bubble.left.and.text.bubble.right")
+                Label("要做就在 TeleAgent 对话里回复确认，它按这个报价加 10% 余量封顶。密盒助手会自动跟进度。", systemImage: "bubble.left.and.text.bubble.right")
                     .font(.callout).fixedSize(horizontal: false, vertical: true)
                 Text("视频由 AI 生成，出镜的是数字人。发出去之前请自己看一遍，并按平台要求标明「内容由 AI 生成」。")
                     .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
@@ -746,7 +729,7 @@ struct VideoSheet: View {
             }
             TimelineView(.periodic(from: .now, by: 30)) { _ in
                 if let m = maker.stalledMinutes {
-                Label("已经 \(m) 分钟没有新进度了，回 Claude 看看是不是停下来在等你。", systemImage: "exclamationmark.circle")
+                Label("已经 \(m) 分钟没有新进度了，回 TeleAgent 看看是不是停下来在等你。", systemImage: "exclamationmark.circle")
                     .font(.callout).foregroundStyle(Theme.accent).fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -759,11 +742,11 @@ struct VideoSheet: View {
             Button("工程目录") { maker.showProject() }.buttonStyle(.borderless)
             if stop {
                 Button("不跟这条了") { maker.abandon(store: store) }.buttonStyle(.borderless)
-                    .help("豆仓不再跟进这条。Claude 里那个会话要在 Claude 里停")
+                    .help("密盒助手不再跟进这条。TeleAgent 里那个会话要在 TeleAgent 里停")
             }
             Spacer()
-            if maker.phase == .waiting { Button("没打开？再开一次") { maker.openSession() } }
-            Button("回到 Claude") { maker.showClaude() }
+            if maker.phase == .waiting { Button("复制任务指令") { maker.copyTask() } }
+            Button("回到 TeleAgent") { maker.showTeleAgent() }
             Button("关闭") { dismiss() }.buttonStyle(.glassProminent)
         }
         .controlSize(.large)

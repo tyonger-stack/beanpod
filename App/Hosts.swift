@@ -271,16 +271,16 @@ struct HostCard: View {
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }
-        .contextMenu { Button("改名…", action: onRename); Button("从豆仓移除", role: .destructive, action: onRemove) }
+        .contextMenu { Button("改名…", action: onRename); Button("从密盒助手移除", role: .destructive, action: onRemove) }
         .accessibilityLabel("主播 \(host.name)，\(host.ratio)\(host.isSample ? String(localized: "，示例") : "")\(picked ? String(localized: "，已选中") : "")")
         .accessibilityAction(named: "改名", onRename)
-        .accessibilityAction(named: "从豆仓移除", onRemove)
+        .accessibilityAction(named: "从密盒助手移除", onRemove)
     }
 
     private var menu: some View {
         Menu {
             Button("改名…", action: onRename)
-            Button("从豆仓移除", role: .destructive, action: onRemove)
+            Button("从密盒助手移除", role: .destructive, action: onRemove)
         } label: {
             Image(systemName: "ellipsis").font(.system(size: 12, weight: .bold)).frame(width: 26, height: 20)
                 .background(.regularMaterial, in: .capsule)

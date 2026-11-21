@@ -28,12 +28,13 @@ xcrun swiftc -sdk "$SDK" -target $TARGET -swift-version 6 -parse-as-library -Ono
   Shared/*.swift Mobile/*.swift -o $APP/BeanPod
 
 echo "③ 资源"
-cp Shared/MascotArt/*.png $APP/
+rm -f "$APP"/xiaodou_*.png(N)
+cp Shared/Assets.xcassets/MiBox.imageset/MiBox.png "$APP/MiBox.png"
 # 图标：资源目录要对应版本的模拟器系统才能编，这里直接缩两张图放进去（强调色在代码里另有一份，见 Theme）
 sips -z 120 120 Mobile/Assets.xcassets/AppIcon.appiconset/icon_1024.png --out "$APP/AppIcon60x60@2x.png" >/dev/null
 sips -z 180 180 Mobile/Assets.xcassets/AppIcon.appiconset/icon_1024.png --out "$APP/AppIcon60x60@3x.png" >/dev/null
 /usr/libexec/PlistBuddy -x -c "Print" Mobile/Info.plist > $APP/Info.plist
-for kv in "CFBundleExecutable BeanPod" "CFBundleIdentifier com.andyhu.beanpod.mobile" "CFBundleName BeanPod" \
+for kv in "CFBundleExecutable BeanPod" "CFBundleIdentifier com.andyhu.beanpod.mobile" "CFBundleName 密盒助手" \
           "CFBundlePackageType APPL" "CFBundleShortVersionString 0.1.0" "CFBundleVersion 1" "MinimumOSVersion 18.0"; do
   k=${kv%% *}; v=${kv#* }
   /usr/libexec/PlistBuddy -c "Set :$k $v" $APP/Info.plist 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :$k string $v" $APP/Info.plist

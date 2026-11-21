@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 总览：小豆和一句话，下面是要做的事和最近的录音。
+/// 总览：设备照片与当前状态、待办和最近的录音。
 struct HomeView: View {
     @Environment(BeanStore.self) private var store
     var open: (UInt32) -> Void
@@ -21,7 +21,7 @@ struct HomeView: View {
 
     private var hero: some View {
         HStack(alignment: .center, spacing: 6) {
-            MascotView(mood: mood, power: store.mascotPower).frame(width: 150, height: 150)
+            DevicePhotoView().frame(width: 150, height: 150)
             VStack(alignment: .leading, spacing: 6) {
                 Text(greeting).font(.system(size: 38, weight: .bold, design: .rounded))
                 Text(line).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
@@ -42,7 +42,7 @@ struct HomeView: View {
                 }
                 if toDownload > 0 {
                     HStack {
-                        Label("录音豆里有 \(toDownload) 条还没下载", systemImage: "arrow.down.circle")
+                        Label("密盒里有 \(toDownload) 条还没下载", systemImage: "arrow.down.circle")
                         Spacer()
                         Button("全部下载") { store.downloadAll() }.disabled(store.pull != nil || !store.encryptionReady)
                     }
@@ -117,15 +117,6 @@ struct HomeView: View {
         }
     }
 
-    private var mood: MascotMood {
-        if store.isRecording { return .listening }
-        if let stage = store.stages.values.first {
-            if case .transcribing = stage { return .writing }
-            return .thinking
-        }
-        return store.link == .ready ? .idle : .sleeping
-    }
-
     private var line: String {
         if store.isRecording { return store.recordingOnMac ? "在听，用的是这台 iPhone 的麦克风。" : "在听，你说。" }
         if let stage = store.stages.values.first {
@@ -135,10 +126,10 @@ struct HomeView: View {
             case .queued: return "马上就来。"
             }
         }
-        if store.pull != nil { return "正在从录音豆里往外搬录音…" }
+        if store.pull != nil { return "正在从密盒里往外搬录音…" }
         let todo = store.openTodos.count
         if todo > 0 { return "有 \(todo) 件事等你处理" }
-        if store.link != .ready { return "录音豆没连上。想现在就录，用这台 iPhone 也行。" }
-        return "录音豆连着，随时可以开始。"
+        if store.link != .ready { return "密盒没连上。想现在就录，用这台 iPhone 也行。" }
+        return "密盒连着，随时可以开始。"
     }
 }

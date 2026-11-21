@@ -128,6 +128,9 @@ extension BeanStore {
                     translating[rid] = Double(out.count) / Double(lines.count)
                 }
                 guard let i = recordings.firstIndex(where: { $0.id == rid }) else { return }
+                let current = recordings[i]
+                let currentLines = current.segments.isEmpty ? [current.transcript ?? ""] : current.segments.map { $0.clean ?? $0.text }
+                guard currentLines == lines, current.segments.map(\.start) == rec.segments.map(\.start) else { return }
                 recordings[i].translation = Translation(language: language, style: style.name, lines: out, model: model)
                 saveLibrary()
                 addLog("翻译完成 \(rid)：\(out.count) 句，模型 \(model)")

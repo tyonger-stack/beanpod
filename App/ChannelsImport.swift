@@ -25,7 +25,7 @@ extension BeanStore {
 
         let file = Self.cookieFile(platform)
         guard let cookie = ChannelsAPI.cookieHeader(file) else {
-            addLog("视频号要先在豆仓里扫码登录腾讯元宝")
+            addLog("视频号要先在密盒助手里扫码登录腾讯元宝")
             linkLogin = LinkLoginRequest(platform: platform, url: url, hint: known)
             return
         }
@@ -41,7 +41,7 @@ extension BeanStore {
                                   detail: String(localized: "\(known)刚登录的腾讯元宝没解析出这条视频\(why.isEmpty ? "" : "（\(why)）")。可能这条作品不让在网页上看，过一会儿再试。"))
             } else {
                 try? FileManager.default.removeItem(at: file)
-                linkLogin = LinkLoginRequest(platform: platform, url: url, hint: String(localized: "\(known)上次在豆仓登录的腾讯元宝过期了，再扫一次码。"))
+                linkLogin = LinkLoginRequest(platform: platform, url: url, hint: String(localized: "\(known)上次在密盒助手登录的腾讯元宝过期了，再扫一次码。"))
             }
         case .failed(let why):
             addLog("视频号导入失败：\(why)")

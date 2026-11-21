@@ -70,13 +70,13 @@ struct RecordStage: View {
             }
             .buttonStyle(.glass)
             .keyboardShortcut(.cancelAction)
-            .help("收起舞台，回到豆仓。录音不会停（Esc）")
+            .help("收起舞台，回到密盒助手。录音不会停（Esc）")
         }
     }
 
     private var timer: some View {
         HStack(alignment: .center, spacing: 22) {
-            MascotView(mood: paused ? .idle : .listening, power: .mid, level: paused ? nil : level)
+            DevicePhotoView()
                 .frame(width: 230, height: 230)
                 .accessibilityHidden(true)
             TimelineView(.periodic(from: .now, by: 0.1)) { context in
@@ -108,7 +108,7 @@ struct RecordStage: View {
             } else if !store.liveActive {
                 Text("没开实时转写，这里不出字，声音也画不出来。录音照常在录。").font(.title3).foregroundStyle(Theme.paper.opacity(0.45))
             } else {
-                Text(store.liveLevelTotal == 0 ? "等录音豆把声音传过来…" : "在听…").font(.title3).foregroundStyle(Theme.paper.opacity(0.45))
+                Text(store.liveLevelTotal == 0 ? "等密盒把声音传过来…" : "在听…").font(.title3).foregroundStyle(Theme.paper.opacity(0.45))
             }
         }
         .frame(maxWidth: 760, minHeight: 64, alignment: .top).frame(maxWidth: .infinity)
@@ -154,7 +154,7 @@ struct RecordStage: View {
             }
             .buttonStyle(.glass).tint(Theme.amber).controlSize(.extraLarge)
             .disabled(paused)
-            .help("这句话很重要：打个标记，回听时一点就到（⌘D）。在录音豆上按标记键也一样")
+            .help("这句话很重要：打个标记，回听时一点就到（⌘D）。在密盒上按标记键也一样")
 
             Button { paused ? store.resumeRecording() : store.pauseRecording() } label: {
                 Label(paused ? "继续" : "暂停", systemImage: paused ? "play.fill" : "pause.fill").padding(.horizontal, 10)

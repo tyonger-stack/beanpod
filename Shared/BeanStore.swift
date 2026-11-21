@@ -13,7 +13,7 @@ final class BeanStore {
     // 连接
     var link: BLEClient.Link = .idle
     var found: [FoundDevice] = []
-    var deviceName = String(localized: "录音豆")
+    var deviceName = String(localized: "密盒")
     /// 界面上显示的名字：用户起过名就用用户的。
     var displayDeviceName: String { settings.deviceAlias.isEmpty ? deviceName : settings.deviceAlias }
     /// 这次录音是什么时候开始的，用来显示已录时长。
@@ -97,6 +97,7 @@ final class BeanStore {
     var rewriting: Set<UInt32> = []
     /// 正在让 AI 重新起标题的录音。
     var retitling: Set<UInt32> = []
+    @ObservationIgnored var titleEditRevisions: [UInt32: UUID] = [:]
     /// 正在翻译的录音，和翻到第几成了（0…1）。
     var translating: [UInt32: Double] = [:]
     /// 正在做英语学习整理的录音（Study.swift）
@@ -134,8 +135,20 @@ final class BeanStore {
     /// 这一批从什么时候开始处理的；都处理完了为空
     var batchSince: Date?
     /// 模型下载（ModelDownloader.swift）：转写模型、本机整理模型各一个。
-    var asrJob: DownloadJob?
-    var llmJob: DownloadJob?
+    var qwenASRJob: DownloadJob?
+    var qwenLLMJob: DownloadJob?
+    var gemmaJob: DownloadJob?
+    var paraformerJob: DownloadJob?
+    var nanoASRJob: DownloadJob?
+    var asrJob: DownloadJob? {
+        switch settings.localASRModel {
+        case .qwen: qwenASRJob
+        case .gemma: gemmaJob
+        case .paraformer: paraformerJob
+        case .nano: nanoASRJob
+        }
+    }
+    var llmJob: DownloadJob? { settings.localAnalysisModel == .gemma ? gemmaJob : qwenLLMJob }
     var modelDownload: Double? { asrJob?.fraction }
     var llmDownload: Double? { llmJob?.fraction }
     /// 正在保存或下载画面的素材（VideoKeep.swift）。
@@ -144,8 +157,38 @@ final class BeanStore {
     var videoRevision = 0
     /// 正在用 Homebrew 装 llama.cpp 时的进度说明；nil 表示没在装。
     var serverInstall: String?
-    var localLLMReady = false
-    var asrAvailable = false
+    var modelAvailabilityRevision = 0
+    var localLLMReady: Bool {
+        _ = modelAvailabilityRevision
+        return QwenASR.locateServer(custom: settings.llamaServerPath) != nil && LocalLLM.modelURL(selection: settings.localAnalysisModel) != nil
+    }
+    var asrAvailable: Bool {
+        _ = modelAvailabilityRevision
+        return QwenASR.runtimeAvailable(selection: settings.localASRModel, serverPath: settings.llamaServerPath)
+            && QwenASR.modelInstalled(selection: settings.localASRModel)
+    }
+
+    var localASRReadinessHint: String? {
+        _ = modelAvailabilityRevision
+        let selection = settings.localASRModel
+        guard QwenASR.modelInstalled(selection: selection) else {
+            if let job = asrJob {
+                switch job.state {
+                case .running: return String(localized: "\(selection.asrName) 正在下载，完成后才能转写。")
+                case .verifying: return String(localized: "\(selection.asrName) 正在校验，完成后才能转写。")
+                case .paused: return String(localized: "\(selection.asrName) 下载已暂停，请到设置中继续下载。")
+                case .failed(let reason): return String(localized: "\(selection.asrName) 下载失败：\(reason)")
+                }
+            }
+            return String(localized: "\(selection.asrName) 还没下载，请到设置中下载模型。")
+        }
+        guard QwenASR.runtimeAvailable(selection: selection, serverPath: settings.llamaServerPath) else {
+            return selection.funASR != nil
+                ? String(localized: "应用中缺少 FunASR 转写程序，请重新安装完整版本。")
+                : String(localized: "本机转写运行程序还没准备好，请到设置中安装或指定 llama-server。")
+        }
+        return nil
+    }
 
     // 知识库问答
     var answer: String?
@@ -218,14 +261,6 @@ final class BeanStore {
 
     /// 录音豆是不是在充电盒里（在盒里时它在充电）。
     var inCase: Bool { info?.micCharging == true }
-    /// 从菜单「小豆」里临时指定一个样子来看效果；nil 表示跟着真实状态走
-    var mascotPreview: (mood: MascotMood, power: MascotPower)?
-    /// 小豆该摆出哪种电量状态
-    var mascotPower: MascotPower {
-        if let mascotPreview { return mascotPreview.power }
-        guard link == .ready, let info else { return .unknown }
-        return MascotPower(battery: info.micBattery, charging: info.micCharging)
-    }
     var log: [String] = []
 
     @ObservationIgnored private let ble = BLEClient()
@@ -311,7 +346,7 @@ final class BeanStore {
             if let self, self.link == .idle { self.scan() }
             self?.card.scanBriefly()
         }
-        addLog("豆仓启动，本地录音 \(recordings.count) 条")
+        addLog("密盒助手启动，本地录音 \(recordings.count) 条")
     }
 
     // MARK: 连接
@@ -366,8 +401,8 @@ final class BeanStore {
     private func linkChanged(_ new: BLEClient.Link) {
         let old = link
         link = new
-        if new == .ready, old != .ready { toast("checkmark.circle.fill", String(localized: "录音豆已连接")); Self.chime() }
-        if old == .ready, new != .ready, wifi == nil { toast("wifi.slash", String(localized: "录音豆已断开")) }
+        if new == .ready, old != .ready { toast("checkmark.circle.fill", String(localized: "密盒已连接")); Self.chime() }
+        if old == .ready, new != .ready, wifi == nil { toast("wifi.slash", String(localized: "密盒已断开")) }
         poller?.cancel()
         guard new == .ready else {
             if let job { failPull(job.id, String(localized: "连接断开，下载中断")) }
@@ -521,7 +556,7 @@ final class BeanStore {
     /// 以前只把状态改成「没在录」，列表里那条还挂着「正在录 · 还在录音豆里」，要手动刷新、手动下载。
     /// 现在：收掉实时出字，按设置问一句留不留，然后重新列一遍、把它下载下来转写整理。
     func deviceStopped(file: UInt32, finished: Bool, seconds: TimeInterval = 0) {
-        addLog("录音豆自己停止了录音（\(finished ? "结束" : "停下")）：\(file)")
+        addLog("密盒自己停止了录音（\(finished ? "结束" : "停下")）：\(file)")
         liveFlush = true
         if !liveMarks.isEmpty, let since = sessionStart {
             pendingMarks.append((since, file, liveMarks))
@@ -589,10 +624,10 @@ final class BeanStore {
         guard let old, old != new else { return }
         if new {
             let pending = recordings.filter { $0.onDevice && !$0.downloaded && !$0.inProgress }.count
-            toast("battery.100percent.bolt", pending > 0 && settings.autoDownload ? String(localized: "已放回充电盒，开始同步 \(pending) 条录音") : String(localized: "已放回充电盒，正在充电"))
+            toast("battery.100percent.bolt", pending > 0 && settings.autoDownload ? String(localized: "已开始充电，开始同步 \(pending) 条录音") : String(localized: "正在充电"))
             if settings.autoDownload { pullWhenListed = true; refreshFiles() }
         } else {
-            toast("mic.fill", String(localized: "录音豆已取出，可以开始录音"))
+            toast("mic.fill", String(localized: "密盒已就绪，可以开始录音"))
         }
     }
 
@@ -662,7 +697,7 @@ final class BeanStore {
                 default: break
                 }
             } else if live == nil {
-                problem = Problem(title: String(localized: "录音豆没有开始录音"), detail: String(localized: "它可能正在传文件，或者电量太低。等几秒再点一次；还不行就把它放回充电盒再拿出来。"))
+                problem = Problem(title: String(localized: "密盒没有开始录音"), detail: String(localized: "它可能正在传文件，或者电量太低。等几秒再点一次；还不行就充电后重新连接。"))
             }
         case (0x1A, 0x05):
             wifiReply = p
@@ -688,7 +723,7 @@ final class BeanStore {
             }
         case (0x1A, 0x10):
             addLog(p.isSuccess ? "设备已删除一条录音" : "设备拒绝删除")
-            if p.isSuccess { refreshFiles() } else if scratchFiles.isEmpty { problem = Problem(title: String(localized: "录音豆没有删掉这条录音"), detail: String(localized: "它可能还在录这一条，或者正在传文件。结束录音、等传完再删。")) }
+            if p.isSuccess { refreshFiles() } else if scratchFiles.isEmpty { problem = Problem(title: String(localized: "密盒没有删掉这条录音"), detail: String(localized: "它可能还在录这一条，或者正在传文件。结束录音、等传完再删。")) }
         case (0x1A, 0x06):
             if info?.recording == false { info?.recording = true }
             let b = Array(p.payload)
@@ -703,7 +738,7 @@ final class BeanStore {
                 let fid = UInt32(b[0]) | UInt32(b[1]) << 8 | UInt32(b[2]) << 16 | UInt32(b[3]) << 24
                 if fid != 0 {
                     let resumed = sessionOpen && fid == currentDeviceFile   // 同一条录音暂停后接着录
-                    addLog("录音豆自己开始录音了（\(resumed ? "接着录" : "新的一条")）：\(fid)")
+                    addLog("密盒自己开始录音了（\(resumed ? "接着录" : "新的一条")）：\(fid)")
                     currentDeviceFile = fid
                     sessionOpen = true
                     recordingSince = .now
@@ -713,7 +748,7 @@ final class BeanStore {
                         sessionStart = .now
                     }
                     beginLiveTranscript(reset: !resumed)
-                    if !resumed { toast("record.circle", String(localized: "录音豆开始录音了")) }
+                    if !resumed { toast("record.circle", String(localized: "密盒开始录音了")) }
                     return
                 }
             }
@@ -856,18 +891,18 @@ final class BeanStore {
             !recordings.contains { $0.id == id && $0.downloaded } && !trash.contains { $0.recording.id == id }
         }.count
         if !gone.isEmpty {
-            addLog("上次在录音豆里的 \(gone.count) 条不在了，豆仓没删过（其中 \(missed) 条没下载过）：\(gone.sorted().map(String.init).joined(separator: " "))")
+            addLog("上次在密盒里的 \(gone.count) 条不在了，密盒助手没删过（其中 \(missed) 条没下载过）：\(gone.sorted().map(String.init).joined(separator: " "))")
         }
         if pending > 0 {
             guard !settings.autoDownload else { return }
-            announce("arrow.down.circle", String(localized: "录音豆里有 \(pending) 条新录音，自动下载关着，可以在录音列表里下载"))
+            announce("arrow.down.circle", String(localized: "密盒里有 \(pending) 条新录音，自动下载关着，可以在录音列表里下载"))
         } else if !gone.isEmpty {
-            announce("iphone", String(localized: "录音豆里没有新录音：上次在里面的 \(gone.count) 条不见了，可能被手机同步走了"),
-                     body: (missed > 0 ? String(localized: "其中 \(missed) 条豆仓还没下载过。") : "")
-                        + String(localized: "录音豆同一时间只连一台设备，手机上的录音豆 App 或飞书连过它的话，会把录音同步走，这期间新录的也在那边。"),
+            announce("iphone", String(localized: "密盒里没有新录音：上次在里面的 \(gone.count) 条不见了，可能被手机同步走了"),
+                     body: (missed > 0 ? String(localized: "其中 \(missed) 条密盒助手还没下载过。") : "")
+                        + String(localized: "密盒同一时间只连一台设备，手机上的设备配套 App 或飞书连过它的话，会把录音同步走，这期间新录的也在那边。"),
                      seconds: 10)
         } else if info?.recording != true, open == 0 {
-            announce("checkmark.circle.fill", String(localized: "录音豆已连上，录音都同步过了"))
+            announce("checkmark.circle.fill", String(localized: "密盒已连上，录音都同步过了"))
         }
     }
 
@@ -882,10 +917,10 @@ final class BeanStore {
         let pending = recordings.filter { $0.onDevice && !$0.downloaded && !$0.inProgress && $0.id != open }
         if !pending.isEmpty {
             addLog("刚连上，自动同步 \(pending.count) 条还没下载的录音")
-            announce("arrow.down.circle.fill", String(localized: "录音豆里有 \(pending.count) 条新录音，开始同步"), body: String(localized: "下载完会自动转写整理。"))
+            announce("arrow.down.circle.fill", String(localized: "密盒里有 \(pending.count) 条新录音，开始同步"), body: String(localized: "下载完会自动转写整理。"))
             pending.forEach { download($0.id) }
         } else if open != 0, recordings.contains(where: { $0.id == open && !$0.downloaded }) {
-            toast("pause.circle.fill", String(localized: "录音豆里有一条还没结束的录音，点「结束」后会同步过来"))
+            toast("pause.circle.fill", String(localized: "密盒里有一条还没结束的录音，点「结束」后会同步过来"))
         }
     }
 
@@ -939,7 +974,7 @@ final class BeanStore {
                     self.addLog("没等到数据，再要一次：\(id)")
                     self.ble.send(Command.pullFile(id))
                 } else if Date.now.timeIntervalSince(j.lastActivity) > 20 {
-                    self.failPull(id, j.data.isEmpty ? String(localized: "设备没有回传数据。把录音豆靠近电脑再试一次。") : String(localized: "传输中途停了，请重试。"))
+                    self.failPull(id, j.data.isEmpty ? String(localized: "设备没有回传数据。把密盒靠近电脑再试一次。") : String(localized: "传输中途停了，请重试。"))
                     return
                 }
                 try? await Task.sleep(for: .seconds(1))
@@ -953,10 +988,10 @@ final class BeanStore {
         // 还有下一条要下：让设备歇一秒半再要，不然它容易只回文件头
         defer { if !queue.isEmpty { Task { try? await Task.sleep(for: .seconds(1.5)); startNextPull() } } }
         let usable = j.data.count / OggOpus.frameSize * OggOpus.frameSize
-        guard usable > 0 else { problem = Problem(title: String(localized: "这条录音是空的"), detail: String(localized: "录音豆里这一条没有声音数据，可能刚开始就结束了。")); return }
+        guard usable > 0 else { problem = Problem(title: String(localized: "这条录音是空的"), detail: String(localized: "密盒里这一条没有声音数据，可能刚开始就结束了。")); return }
         addLog("下载结束：\(j.packets) 个切片包，\(j.data.count) / \(j.expected) 字节")
         if j.expected > 0, Double(j.data.count) < Double(j.expected) * 0.95 {
-            problem = Problem(title: String(localized: "这条录音没传完整"), detail: String(localized: "蓝牙中途断了一下，只收到 \(j.expected > 0 ? j.data.count * 100 / j.expected : 0)%。录音还在录音豆里，没有丢。"), action: .download(j.id))
+            problem = Problem(title: String(localized: "这条录音没传完整"), detail: String(localized: "蓝牙中途断了一下，只收到 \(j.expected > 0 ? j.data.count * 100 / j.expected : 0)%。录音还在密盒里，没有丢。"), action: .download(j.id))
             return
         }
         storeAudio(id: j.id, data: j.data, sliceMarks: j.marks)
@@ -992,7 +1027,7 @@ final class BeanStore {
             addLog("保存失败，清掉半成品文件 \(id)：\(error.localizedDescription)")
             try? FileManager.default.removeItem(at: oggURL(id))
             try? FileManager.default.removeItem(at: wavURL(id))
-            problem = Problem(title: String(localized: "录音没能存到这台 Mac"), detail: String(localized: "\(error.localizedDescription)\n看看磁盘是不是满了。录音还在录音豆里，腾出空间后可以重新下载。"), action: .download(id))
+            problem = Problem(title: String(localized: "录音没能存到这台 Mac"), detail: String(localized: "\(error.localizedDescription)\n看看磁盘是不是满了。录音还在密盒里，腾出空间后可以重新下载。"), action: .download(id))
             return false
         }
     }
@@ -1027,7 +1062,8 @@ final class BeanStore {
 
     func rename(_ id: UInt32, to title: String) {
         guard let i = recordings.firstIndex(where: { $0.id == id }) else { return }
-        recordings[i].title = title.trimmingCharacters(in: .whitespaces)
+        titleEditRevisions[id] = UUID()
+        recordings[i].title = title.trimmingCharacters(in: .whitespacesAndNewlines)
         recordings[i].titleEdited = !(recordings[i].title ?? "").isEmpty
         saveLibrary()
     }
@@ -1059,7 +1095,7 @@ final class BeanStore {
             return
         }
         stop()
-        guard let p = try? AVAudioPlayer(contentsOf: wavURL(id)) else { problem = Problem(title: String(localized: "这条录音打不开"), detail: String(localized: "这台 Mac 上的音频文件可能坏了。如果录音豆里还有这一条，删掉本地副本再重新下载就好。")); return }
+        guard let p = try? AVAudioPlayer(contentsOf: wavURL(id)) else { problem = Problem(title: String(localized: "这条录音打不开"), detail: String(localized: "这台 Mac 上的音频文件可能坏了。如果密盒里还有这一条，删掉本地副本再重新下载就好。")); return }
         p.enableRate = true; p.rate = playRate
         player = p; playingID = id; playhead = 0
         p.play(); isPlaying = true

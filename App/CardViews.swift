@@ -119,7 +119,7 @@ struct CardPanel: View {
         .confirmationDialog("从录音卡上删掉这条录音？", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }), presenting: deleting) { file in
             Button("从录音卡删除", role: .destructive) { card.deleteFromCard(file); deleting = nil }
         } message: { file in
-            Text(String(localized: "「\(title(file))」会从卡上永久删除，不能恢复。") + (card.isImported(file) ? String(localized: "豆仓录音库里的那份不受影响。") : String(localized: "它还没下载到豆仓，删了就没有了。")))
+            Text(String(localized: "「\(title(file))」会从卡上永久删除，不能恢复。") + (card.isImported(file) ? String(localized: "密盒助手录音库里的那份不受影响。") : String(localized: "它还没下载到密盒助手，删了就没有了。")))
         }
     }
 

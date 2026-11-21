@@ -199,7 +199,7 @@ def main() -> int:
         prefer_small_audio(dl)
 
     def no_ytdlp(*args, **kwargs):
-        raise dl.FetchError("这一步交给豆仓自己的 yt-dlp")
+        raise dl.FetchError("这一步交给密盒助手自己的 yt-dlp")
 
     dl.ytdlp_download = no_ytdlp
 

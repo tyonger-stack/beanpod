@@ -60,7 +60,7 @@ struct LanguageSetting: View {
         SettingsGroup(String(localized: "语言 · Language"),
                       footer: String(localized: "界面文字跟着这里变。")) {
             SettingRow(icon: "globe", title: String(localized: "界面语言"),
-                       detail: changed ? String(localized: "重新打开豆仓后生效。") : String(localized: "默认跟随系统；系统不是中文时显示英文。")) {
+                       detail: changed ? String(localized: "重新打开密盒助手后生效。") : String(localized: "默认跟随系统；系统不是中文时显示英文。")) {
                 HStack(spacing: 8) {
                     Picker("界面语言", selection: $choice) {
                         ForEach(AppLanguage.allCases) { Text($0.name).tag($0) }

@@ -192,7 +192,7 @@ struct DashboardView: View {
             Card {
                 if toDownload > 0 {
                     HStack {
-                        Label("录音豆里有 \(toDownload) 条录音还没下载", systemImage: "icloud.and.arrow.down")
+                        Label("密盒里有 \(toDownload) 条录音还没下载", systemImage: "icloud.and.arrow.down")
                         Spacer()
                         if store.wifiSyncWorthOffering { Button("Wi‑Fi 快传…") { nav.confirmWiFiSync = true } }
                         Button("全部下载") { store.downloadAll() }.disabled(store.pull != nil || !store.encryptionReady)
@@ -288,26 +288,10 @@ struct FlowLayout: Layout {
     }
 }
 
-/// 首页最上面：小豆和它说的话，旁边是最常用的那个按钮——录音。
+/// 首页设备照片与当前状态。
 struct Hero: View {
     @Environment(BeanStore.self) private var store
     @Environment(Navigator.self) private var nav
-    @State private var cheering = false
-    @State private var working = 0
-
-    private var mood: MascotMood {
-        if let preview = store.mascotPreview { return preview.mood }
-        if cheering { return .happy }
-        if store.isRecording { return .listening }
-        // 转写时是「埋头写」，整理时是「歪头想」，两个动作不一样
-        if let stage = store.stages.values.first {
-            if case .transcribing = stage { return .writing }
-            return .thinking
-        }
-        if store.wifi != nil { return .writing }
-        if store.link != .ready { return .sleeping }
-        return .idle
-    }
 
     private var greeting: String {
         switch Calendar.current.component(.hour, from: .now) {
@@ -322,9 +306,8 @@ struct Hero: View {
         if store.isRecording { return store.recordingOnMac ? String(localized: "在听，录的是这台 Mac 的\(store.macSource.name)。") : String(localized: "在听，你说。") }
         // Wi‑Fi 快传时蓝牙是自己主动断开的，别说「没连上」
         if store.wifi != nil { return String(localized: "正在用 Wi‑Fi 把录音搬回来，这一分钟电脑上不了网，马上就好。") }
-        if store.link != .ready, store.stages.isEmpty, store.recState == .idle { return String(localized: "录音豆没连上。把它拿出来我就醒；想现在就录，用这台 Mac 也行。") }
+        if store.link != .ready, store.stages.isEmpty, store.recState == .idle { return String(localized: "密盒未连接。想现在就录，也可以使用这台 Mac。") }
         if store.recState == .paused { return String(localized: "先歇一下。想接着录就点继续，录完了点结束。") }
-        if cheering, store.stages.isEmpty { return String(localized: "连上啦，随时可以开始。") }
         if let stage = store.stages.values.first {
             switch stage {
             case .transcribing: return String(localized: "正在把录音变成文字…")
@@ -332,11 +315,12 @@ struct Hero: View {
             case .queued: return String(localized: "马上就来。")
             }
         }
-        if store.pull != nil { return String(localized: "正在从录音豆里往外搬录音…") }
-        switch store.mascotPower {
-        case .charging(let level): return level >= 95 ? String(localized: "充满了，拿出来就能录。") : String(localized: "在充电盒里充电，现在 \(level)%。")
-        case .low: return String(localized: "录音豆快没电了，放回充电盒歇一会儿吧。")
-        default: break
+        if store.pull != nil { return String(localized: "正在从密盒里往外搬录音…") }
+        if let info = store.info, store.link == .ready {
+            if info.micCharging {
+                return info.micBattery >= 95 ? String(localized: "充满了，可以开始录音。") : String(localized: "正在充电，现在 \(info.micBattery)%。")
+            }
+            if info.micBattery > 0, info.micBattery < 20 { return String(localized: "密盒快没电了，请先充电。") }
         }
         let todos = store.openTodos.count
         if todos > 0 { return String(localized: "有 \(todos) 件事等你处理") }
@@ -345,10 +329,9 @@ struct Hero: View {
 
     var body: some View {
         HStack(spacing: 18) {
-            MascotView(mood: mood, power: store.mascotPower)
+            DevicePhotoView()
                 .frame(width: 210, height: 210)
-                .help("点我一下")
-                .accessibilityElement().accessibilityLabel("小豆").accessibilityValue(line)
+                .accessibilityElement().accessibilityLabel("密盒").accessibilityValue(line)
             VStack(alignment: .leading, spacing: 8) {
                 Text(greeting).font(.system(size: 44, weight: .bold, design: .rounded))
                 Text(line).font(.title2).foregroundStyle(.secondary)
@@ -356,7 +339,7 @@ struct Hero: View {
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     if store.link != .ready, store.wifi == nil {
-                        Button { nav.route = .device } label: { Label("连接录音豆", systemImage: "antenna.radiowaves.left.and.right").fixedSize() }
+                        Button { nav.route = .device } label: { Label("连接密盒", systemImage: "antenna.radiowaves.left.and.right").fixedSize() }
                     }
                     Button { store.chooseFilesToImport() } label: { Label("导入录音", systemImage: "square.and.arrow.down").fixedSize() }
                     if store.recordings.contains(where: \.isAnalyzed) {
@@ -370,19 +353,7 @@ struct Hero: View {
         }
         .padding(.horizontal, 4).padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onChange(of: store.stages.count) { old, new in
-            // 手头的活全干完了，小豆高兴一下
-            if old > 0, new == 0 {
-                cheering = true
-                Task { try? await Task.sleep(for: .seconds(1.8)); cheering = false }
-            }
-        }
-        .onChange(of: store.link == .ready) { _, ready in
-            // 刚连上录音豆，蹦两下庆祝
-            guard ready else { return }
-            cheering = true
-            Task { try? await Task.sleep(for: .seconds(2.2)); cheering = false }
-        }
+
     }
 }
 

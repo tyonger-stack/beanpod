@@ -1,4 +1,6 @@
-# 豆仓 BeanPod
+# 密盒助手（基于 BeanPod）
+
+密盒助手是基于上游 [豆仓 BeanPod](https://github.com/andyhuo520/beanpod) 的衍生版，保留原项目鸣谢和 MIT 许可。本版增加本机模型选择与 TeleAgent 交接；目前请按下文从源码构建，上游发行包不包含本版改动。
 
 **简体中文** | [English](README.en.md)
 
@@ -42,9 +44,10 @@
 - 协议来自 [Shawn-TKD/getseed-ble-protocol](https://github.com/Shawn-TKD/getseed-ble-protocol)，见下面的[致谢](#致谢)和 [docs/GETSEED.md](docs/GETSEED.md)
 
 **转写**
-- 默认用 [Qwen3‑ASR 0.6B](https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF) 经 llama.cpp 在本机转写，带时间戳，点任意一句就从那里开始听
+- 本机转写可选 Qwen3-ASR 0.6B、Gemma 4 E2B BF16、FunASR Paraformer Q8 或 Fun-ASR-Nano-2512。时间戳是音频分段的起点，可以点击收听
 - 边录边出字：录音舞台里显示实时字幕，可以投屏给现场看
-- 没装模型时自动改用系统自带的语音识别；两种都不上传录音
+- Fun-ASR-Nano-2512 使用 CPU，首次下载两个模型文件，共约 1.27 GB，下载后可离线转写
+- 首次选择 Paraformer 会下载缺少的模型，下载完成后可离线转写。也可以手动选择系统语音识别
 - 也可以用云端转写（兼容 OpenAI `/audio/transcriptions` 的服务，比如硅基流动、OpenAI、Groq）；平时用本机，个别转得不准的录音可以在「⋯」菜单里「交给云端重转」
 - 模型在设置里一键下载：固定版本、按 SHA‑256 校验，断了从断点接着下，HuggingFace 慢或连不上时自动换国内镜像（hf-mirror、魔搭社区），可以暂停、取消
 - 纠错词库：在文字稿里改过的词，以后转写会自动替换
@@ -119,7 +122,7 @@
 
 引导里每一项都有「去打开」，会直接跳到系统设置里对应的地方。另外两项不是系统权限、要你自己准备：
 
-- **转写模型**（约 1 GB）在「设置 → 模型」或引导里一键下载；不想下载可以填云端转写服务的地址和你自己的密钥
+- **转写模型**在「设置 → 模型 → 转写 → 本机」里选择。Paraformer Q8 约 237 MB，Apple 芯片版安装包已包含运行程序。Qwen3-ASR 约 1 GB，Gemma 4 E2B BF16 连同音频投影文件约 10.3 GB，这两种模型需安装 llama.cpp。Fun-ASR-Nano-2512 使用 CPU，首次下载两个文件约 1.27 GB
 - **飞书妙记同步**要装飞书命令行工具并授权，见上面「使用前要知道」
 
 ## 开始前要准备的东西
@@ -142,29 +145,20 @@
 | 准备什么 | 什么时候需要 | 怎么准备 |
 |---|---|---|
 | 整理纪要用的模型 | 想要摘要、待办、知识库问答（只要文字稿可以不配） | 二选一：① 豆仓设置里一键下载本机模型（约 2.5 GB，不联网）；② 注册一家云端服务拿密钥：小米 MiMo、DeepSeek、通义千问、Kimi、豆包、智谱、MiniMax、硅基流动、OpenRouter、Gemini、Claude、OpenAI 都内置了地址，到对应开放平台注册 → 创建 API Key → 粘进「设置 → 模型」。密钥存在系统钥匙串里 |
-| 云端转写（可选） | 不想下载 1 GB 的本机转写模型，或个别录音想转得更准 | 兼容 OpenAI `/audio/transcriptions` 的服务（硅基流动、OpenAI、Groq）或小米 MiMo，同样在开放平台拿密钥 |
+| 云端转写（可选） | 不想下载本机转写模型，或个别录音想转得更准 | 兼容 OpenAI `/audio/transcriptions` 的服务（硅基流动、OpenAI、Groq）或小米 MiMo，同样在开放平台拿密钥 |
 | **Claude Code** | 想在 Claude 里直接查录音、纪要和待办（MCP） | 按 [Claude Code 官方文档](https://docs.claude.com/en/docs/claude-code/overview) 安装，用 Claude 账号（Pro / Max）或 Anthropic API 登录一次；然后在豆仓「帮助 → 连接 AI 助手」里点 Claude Code 的「连接」 |
-| **Claude 桌面版** | 「做成视频」（把口播稿交给 Claude 做成数字人视频）；或者想在桌面版里问豆仓 | 从 [claude.ai/download](https://claude.ai/download) 下载，登录同一个 Claude 账号；「做成视频」会在它的 Code 页里开新会话，所以桌面版要能用 Claude Code |
-| **Renoise 账号** | 「做成视频」要用它生成数字人口播、剪辑包装 | 在 **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** 注册（浏览器登录，不用粘 API Key），再把 Renoise 接进 Claude，见下面[用 Renoise 把录音做成视频](#用-renoise-把录音做成视频可选)。生成前会先报价，你确认了才花积分 |
+| **Claude 桌面版** | 在桌面版里通过 MCP 查询录音、纪要和待办 | 安装并登录 Claude 桌面版，再使用「连接 AI 助手」；数字人口播不需要 Claude |
+| **TeleAgent** | 「做成数字人口播」 | 安装并登录 TeleAgent，在 MCP 设置中连接 Renoise；复制任务指令后，在新会话选择工程目录并粘贴发送 |
+| **Renoise 账号** | 「做成视频」要用它生成数字人口播、剪辑包装 | 在 **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** 注册（浏览器登录，不用粘 API Key），再把 Renoise 接进 TeleAgent，见下面[用 Renoise 把录音做成视频](#用-renoise-把录音做成视频可选)。生成前会先报价，你确认了才花积分 |
 | `yt-dlp` | 贴视频、播客链接导入 | `brew install yt-dlp`；小红书、抖音、视频号的下载器第一次用时豆仓会自动装进独立的 Python 环境 |
 | Node.js + 飞书命令行工具 | 手机 App 把录音同步进飞书妙记后，想拉回豆仓 | `brew install node`，再按[使用前要知道](#使用前要知道)里的四步授权 |
 | Codex / OpenClaw | 想在它们里面查豆仓 | 装好后在「连接 AI 助手」里一键连接；OpenClaw 还能接微信 |
 
 ## 安装
 
-### 方式一：下载安装包（推荐）
+本衍生版暂未提供发行包下载地址，请使用当前仓库源码构建。
 
-1. 到 [Releases](https://github.com/andyhuo520/beanpod/releases/latest) 下载最新的 `BeanPod-x.y.z.dmg`（同时支持 Apple 芯片和 Intel，需要 macOS 26）
-2. 打开 DMG，把 BeanPod 拖进「应用程序」
-3. 第一次打开时 macOS 会提示「无法验证开发者」：本项目没有付费的 Apple 开发者签名和公证，不是病毒。到「系统设置 → 隐私与安全性」拉到底，点「仍要打开」再确认一次就行。也可以在终端运行：
-
-```bash
-xattr -dr com.apple.quarantine /Applications/BeanPod.app
-```
-
-4. 本机转写要用 llama.cpp：第一次打开后在「设置 → 模型」里点「安装」（需要先装 [Homebrew](https://brew.sh)）。导入链接要 `brew install yt-dlp ffmpeg`
-
-### 方式二：从源码编译
+### 从源码编译
 
 **1. 准备**
 
@@ -247,6 +241,7 @@ open -a BeanPod --args -demo
 | Codex | 运行 `codex mcp add beanpod -- ~/.local/bin/beanpod mcp` |
 | OpenClaw | 运行 `openclaw mcp add beanpod --command ~/.local/bin/beanpod --arg mcp` |
 | Claude 桌面版 | 往 `claude_desktop_config.json` 加一项（改之前先备份成 `claude_desktop_config.backup-by-beanpod.json`）；要先退出 Claude 桌面版，否则它会把改动写回去 |
+| TeleAgent | 完全退出后，在当前账号的 `~/.config/TeleAgent/users/<账号>/TeleAgent.jsonc` 中添加 `mcp.beanpod`，使用本机命令连接；每次修改前留一份 `TeleAgent.backup-by-beanpod-*.jsonc`。账号由 `~/.local/share/TeleAgent/current-owner.json` 选择。含注释或格式不兼容的配置不会改写，请在 TeleAgent 的 MCP 设置里手动添加。 |
 | Grok Bot 等只认网址的 | 拷贝网址 `http://127.0.0.1:8791/mcp` 填进去 |
 
 网址入口只在豆仓开着时存在，而且只监听本机，别的电脑连不上。
@@ -294,26 +289,18 @@ beanpod todos
 
 ### 用 Renoise 把录音做成视频（可选）
 
-录音的「改写」页里，口播稿可以一键「做成视频」：豆仓在 Claude 桌面版里新开一个 Claude Code 会话，把任务交给 **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)**（一个能通过 MCP 被 Claude 调用的 AI 视频平台）生成数字人口播，再剪辑、加字幕花字和包装，成片、封面、口播稿自动回到豆仓那条录音下面。
+录音的「改写」页里，点击「做成数字人口播」可准备视频工程并打开 TeleAgent。点击「复制任务指令」，在 TeleAgent 新建会话、选择工程目录、粘贴后发送。TeleAgent 使用 **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** 生成数字人口播并剪辑包装；按任务约定写回结果后，成片、封面和口播稿会回到这条录音下面。
 
 **一次性准备**
 
-1. 在 **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** 注册账号（浏览器登录，不用粘 API Key）
-2. 装好并登录 [Claude 桌面版](https://claude.ai/download)
-3. 把 Renoise 接进 Claude，按你用的方式选一个：
-
-| 用在哪 | 怎么接 |
-|---|---|
-| Claude 桌面版 / claude.ai | 设置 → 连接器（Connectors）→ **Add custom connector** → 名称 `Renoise`，地址 `https://renoise.ai/api/public/mcp`，按提示在浏览器里登录 |
-| Claude Code | 在 Claude Code 里运行 `/plugin marketplace add ArcoCodes/renoise-plugins-official`，再 `/plugin install renoise@renoise-plugins-official` |
-| Codex | `codex mcp add renoise --url https://renoise.ai/api/public/mcp`，再 `codex mcp login renoise` |
-
-装好后在 Claude 里问一句「查一下我的 Renoise 余额」，能查到就连上了。最新的接入方法以 [renoise.ai/plugin](https://renoise.ai/plugin) 为准。
+1. 注册 Renoise 账号，安装并登录 TeleAgent
+2. 在 TeleAgent 的 MCP 设置中添加 Renoise，地址为 `https://renoise.ai/api/public/mcp`，按提示登录授权；视频窗口提供「复制 MCP 地址」
+3. 在 TeleAgent 中查询 Renoise 余额，确认连接可用
 
 **用的时候**
 
-- 豆仓打开「做成视频」时会先检查 Claude 桌面版和 Renoise 在不在
-- 生成前 Claude 会先给出报价（要花多少积分），你在 Claude 里确认了才开始；不确认不花钱
+- 密盒助手检查 TeleAgent 是否安装，并准备任务文件；打开应用不等于已新建会话或发送任务，需要你粘贴发送
+- TeleAgent 先规划并给出报价，你在该会话确认后才开始生成和花积分；密盒助手通过工程目录接回报价、进度和结果
 - 一个主播。豆仓内置两位示例主播（AI 生成的虚构人物，「示例 · 职业装」和「示例 · 居家」），第一次用某位示例主播做视频时，会先把它的照片传到你自己的 Renoise 账号（不花积分）。想让「你」来讲，就点「添加主播」，上传一张你自己的正面半身照，或者填一个你 Renoise 账号里已有的人像素材编号；添加时要确认「这是我本人，或者我已获得照片中本人的授权」。Renoise 会在生成时审核人像；如果审核状态是「审核中」或「没通过」，卡片上会标出来，这个主播暂时不能用
 
 主播记录和缩略图存在 `~/Library/Application Support/BeanPod/Hosts/`。从豆仓移除主播不会删除 Renoise 账号里的素材。
@@ -368,7 +355,7 @@ scripts/           示例录音库生成脚本
 
 得到 AI 录音卡的协议全部来自 **[Shawn-TKD](https://github.com/Shawn-TKD)** 的 [Shawn-TKD/getseed-ble-protocol](https://github.com/Shawn-TKD/getseed-ble-protocol)（MIT 许可，Copyright (c) 2026 Shawn-TKD），原作者用实机抓包和固件分析整理并验证了这份协议。豆仓按那份文档用 Swift 从零实现，没有使用该项目的代码；许可声明见 [NOTICE](NOTICE)。
 
-转写模型是 Qwen3‑ASR（GGUF 版来自 [ggml-org/Qwen3-ASR-0.6B-GGUF](https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF)），本机推理用 [llama.cpp](https://github.com/ggml-org/llama.cpp)。
+本机转写与整理可以单独选择。Paraformer 使用 FunASR 官方 Apple 芯片运行程序和 Q8 GGUF 权重。[FunASR GitHub 发布页](https://github.com/modelscope/FunASR/releases/tag/runtime-llamacpp-v0.2.6) · [Paraformer 模型下载](https://huggingface.co/FunAudioLLM/Paraformer-GGUF/blob/main/paraformer-q8.gguf)。Qwen 和 Gemma 通过 llama.cpp 运行。[Qwen3-ASR 模型](https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF) · [Gemma 模型](https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF) · [llama.cpp](https://github.com/ggml-org/llama.cpp)。
 
 ## 许可证
 

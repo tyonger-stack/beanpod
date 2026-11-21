@@ -104,7 +104,7 @@ struct RecordingsScreen: View {
                         Button("新建项目", systemImage: "folder.badge.plus") { pendingMove = []; newProject = true }
                         Button("导入录音或文字文件", systemImage: "square.and.arrow.down") { importing = true }
                         if store.link == .ready {
-                            Button("重新读取录音豆", systemImage: "arrow.clockwise") { store.refreshFiles() }
+                            Button("重新读取密盒", systemImage: "arrow.clockwise") { store.refreshFiles() }
                             if store.recordings.contains(where: { $0.onDevice && !$0.downloaded && !$0.inProgress }) {
                                 Button("全部下载", systemImage: "arrow.down.circle") { store.downloadAll() }
                             }
@@ -144,10 +144,10 @@ struct RecordingsScreen: View {
                                 titleVisibility: .visible, presenting: deleting) { rec in
                 if rec.downloaded { Button("从这台 iPhone 删除", role: .destructive) { store.removeLocal(rec.id) } }
                 if rec.onDevice, store.link == .ready, !rec.inProgress {
-                    Button("从录音豆删除", role: .destructive) { store.deleteFromDevice(rec.id) }
+                    Button("从密盒删除", role: .destructive) { store.deleteFromDevice(rec.id) }
                 }
             } message: { rec in
-                Text(rec.onDevice ? "从手机删除后，录音豆里的原件还在，可以再下载；从录音豆删除后找不回来。" : "录音豆里已经没有这条了，删除后找不回来。")
+                Text(rec.onDevice ? "从手机删除后，密盒里的原件还在，可以再下载；从密盒删除后找不回来。" : "密盒里已经没有这条了，删除后找不回来。")
             }
         }
         // initial：这一页是第一次露面时才建出来的，那时 opening 可能已经有值了
@@ -287,7 +287,7 @@ struct RecordingDetailScreen: View {
                 .confirmationDialog("删除这条录音？", isPresented: $deleting, titleVisibility: .visible) {
                     if recording.downloaded { Button("从这台 iPhone 删除", role: .destructive) { store.removeLocal(id); dismiss() } }
                     if recording.onDevice, store.link == .ready, !recording.inProgress {
-                        Button("从录音豆删除", role: .destructive) { store.deleteFromDevice(id) }
+                        Button("从密盒删除", role: .destructive) { store.deleteFromDevice(id) }
                     }
                 }
             } else {
@@ -392,12 +392,12 @@ struct RecordingDetailScreen: View {
                 Label("这条还在录。结束录音后才能下载完整的。", systemImage: "record.circle").foregroundStyle(.secondary)
             } else if let pull = store.pull, pull.id == id {
                 ProgressView(value: pull.fraction) { Text("正在通过蓝牙下载 \(Int(pull.fraction * 100))%") }
-                Text("蓝牙比较慢，长录音要等几分钟。期间请让录音豆留在手机旁边。").font(.footnote).foregroundStyle(.secondary)
+                Text("蓝牙比较慢，长录音要等几分钟。期间请让密盒留在手机旁边。").font(.footnote).foregroundStyle(.secondary)
                 Button("取消") { store.cancelDownloads() }
             } else if store.isQueued(id) {
                 Label("排队中，等前面的下载完", systemImage: "clock").foregroundStyle(.secondary)
             } else {
-                Text("这条录音还在录音豆里。").foregroundStyle(.secondary)
+                Text("这条录音还在密盒里。").foregroundStyle(.secondary)
                 Button("下载到这台 iPhone") { store.download(id) }.buttonStyle(.borderedProminent)
                     .disabled(store.link != .ready || !store.encryptionReady)
             }

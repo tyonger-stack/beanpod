@@ -15,6 +15,7 @@ final class Dictation {
     @ObservationIgnored private weak var store: BeanStore?
     @ObservationIgnored private var monitors: [Any] = []
     @ObservationIgnored private var holding = false
+    @ObservationIgnored private var recordingModel: AppSettings.LocalASRModel = .qwen
     @ObservationIgnored private var hud: NSPanel?
     @ObservationIgnored private var task: Task<Void, Never>?
     /// 试用模式：只显示识别结果，不往别的 App 里打字，也不动剪贴板。
@@ -101,17 +102,18 @@ final class Dictation {
 
     private func press() {
         guard !holding, let store else { return }
-        guard store.link == .ready else { flash(.failed(String(localized: "录音豆没连上"))); return }
-        guard store.encryptionReady else { flash(.failed(String(localized: "录音豆还没准备好，稍等一下"))); return }
-        guard store.recState == .idle || store.scratchFiles.contains(store.currentDeviceFile), store.info?.recording != true, store.pull == nil else { flash(.failed(String(localized: "录音豆正忙，先停下当前的录音或下载"))); return }
-        guard store.asrAvailable else { flash(.failed(String(localized: "还没有转写模型，先到设置里下载"))); return }
+        guard store.link == .ready else { flash(.failed(String(localized: "密盒没连上"))); return }
+        guard store.encryptionReady else { flash(.failed(String(localized: "密盒还没准备好，稍等一下"))); return }
+        guard store.recState == .idle || store.scratchFiles.contains(store.currentDeviceFile), store.info?.recording != true, store.pull == nil else { flash(.failed(String(localized: "密盒正忙，先停下当前的录音或下载"))); return }
+        guard store.asrAvailable else { flash(.failed(store.localASRReadinessHint ?? String(localized: "还没有转写模型，先到设置里下载"))); return }
         // 录音豆的「暂停」不算结束：再开始会接着往同一条录音里录。
         // 如果那条是你自己的正式录音，语音输入不能往里掺东西，更不能事后把它删掉。
         let current = store.currentDeviceFile
         if current != 0, !store.scratchFiles.contains(current) {
-            flash(.failed(String(localized: "录音豆里有一条暂停中的录音，先把它下载或结束")))
+            flash(.failed(String(localized: "密盒里有一条暂停中的录音，先把它下载或结束")))
             return
         }
+        recordingModel = store.settings.localASRModel
         holding = true
         task?.cancel()
         var capture = BeanStore.LiveCapture()
@@ -138,10 +140,11 @@ final class Dictation {
             store.send(Command.stopRecording())
             store.addLog("语音输入：3 秒内没有收到实时声音（当前文件 \(store.live?.fileID ?? 0)）")
             store.live = nil
-            self.flash(.failed(String(localized: "录音豆没有开始传声音，松开再试一次")))
+            self.flash(.failed(String(localized: "密盒没有开始传声音，松开再试一次")))
         }
         let server = store.settings.llamaServerPath
-        Task { await QwenASR.shared.warmUp(serverPath: server) }
+        let selection = recordingModel
+        Task { await QwenASR.shared.warmUp(serverPath: server, selection: selection) }
     }
 
     private func release() {
@@ -179,7 +182,7 @@ final class Dictation {
             while let f = capture.frames[n] { audio.append(contentsOf: f); n += 1 }
         }
         guard let capture, audio.count >= OggOpus.frameSize * 10 else {
-            flash(.failed(capture?.fileID == nil ? String(localized: "录音豆没有响应") : String(localized: "没听到声音")))
+            flash(.failed(capture?.fileID == nil ? String(localized: "密盒没有响应") : String(localized: "没听到声音")))
             return
         }
         guard capture.decryptor != nil else {
@@ -193,7 +196,8 @@ final class Dictation {
             defer { try? FileManager.default.removeItem(at: wav) }
             try OpusDecoder.writeWAV(packets: OggOpus.frames(fromRaw: audio), to: wav)
             let samples = try QwenASR.loadMono16k(wav)
-            var text = try await QwenASR.shared.transcribe(samples: samples, serverPath: store.settings.llamaServerPath)
+            let selection = recordingModel
+            var text = try await QwenASR.shared.transcribe(samples: samples, serverPath: store.settings.llamaServerPath, selection: selection)
             guard !text.isEmpty else { store.addLog("语音输入：没识别出文字"); flash(.failed(String(localized: "没听清"))); return }
             if store.settings.dictationPolish, store.analysisAvailable {
                 let raw = text
@@ -209,7 +213,7 @@ final class Dictation {
             let target = NSWorkspace.shared.frontmostApplication.flatMap { $0.bundleIdentifier == Bundle.main.bundleIdentifier ? nil : $0.localizedName }
             if !dryRun { insert(text) }
             // 打字之外，把这段话也记进侧栏的「语音输入」（设置里可关；「试一次」不记）
-            if !dryRun, store.settings.dictationSave { store.saveDictation(samples: samples, text: text, app: target) }
+            if !dryRun, store.settings.dictationSave { store.saveDictation(samples: samples, text: text, app: target, model: selection.asrName) }
             flash(.done(text))
         } catch {
             store.addLog("语音输入失败：\(error.localizedDescription)")
@@ -325,7 +329,7 @@ struct DictationHUD: View {
 
 extension BeanStore {
     /// 语音输入说的一段话存成一条录音：声音 + 识别出的文字（原话，没润色），场合先记成「灵感」，再交给整理。
-    func saveDictation(samples: [Float], text: String, app: String? = nil) {
+    func saveDictation(samples: [Float], text: String, app: String? = nil, model: String = QwenASR.displayName) {
         var id = UInt32(Date.now.timeIntervalSince1970)
         while recordings.contains(where: { $0.id == id }) { id += 1 }
         do { try QwenASR.wav(samples).write(to: wavURL(id), options: .atomic) } catch {
@@ -340,7 +344,7 @@ extension BeanStore {
         rec.scene = .memo
         rec.segments = [Segment(start: 0, text: applyVocabulary(text))]
         rec.transcript = rec.segments.map(\.text).joined(separator: "\n")
-        rec.transcribedBy = QwenASR.displayName
+        rec.transcribedBy = model
         recordings.insert(rec, at: 0)
         saveLibrary()
         addLog("语音输入存成录音 \(id)（\(Int(rec.duration)) 秒）")

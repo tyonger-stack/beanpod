@@ -13,7 +13,7 @@ struct BeanPodApp: App {
     @Environment(\.openWindow) private var openWindow
 
     var body: some SwiftUI.Scene {
-        Window("豆仓", id: "main") {
+        Window("密盒助手", id: "main") {
             RootView()
                 .environment(store).environment(nav).environment(dictation).environment(connector).environment(maker).environment(renoise).environment(clipboard)
                 .task { dictation.attach(store) }
@@ -89,7 +89,7 @@ struct BeanPodApp: App {
                 Button("把选中的录音移到最近删除") { if let id = chosen?.id { store.trashWithUndo([id]) } }
                     .keyboardShortcut(.delete, modifiers: .command)
                     .disabled(chosen?.downloaded != true || store.recState != .idle)
-                Button("从录音豆删除选中的录音…") { nav.confirmDeviceDelete = true }
+                Button("从密盒删除选中的录音…") { nav.confirmDeviceDelete = true }
                     .disabled(chosen?.onDevice != true || store.link != .ready || store.recState != .idle)
                 Divider()
                 Button("用 Wi‑Fi 快传还没下载的录音…") { nav.confirmWiFiSync = true }
@@ -126,8 +126,8 @@ struct BeanPodApp: App {
                 Button("试一次（录 5 秒，只显示结果）") { dictation.tryOnce() }
                     .keyboardShortcut("d", modifiers: [.command, .shift])
             }
-            CommandMenu("小豆") {
-                Button("跟着真实状态") { store.mascotPreview = nil; store.card.endPreview() }
+            CommandMenu("预览") {
+                Button("结束设备预览") { store.card.endPreview() }
                 Button("看看：「录好了」卡片") { store.offerKeep(id: 0, seconds: 25, from: String(localized: "这台 Mac"), onMac: true) }
                 Button("看看：做成视频（选主播）") {
                     if !maker.busy { maker.prepare(text: "这是一段示例口播稿。", recording: 0, title: "示例", template: "口播稿") }
@@ -135,19 +135,8 @@ struct BeanPodApp: App {
                 }
                 Button("看看：得到录音卡（示例数据）") { store.card.showPreview(); nav.route = .device }
                 Divider()
-                Button("看看：待命") { store.mascotPreview = (.idle, .mid) }
-                Button("看看：满电") { store.mascotPreview = (.idle, .full) }
-                Button("看看：低电量") { store.mascotPreview = (.idle, .low) }
-                Button("看看：充电中") { store.mascotPreview = (.idle, .charging(40)) }
-                Button("看看：充满了") { store.mascotPreview = (.idle, .charging(100)) }
-                Button("看看：没连上") { store.mascotPreview = (.sleeping, .unknown) }
-                Button("看看：录音中") { store.mascotPreview = (.listening, .mid) }
-                Button("看看：转写中") { store.mascotPreview = (.writing, .mid) }
-                Button("看看：整理中") { store.mascotPreview = (.thinking, .mid) }
-                Button("看看：开心") { store.mascotPreview = (.happy, .mid) }
-                Divider()
-                Button("看看：刘海探头（开始录音）") { notch.preview(peek: true) }
-                Button("看看：刘海打印胶片（录完）") { notch.preview(peek: false) }
+                Button("预览录音开始提示") { notch.preview(started: true) }
+                Button("预览录音结束提示") { notch.preview(started: false) }
             }
         }
 
@@ -157,7 +146,7 @@ struct BeanPodApp: App {
         }
         .defaultSize(width: 720, height: 760)
 
-        // 「做成视频」单开一个窗口看（小豆菜单里的预览用；正常入口是录音「改写」页里的按钮，弹出单）
+        // 「做成视频」单开一个窗口看（预览菜单里使用；正常入口是录音「改写」页里的按钮，弹出单）
         Window("做成视频", id: "video-preview") {
             VideoSheet().environment(store).environment(maker)
         }
@@ -198,7 +187,7 @@ struct MenuBarContent: View {
                 Button("结束录音") { store.finishRecording() }
             }
         } else {
-            Text(store.recordingOnMac ? "正在用这台 Mac 录音" : "录音豆未连接")
+            Text(store.recordingOnMac ? "正在用这台 Mac 录音" : "密盒未连接")
             switch store.recState {
             case .idle: Button("用 Mac 录音") { store.startRecording() }
             case .recording:
@@ -211,7 +200,7 @@ struct MenuBarContent: View {
         }
         if !store.stages.isEmpty { Text("正在处理 \(store.stages.count) 条录音 · 还要\(BeanStore.spokenSpan(store.processingPlan().total, rough: true))") }
         Divider()
-        Button("打开豆仓") { openWindow(id: "main"); NSApp.activate(ignoringOtherApps: true) }
-        Button("退出豆仓") { NSApp.terminate(nil) }
+        Button("打开密盒助手") { openWindow(id: "main"); NSApp.activate(ignoringOtherApps: true) }
+        Button("退出密盒助手") { NSApp.terminate(nil) }
     }
 }

@@ -52,7 +52,7 @@ final class CardSync {
     func isImported(_ file: GetSeedFile) -> Bool { importedID(file) != nil }
     func importedID(_ file: GetSeedFile) -> UInt32? { imported[file.name] ?? previewImported[file.name] }
 
-    // MARK: 示例（小豆菜单「看看：得到录音卡」）：没有实机时看界面用，点下载、删除都不发命令
+    // MARK: 示例（预览菜单「看看：得到录音卡」）：没有实机时看界面用，点下载、删除都不发命令
 
     @ObservationIgnored private var previewImported: [String: UInt32] = [:]
     private(set) var previewing = false

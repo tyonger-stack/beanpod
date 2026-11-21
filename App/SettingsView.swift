@@ -1,12 +1,14 @@
 import SwiftUI
 
-/// 设置窗口。分成五个页签，每页一屏放完：以前是一条很长的表单，找一个选项要滚半天，
-/// 而且把「llama-server」这种只有开发者认识的词直接摆在用户面前。
+/// 设置窗口的五个页签共用一套窗口尺寸，超出一屏的内容在页签内滚动。
 struct SettingsView: View {
     enum Pane: String { case general, dictation, models, vocabulary, connect }
 
     @Environment(BeanStore.self) private var store
     @AppStorage("settingsPane") private var pane = Pane.general
+    @State private var paneHeight = SettingsWindowPosition.paneHeight(
+        on: SettingsWindowPosition.pointerScreen ?? NSScreen.main
+    )
 
     var body: some View {
         TabView(selection: $pane) {
@@ -16,8 +18,104 @@ struct SettingsView: View {
             Tab("词库", systemImage: "character.book.closed", value: Pane.vocabulary) { VocabularyPane() }
             Tab("连接", systemImage: "link", value: Pane.connect) { ConnectPane() }
         }
+        .frame(width: 640, height: paneHeight)
+        .background {
+            SettingsWindowPosition { screen in paneHeight = SettingsWindowPosition.paneHeight(on: screen) }
+        }
         .preferredColorScheme(store.settings.appearance.scheme)
         .onAppear { store.refreshASRAvailability() }
+    }
+}
+
+private struct SettingsWindowPosition: NSViewRepresentable {
+    var screenSelected: (NSScreen) -> Void
+
+    static var pointerScreen: NSScreen? {
+        NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) }
+    }
+
+    static func paneHeight(on screen: NSScreen?) -> CGFloat {
+        max(360, min((screen?.visibleFrame.height ?? 900) - 150, 860))
+    }
+
+    func makeNSView(context: Context) -> PositionView {
+        let view = PositionView()
+        view.screenSelected = screenSelected
+        return view
+    }
+
+    func updateNSView(_ nsView: PositionView, context: Context) {
+        nsView.screenSelected = screenSelected
+    }
+
+    final class PositionView: NSView {
+        private enum Placement {
+            case awaitingOpen
+            case centered(NSScreen)
+            case userPositioned
+        }
+
+        private var placement = Placement.awaitingOpen
+        private var positioning = false
+        private var updateScheduled = false
+        var screenSelected: ((NSScreen) -> Void)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            let notifications = NotificationCenter.default
+            notifications.removeObserver(self)
+            placement = .awaitingOpen
+            guard let window else { return }
+            notifications.addObserver(self, selector: #selector(opened), name: NSWindow.didBecomeKeyNotification, object: window)
+            notifications.addObserver(self, selector: #selector(closed), name: NSWindow.willCloseNotification, object: window)
+            notifications.addObserver(self, selector: #selector(resized), name: NSWindow.didResizeNotification, object: window)
+            notifications.addObserver(self, selector: #selector(userMoved), name: NSWindow.willMoveNotification, object: window)
+            notifications.addObserver(self, selector: #selector(userMoved), name: NSWindow.willStartLiveResizeNotification, object: window)
+            if window.isVisible { opened() }
+        }
+
+        @objc private func opened() {
+            guard case .awaitingOpen = placement else { return }
+            guard let screen = SettingsWindowPosition.pointerScreen ?? window?.screen ?? NSScreen.main else { return }
+            placement = .centered(screen)
+            centerWindow()
+            DispatchQueue.main.async { [weak self] in
+                guard let self, case let .centered(chosenScreen) = self.placement else { return }
+                self.screenSelected?(chosenScreen)
+            }
+            resized()
+        }
+
+        @objc private func closed() {
+            placement = .awaitingOpen
+        }
+
+        @objc private func userMoved() {
+            guard !positioning else { return }
+            placement = .userPositioned
+        }
+
+        @objc private func resized() {
+            guard case .centered = placement, !updateScheduled else { return }
+            updateScheduled = true
+            // The shared viewport may change on opening the window on a different display.
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                self.updateScheduled = false
+                self.centerWindow()
+            }
+        }
+
+        private func centerWindow() {
+            guard let window, case let .centered(screen) = placement else { return }
+            let visibleFrame = screen.visibleFrame
+            let origin = NSPoint(x: visibleFrame.midX - window.frame.width / 2,
+                                 y: visibleFrame.midY - window.frame.height / 2)
+            guard window.frame.origin != origin else { return }
+            positioning = true
+            window.setFrameOrigin(origin)
+            positioning = false
+        }
     }
 }
 
@@ -40,25 +138,17 @@ extension SettingsView {
 
 // MARK: 搭页面用的零件
 
-/// 一页设置的外框：固定宽度，高度跟着内容走，窗口会自己变高变矮。
-/// 每个页签的外框：窗口高度跟着内容走，但不超过屏幕；内容更高时在里面滚动（模型页就比一屏高）。
 private struct PaneFrame<Content: View>: View {
     @ViewBuilder var content: Content
-    @State private var contentHeight: CGFloat = 0
-
-    /// 留出菜单栏、标题栏、页签和程序坞的位置。
-    private var maxHeight: CGFloat { max(360, min((NSScreen.main?.visibleFrame.height ?? 900) - 150, 860)) }
 
     var body: some View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 22) { content }
                 .padding(.horizontal, 28).padding(.top, 22).padding(.bottom, 26)
-                .frame(width: 640)
+                .frame(maxWidth: .infinity)
                 .fixedSize(horizontal: false, vertical: true)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
         }
         .scrollBounceBehavior(.basedOnSize)
-        .frame(width: 640, height: contentHeight > 0 ? min(contentHeight, maxHeight) : nil)
         .background(Backdrop())
     }
 }
@@ -180,14 +270,14 @@ private struct GeneralPane: View {
                 SettingRow(icon: "captions.bubble", title: String(localized: "边录边出字"), detail: String(localized: "录音时在舞台上实时显示文字。")) {
                     Toggle("边录边出字", isOn: $settings.liveTranscribe).labelsHidden().toggleStyle(.switch)
                 }
-                SettingRow(icon: "doc.on.clipboard", title: String(localized: "识别剪贴板里的视频链接"), detail: String(localized: "复制了抖音、B 站、YouTube 这些链接，切回豆仓时提示一键导入。只看链接，不存剪贴板内容。")) {
+                SettingRow(icon: "doc.on.clipboard", title: String(localized: "识别剪贴板里的视频链接"), detail: String(localized: "复制了抖音、B 站、YouTube 这些链接，切回密盒助手时提示一键导入。只看链接，不存剪贴板内容。")) {
                     Toggle("识别剪贴板里的视频链接", isOn: $settings.watchClipboard).labelsHidden().toggleStyle(.switch)
                 }
                 SettingRow(icon: "questionmark.bubble", title: String(localized: "录完先问一句留不留"), detail: String(localized: "录完弹一张小卡片，不要的话当场删掉，哪里都不留。十秒不理它就默认留着。")) {
                     Toggle("录完先问一句留不留", isOn: $settings.askKeep).labelsHidden().toggleStyle(.switch)
                 }
-                SettingRow(icon: "arrow.down.circle", title: String(localized: "自动从录音豆下载"), detail: String(localized: "录完一条、或者重新连上录音豆时，把还没下载的拉到这台 Mac 上。")) {
-                    Toggle("自动从录音豆下载", isOn: $settings.autoDownload).labelsHidden().toggleStyle(.switch)
+                SettingRow(icon: "arrow.down.circle", title: String(localized: "自动从密盒下载"), detail: String(localized: "录完一条、或者重新连上密盒时，把还没下载的拉到这台 Mac 上。")) {
+                    Toggle("自动从密盒下载", isOn: $settings.autoDownload).labelsHidden().toggleStyle(.switch)
                 }
                 SettingRow(icon: "wand.and.sparkles", title: String(localized: "自动转写并整理"), detail: String(localized: "下载后直接出文字稿、纪要和待办。")) {
                     Toggle("自动转写并整理", isOn: $settings.autoProcess).labelsHidden().toggleStyle(.switch)
@@ -283,8 +373,8 @@ private struct DictationPane: View {
         @Bindable var settings = store.settings
         let on = settings.dictationEnabled
         PaneFrame {
-            SettingsGroup(footer: String(localized: "把录音豆当随身麦克风：在任何 App 里按住你选的那个键，对着录音豆说话，松开后文字出现在光标处。")) {
-                SettingRow(icon: "mic.fill", title: String(localized: "按住按键说话，松开输入文字"), detail: on ? String(localized: "已打开。按住「\(Dictation.name(of: settings.dictationKey))」试试。") : String(localized: "关着的时候，豆仓不会监听任何按键。")) {
+            SettingsGroup(footer: String(localized: "把密盒当随身麦克风：在任何 App 里按住你选的那个键，对着密盒说话，松开后文字出现在光标处。")) {
+                SettingRow(icon: "mic.fill", title: String(localized: "按住按键说话，松开输入文字"), detail: on ? String(localized: "已打开。按住「\(Dictation.name(of: settings.dictationKey))」试试。") : String(localized: "关着的时候，密盒助手不会监听任何按键。")) {
                     Toggle("语音输入", isOn: Binding(get: { settings.dictationEnabled }, set: {
                         settings.dictationEnabled = $0
                         dictation.refresh()
@@ -333,19 +423,28 @@ private struct DictationPane: View {
             .disabled(!on)
             .opacity(on ? 1 : 0.5)
 
-            SettingsGroup(String(localized: "权限"), footer: String(localized: "豆仓要靠「辅助功能」权限来听到这个按键、把文字打进其他 App。没有权限时，文字只会放进剪贴板。")) {
+            SettingsGroup(String(localized: "权限"), footer: String(localized: "密盒助手要靠「辅助功能」权限来听到这个按键、把文字打进其他 App。没有权限时，文字只会放进剪贴板。")) {
                 SettingRow(icon: "hand.raised", title: String(localized: "辅助功能")) {
                     if trusted {
                         StatusPill(ok: true, text: String(localized: "已允许"))
                     } else {
                         StatusPill(ok: false, text: String(localized: "未允许"))
                         Button("去授权") { dictation.requestAccessibility() }
-                        Button("重新检查") { trusted = AXIsProcessTrusted(); dictation.refresh() }
+                        Button("重新检查", action: refreshAccessibility)
                     }
                 }
             }
         }
-        .onAppear { trusted = AXIsProcessTrusted() }
+        .onAppear { refreshAccessibility() }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshAccessibility()
+        }
+    }
+
+    private func refreshAccessibility() {
+        let current = AXIsProcessTrusted()
+        if trusted != current { trusted = current }
+        dictation.refresh()
     }
 }
 
@@ -380,20 +479,24 @@ private struct ModelsPane: View {
     @State private var advanced = false
     @State private var cloudSheet = false
     @State private var asrSheet = false
+    @State private var miBoxSheet: MiBoxServiceSheet.Service?
     @State private var testNote: String?
     @State private var testing = false
 
     var body: some View {
         @Bindable var settings = store.settings
         let server = QwenASR.locateServer(custom: settings.llamaServerPath)
+        let serverRequired = (settings.engine == .qwen && settings.localASRModel.funASR == nil)
+            || settings.analysisMode == .local || settings.analysisMode == .auto
         let asrOK: Bool = switch settings.engine {
         case .qwen: store.asrAvailable
         case .apple: true
         case .cloud: settings.asrConfig != nil
+        case .miBox: settings.miBoxASRConfig != nil
         }
         PaneFrame {
             // 设计稿 design/ui/ui_models2.png
-            ModelCard(icon: "cpu", title: String(localized: "本机运行环境"), ok: server != nil, status: server != nil ? String(localized: "已就绪") : String(localized: "需要安装")) {
+            ModelCard(icon: "cpu", title: String(localized: "本机运行环境"), ok: server != nil || !serverRequired, status: server != nil ? String(localized: "已就绪") : serverRequired ? String(localized: "需要安装") : String(localized: "可选")) {
                 line(String(localized: "推理程序 llama.cpp")) {
                     if let note = store.serverInstall {
                         ProgressView().controlSize(.small)
@@ -426,18 +529,39 @@ private struct ModelsPane: View {
             ModelCard(icon: "waveform", title: String(localized: "转写：把声音变成文字"), ok: asrOK, status: asrOK ? String(localized: "已就绪") : String(localized: "还差一步")) {
                 line(String(localized: "引擎")) {
                     Picker("引擎", selection: $settings.engine) {
-                        Text("本机 Qwen3‑ASR").tag(AppSettings.Engine.qwen)
+                        Text("本机").tag(AppSettings.Engine.qwen)
                         Text("系统识别").tag(AppSettings.Engine.apple)
                         Text("云端").tag(AppSettings.Engine.cloud)
+                        Text("高阶网关/密盒").tag(AppSettings.Engine.miBox)
                     }
                     .pickerStyle(.segmented).labelsHidden().fixedSize()
                 }
                 switch settings.engine {
                 case .qwen:
-                    line(String(localized: "模型")) { downloadView(store.asrJob, ready: QwenASR.locateModel() != nil,
-                                               readyText: String(localized: "\(QwenASR.displayName) · 已下载 · 1.0 GB"), size: String(localized: "约 1 GB")) { store.downloadASRModel() } }
-                    Text(store.asrAvailable ? "在这台 Mac 上运行，录音不会上传。" : "还没准备好之前，暂时用系统语音识别顶上。")
-                        .font(.callout).foregroundStyle(store.asrAvailable ? Color.secondary : Theme.amber)
+                    line(String(localized: "本机转写模型")) {
+                        Picker("本机转写模型", selection: $settings.localASRModel) {
+                            ForEach(AppSettings.LocalASRModel.allCases) { model in
+                                Text(model.pickerTitle).tag(model)
+                            }
+                        }
+                        .pickerStyle(.segmented).labelsHidden()
+                        .onChange(of: settings.localASRModel) { _, _ in store.localASRSelectionChanged() }
+                    }
+                    line(String(localized: "模型文件")) {
+                        downloadView(store.asrJob, ready: QwenASR.modelInstalled(selection: settings.localASRModel),
+                                     readyText: String(localized: "\(settings.localASRModel.asrName) · 已下载"),
+                                     size: settings.localASRModel.asrSize) { store.downloadASRModel() }
+                    }
+                    if settings.localASRModel.funASR != nil {
+                        let hint = settings.localASRModel == .nano
+                            ? String(localized: "使用本机 CPU 转写。录音不会上传。")
+                            : String(localized: "在这台 Mac 上运行，录音不会上传。Paraformer 使用应用内的转写程序，不需要 llama-server。")
+                        Text(store.localASRReadinessHint ?? hint)
+                            .font(.callout).foregroundStyle(store.asrAvailable ? Color.secondary : Theme.amber)
+                    } else {
+                        Text(store.asrAvailable ? "在这台 Mac 上运行，录音不会上传。" : "还没准备好之前，暂时用系统语音识别顶上。")
+                            .font(.callout).foregroundStyle(store.asrAvailable ? Color.secondary : Theme.amber)
+                    }
                 case .apple:
                     line(String(localized: "语言")) {
                         Picker("语言", selection: $settings.language) {
@@ -449,14 +573,22 @@ private struct ModelsPane: View {
                 case .cloud:
                     Text(settings.asrConfig == nil ? "还没设置云端转写服务，先点下面的「设置…」。" : "录音会发给你设置的云端服务转写。")
                         .font(.callout).foregroundStyle(settings.asrConfig == nil ? Theme.amber : Color.secondary)
+                case .miBox:
+                    line(String(localized: "密盒转写服务")) {
+                        Text(settings.miBoxASRConfig == nil ? String(localized: "还没设置") : settings.miBoxASRModel)
+                            .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                        Button("设置…") { miBoxSheet = .asr }
+                    }
                 }
-                Divider()
-                line(settings.engine == .cloud ? String(localized: "云端转写服务") : String(localized: "云端重转")) {
-                    Text(asrSummary).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                    Button(settings.asrConfig == nil ? "设置…" : "更改…") { asrSheet = true }
-                }
-                if settings.engine != .cloud {
-                    Text("本机转得不准的录音，可以在录音页的「⋯」菜单里按需交给云端再转一遍。").font(.callout).foregroundStyle(.secondary)
+                if settings.engine != .miBox {
+                    Divider()
+                    line(settings.engine == .cloud ? String(localized: "云端转写服务") : String(localized: "云端重转")) {
+                        Text(asrSummary).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                        Button(settings.asrConfig == nil ? "设置…" : "更改…") { asrSheet = true }
+                    }
+                    if settings.engine != .cloud {
+                        Text("本机转得不准的录音，可以在录音页的「⋯」菜单里按需交给云端再转一遍。").font(.callout).foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -466,41 +598,56 @@ private struct ModelsPane: View {
                         Text("云端优先").tag(AppSettings.AnalysisMode.auto)
                         Text("只用云端").tag(AppSettings.AnalysisMode.cloud)
                         Text("只用本机").tag(AppSettings.AnalysisMode.local)
+                        Text("高阶网关/密盒").tag(AppSettings.AnalysisMode.miBox)
                     }
                     .pickerStyle(.segmented).labelsHidden().controlSize(.large)
                     Text(modeHint(settings.analysisMode)).font(.callout).foregroundStyle(.secondary)
                 }
-                HStack(alignment: .top, spacing: 18) {
-                    half(String(localized: "本机模型"), dim: settings.analysisMode == .cloud) {
-                        if let job = store.llmJob {
-                            jobDetail(job, title: "Qwen3‑4B")
-                        } else if store.localLLMReady || LocalLLM.modelURL != nil {
-                            Text(LocalLLM.modelLabel).font(.body.weight(.medium)).lineLimit(1).truncationMode(.middle)
-                            Button("打开模型文件夹", action: openFolder)
-                        } else {
-                            Text("Qwen3‑4B · 还没下载").font(.body.weight(.medium))
-                            HStack {
-                                Button("下载（约 2.5 GB）") { store.downloadLocalLLM() }
+                if settings.analysisMode == .miBox {
+                    line(String(localized: "密盒整理服务")) {
+                        Text(settings.miBoxLLMConfig == nil ? String(localized: "还没设置") : settings.miBoxLLMModel)
+                            .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                        Button("设置…") { miBoxSheet = .analysis }
+                    }
+                } else {
+                    HStack(alignment: .top, spacing: 18) {
+                        half(String(localized: "本机模型"), dim: settings.analysisMode == .cloud) {
+                            Picker("本机整理模型", selection: $settings.localAnalysisModel) {
+                                Text("Qwen3-4B").tag(AppSettings.LocalModel.qwen)
+                                Text("Gemma 4 E2B").tag(AppSettings.LocalModel.gemma)
+                            }
+                            .pickerStyle(.segmented).labelsHidden()
+                            .onChange(of: settings.localAnalysisModel) { _, _ in store.refreshASRAvailability() }
+                            if let job = store.llmJob {
+                                jobDetail(job, title: settings.localAnalysisModel.analysisName)
+                            } else if LocalLLM.modelURL(selection: settings.localAnalysisModel) != nil {
+                                Text(LocalLLM.modelLabel(selection: settings.localAnalysisModel)).font(.body.weight(.medium)).lineLimit(1).truncationMode(.middle)
                                 Button("打开模型文件夹", action: openFolder)
+                            } else {
+                                Text("\(settings.localAnalysisModel.analysisName) · 还没下载").font(.body.weight(.medium))
+                                HStack {
+                                    Button("下载（\(settings.localAnalysisModel.analysisSize)）") { store.downloadLocalLLM() }
+                                    Button("打开模型文件夹", action: openFolder)
+                                }
                             }
                         }
-                    }
-                    Divider()
-                    half(String(localized: "云端服务"), dim: settings.analysisMode == .local) {
-                        Text(cloudSummary).font(.body.weight(.medium)).lineLimit(1).truncationMode(.middle)
-                        HStack {
-                            Button(settings.llmConfigured ? "更改…" : "设置…") { cloudSheet = true }
-                            if settings.llmConfigured {
-                                Button("测试") { test() }.disabled(testing)
-                                if testing { ProgressView().controlSize(.small) }
+                        Divider()
+                        half(String(localized: "云端服务"), dim: settings.analysisMode == .local) {
+                            Text(cloudSummary).font(.body.weight(.medium)).lineLimit(1).truncationMode(.middle)
+                            HStack {
+                                Button(settings.llmConfigured ? "更改…" : "设置…") { cloudSheet = true }
+                                if settings.llmConfigured {
+                                    Button("测试") { test() }.disabled(testing)
+                                    if testing { ProgressView().controlSize(.small) }
+                                }
                             }
+                            if let testNote { Text(testNote).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
                         }
-                        if let testNote { Text(testNote).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
                     }
+                    .fixedSize(horizontal: false, vertical: true)
+                    Text("下载断了会从断点接着下；HuggingFace 太慢时自动换国内镜像，下完按 SHA‑256 校验。本机模型不联网；云端纪要质量更高，但文字稿会发给服务商，录音本身不会。")
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
-                .fixedSize(horizontal: false, vertical: true)
-                Text("下载断了会从断点接着下；HuggingFace 太慢时自动换国内镜像，下完按 SHA‑256 校验。本机模型不联网；云端纪要质量更高，但文字稿会发给服务商，录音本身不会。")
-                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
 
             ModelCard(icon: "character.bubble", title: String(localized: "翻译：把外语译成你要的语言"), ok: store.analysisAvailable, status: store.analysisAvailable ? String(localized: "用整理的模型") : String(localized: "还没选模型")) {
@@ -524,23 +671,24 @@ private struct ModelsPane: View {
                 }
                 Divider()
                 Toggle("外语素材整理完自动翻译", isOn: $settings.autoTranslate).toggleStyle(.switch)
-                Text("用的是上面整理纪要的那个模型（云端优先），按句翻译，原文和译文一句对一句。").font(.callout).foregroundStyle(.secondary)
+                Text("用上面选定的整理模型逐句翻译。").font(.callout).foregroundStyle(.secondary)
             }
         }
         .sheet(isPresented: $cloudSheet) { CloudServiceSheet() }
         .sheet(isPresented: $asrSheet) { CloudASRSheet() }
+        .sheet(item: $miBoxSheet) { MiBoxServiceSheet(service: $0) }
         .onAppear { store.restorePausedDownloads(); store.refreshASRAvailability() }
     }
 
     private func serverHint(_ server: URL?) -> String {
         if store.serverInstall != nil { return String(localized: "正在用 Homebrew 安装 llama.cpp，大约 1 分钟，装好会自动检测。") }
         if let server, server.path.hasPrefix("/Applications/") {
-            return String(localized: "本机转写和本机整理模型都靠它运行。现在借用的是别的 App 里带的那份，那个 App 删掉就用不了了；建议点「高级」看看位置，或者用 Homebrew 装一份（brew install llama.cpp）。")
+            return String(localized: "Qwen3-ASR、Gemma 4 E2B 和本机整理模型靠它运行；Paraformer 不需要它。现在借用的是别的 App 里带的那份，那个 App 删掉就用不了了；建议点「高级」看看位置，或者用 Homebrew 装一份（brew install llama.cpp）。")
         }
-        if server != nil { return String(localized: "本机转写和本机整理模型都靠它运行。") }
+        if server != nil { return String(localized: "Qwen3-ASR、Gemma 4 E2B 和本机整理模型靠它运行；Paraformer 不需要它。") }
         return BeanStore.brewPath != nil
-            ? String(localized: "本机转写和本机整理模型都靠它运行。点「安装」会用 Homebrew 装，大约 1 分钟。")
-            : String(localized: "本机转写和本机整理模型都靠它运行。这台 Mac 上没有 Homebrew，先按链接里的说明装好 llama.cpp。")
+            ? String(localized: "Qwen3-ASR、Gemma 4 E2B 和本机整理模型靠它运行；Paraformer 不需要它。点「安装」会用 Homebrew 装，大约 1 分钟。")
+            : String(localized: "Qwen3-ASR、Gemma 4 E2B 和本机整理模型靠它运行；Paraformer 不需要它。这台 Mac 上没有 Homebrew，先按链接里的说明装好 llama.cpp。")
     }
 
     /// 模型下载那一格：没下 → 下载按钮；下载中 → 进度、来源、速度、暂停/取消；下好了 → 一行字。
@@ -588,7 +736,9 @@ private struct ModelsPane: View {
         testing = true; testNote = nil
         Task {
             defer { testing = false }
-            testNote = await CloudServiceSheet.runTest(config, store: store).text
+            let result = await CloudServiceSheet.runTest(config, store: store)
+            testNote = result.text
+            if result.ok { store.upgradeRoughNotes() }
         }
     }
 
@@ -619,6 +769,7 @@ private struct ModelsPane: View {
         case .auto: String(localized: "平时用云端，连不上的时候自动换成本机。")
         case .cloud: String(localized: "只用云端。连不上的时候不整理，等能连上再说。")
         case .local: String(localized: "只用本机。文字稿不会离开这台电脑。")
+        case .miBox: String(localized: "使用密盒上配置的模型整理纪要、回答提问和翻译。")
         }
     }
 
@@ -634,6 +785,176 @@ private struct ModelsPane: View {
         guard s.asrConfig != nil else { return String(localized: "未设置") }
         let name = CloudASR.presets.first { $0.url == s.asrBaseURL }?.name ?? String(localized: "自定义服务")
         return "\(name) · \(s.asrModel)"
+    }
+}
+
+private struct MiBoxServiceSheet: View {
+    enum Service: String, Identifiable {
+        case asr, analysis
+        var id: Self { self }
+
+        var title: String {
+            switch self {
+            case .asr: String(localized: "密盒转写")
+            case .analysis: String(localized: "密盒整理")
+            }
+        }
+    }
+
+    private enum TestState {
+        case idle
+        case testing(UUID)
+        case result(ok: Bool, text: String)
+
+        var isTesting: Bool {
+            if case .testing = self { return true }
+            return false
+        }
+    }
+
+    let service: Service
+    @Environment(BeanStore.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var testState = TestState.idle
+    @State private var testTask: Task<Void, Never>?
+    @State private var models: [String] = []
+    @State private var modelTask: Task<Void, Never>?
+    @State private var modelRequestID: UUID?
+    @State private var modelListLoaded = false
+
+    private var baseURL: Binding<String> {
+        @Bindable var settings = store.settings
+        return service == .asr ? $settings.miBoxASRBaseURL : $settings.miBoxLLMBaseURL
+    }
+
+    private var model: Binding<String> {
+        @Bindable var settings = store.settings
+        return service == .asr ? $settings.miBoxASRModel : $settings.miBoxLLMModel
+    }
+
+    private var key: Binding<String> {
+        @Bindable var settings = store.settings
+        return service == .asr ? $settings.miBoxASRKey : $settings.miBoxLLMKey
+    }
+
+    private var fields: [String] { [baseURL.wrappedValue, model.wrappedValue, key.wrappedValue] }
+    private var modelSource: [String] { [baseURL.wrappedValue, key.wrappedValue] }
+
+    private var configured: Bool {
+        service == .asr ? store.settings.miBoxASRConfig != nil : store.settings.miBoxLLMConfig != nil
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(service.title).font(.title2.bold())
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 12) {
+                GridRow {
+                    Text("接口地址")
+                    TextField("接口地址", text: baseURL, prompt: Text("http://…/v1"))
+                        .textFieldStyle(.roundedBorder)
+                }
+                GridRow {
+                    Text("模型")
+                    HStack(spacing: 6) {
+                        TextField("模型", text: model).textFieldStyle(.roundedBorder)
+                        Menu {
+                            ForEach(models, id: \.self) { name in
+                                Button(name) { model.wrappedValue = name }
+                            }
+                            if models.isEmpty {
+                                Text(modelListLoaded ? "这个服务没给列表，可以直接填写模型名。" : "先刷新列表，也可以直接填写模型名。")
+                            }
+                        } label: { Image(systemName: "chevron.down") }
+                        .menuIndicator(.hidden).fixedSize()
+                        if modelRequestID != nil { ProgressView().controlSize(.small) }
+                        Button("刷新列表") { loadModels() }
+                            .buttonStyle(.link).foregroundStyle(Theme.accent)
+                            .disabled(AppSettings.miBoxEndpoint(baseURL.wrappedValue) == nil || modelRequestID != nil)
+                    }
+                }
+                GridRow {
+                    Text("密钥")
+                    SecureField("密钥", text: key).textFieldStyle(.roundedBorder)
+                }
+            }
+            .padding(14).panel(radius: Theme.Radius.card)
+            HStack {
+                if case .result(let ok, let text) = testState {
+                    Text(text).font(.callout).foregroundStyle(ok ? Theme.ok : Theme.amber)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                if testState.isTesting { ProgressView().controlSize(.small) }
+                Button("测试一下") { test() }.disabled(!configured || testState.isTesting)
+                Button("完成") { dismiss() }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
+            }
+            .controlSize(.large)
+        }
+        .padding(24)
+        .frame(width: 560)
+        .onChange(of: fields) { _, _ in resetTest() }
+        .onChange(of: modelSource) { _, _ in resetModels() }
+        .onDisappear { resetTest(); resetModels() }
+    }
+
+    private func resetModels() {
+        modelTask?.cancel()
+        modelTask = nil
+        modelRequestID = nil
+        models = []
+        modelListLoaded = false
+    }
+
+    private func loadModels() {
+        guard let endpoint = AppSettings.miBoxEndpoint(baseURL.wrappedValue) else { return }
+        let requestKey = key.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let source = modelSource
+        let requestID = UUID()
+        modelRequestID = requestID
+        modelTask = Task {
+            let result = await Analyzer.listModels(baseURL: endpoint, key: requestKey)
+            guard !Task.isCancelled, source == modelSource, modelRequestID == requestID else { return }
+            models = result
+            modelListLoaded = true
+            modelRequestID = nil
+            modelTask = nil
+        }
+    }
+
+    private func resetTest() {
+        testTask?.cancel()
+        testTask = nil
+        testState = .idle
+    }
+
+    private func test() {
+        let settings = store.settings
+        let asrConfig = settings.miBoxASRConfig
+        let llmConfig = settings.miBoxLLMConfig
+        guard service == .asr ? asrConfig != nil : llmConfig != nil else { return }
+        let testedFields = fields
+        let requestID = UUID()
+        testState = .testing(requestID)
+        testTask = Task {
+            let result: (ok: Bool, text: String)
+            switch service {
+            case .asr:
+                guard let asrConfig else { return }
+                do {
+                    try await CloudASR.test(asrConfig)
+                    result = (true, String(localized: "测试通过，接口能用。"))
+                } catch {
+                    result = (false, error.localizedDescription)
+                }
+            case .analysis:
+                guard let llmConfig else { return }
+                result = await CloudServiceSheet.runTest(llmConfig, store: store)
+            }
+            guard !Task.isCancelled, testedFields == fields,
+                  case .testing(let currentID) = testState, currentID == requestID else { return }
+            testState = .result(ok: result.ok, text: result.text)
+            testTask = nil
+        }
     }
 }
 
@@ -767,7 +1088,9 @@ private struct CloudServiceSheet: View {
         testing = true; testResult = nil
         Task {
             defer { testing = false }
-            testResult = await Self.runTest(config, store: store)
+            let result = await Self.runTest(config, store: store)
+            testResult = result
+            if result.ok { store.upgradeRoughNotes() }
         }
     }
 
@@ -778,7 +1101,6 @@ private struct CloudServiceSheet: View {
             let a = try await Analyzer.analyze(
                 transcript: "王总您好，我是小李。这套系统年费三万八，含五个席位。您说预算三万以内，我申请到这个月签可以三万二，再送两个月服务。除了您还要财务张姐确认对吧？我周四把合同发您邮箱，周五再给您打电话。",
                 duration: 40, profession: store.settings.profession, fixedScene: nil, config: config)
-            store.upgradeRoughNotes()
             let secs = String(format: "%.1f", Date().timeIntervalSince(t0))
             return a.scene == .sales || a.scene == .call
                 ? (ok: true, text: String(localized: "测试通过 · \(secs) 秒 · 把销售通话判成了「\(a.scene.name)」"))
@@ -885,7 +1207,7 @@ private struct VocabularyPane: View {
                     TextField("听成了", text: $wrong, prompt: Text("听成了，比如：豆苍")).textFieldStyle(.roundedBorder)
                         .focused($focus, equals: .wrong).onSubmit { focus = .right }
                     Image(systemName: "arrow.right").font(.callout).foregroundStyle(.tertiary).accessibilityHidden(true)
-                    TextField("应该是", text: $right, prompt: Text("应该是，比如：豆仓")).textFieldStyle(.roundedBorder)
+                    TextField("应该是", text: $right, prompt: Text("应该是，比如：密盒助手")).textFieldStyle(.roundedBorder)
                         .focused($focus, equals: .right).onSubmit(add)
                     Button("记住", action: add).disabled(!canAdd)
                 }
@@ -934,8 +1256,8 @@ private struct ConnectPane: View {
 
     var body: some View {
         PaneFrame {
-            SettingsGroup(String(localized: "AI 助手"), footer: String(localized: "连上之后，在它们那边就能直接查你的录音、纪要和待办，也能把文字和音频存进豆仓。")) {
-                SettingRow(icon: "link", title: "Claude、Codex、OpenClaw、Grok Bot",
+            SettingsGroup(String(localized: "AI 助手"), footer: String(localized: "连上之后，在它们那边就能直接查你的录音、纪要和待办，也能把文字和音频存进密盒助手。")) {
+                SettingRow(icon: "link", title: String(localized: "Claude、Codex、OpenClaw、TeleAgent、Grok Bot"),
                            detail: connector.connectedCount > 0 ? String(localized: "已经连上 \(connector.connectedCount) 个。") : String(localized: "还没有连上任何一个。")) {
                     Button("打开连接页面…") { openWindow(id: "connect") }
                 }
@@ -946,7 +1268,7 @@ private struct ConnectPane: View {
 
             LoginsGroup()
 
-            SettingsGroup(String(localized: "给其他工具用"), footer: String(localized: "这个地址只在这台电脑上能访问，而且只有豆仓开着的时候才通。")) {
+            SettingsGroup(String(localized: "给其他工具用"), footer: String(localized: "这个地址只在这台电脑上能访问，而且只有密盒助手开着的时候才通。")) {
                 SettingRow(icon: "network", title: String(localized: "接入地址")) {
                     Text(BeanStore.mcpAddress).font(.callout.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
                     Button(copied ? "已拷贝" : "拷贝") {
@@ -972,7 +1294,7 @@ private struct LoginsGroup: View {
     var body: some View {
         let list = store.loggedInPlatforms
         let _ = refresh
-        SettingsGroup(String(localized: "从链接导入时登录过的平台"), footer: String(localized: "导入要登录才能看的内容时，豆仓会弹出登录窗口让你自己登录。登录状态只存在这台 Mac 上。")) {
+        SettingsGroup(String(localized: "从链接导入时登录过的平台"), footer: String(localized: "导入要登录才能看的内容时，密盒助手会弹出登录窗口让你自己登录。登录状态只存在这台 Mac 上。")) {
             if list.isEmpty {
                 Text("还没有登录过任何平台。").foregroundStyle(.secondary)
             }

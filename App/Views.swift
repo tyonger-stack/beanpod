@@ -181,7 +181,7 @@ struct RootView: View {
             Button("开始快传") { store.startWiFiSync() }
             Button("还是用蓝牙", role: .cancel) {}
         } message: {
-            Text(store.wifiSyncEstimate + "\n\n" + String(localized: "快传时这台 Mac 会离开现在的 Wi‑Fi、连到录音豆上，大约一分钟上不了网，传完自动连回来。"))
+            Text(store.wifiSyncEstimate + "\n\n" + String(localized: "快传时这台 Mac 会离开现在的 Wi‑Fi、连到密盒上，大约一分钟上不了网，传完自动连回来。"))
         }
         .alert(store.problem?.title ?? "", isPresented: Binding(get: { store.problem != nil }, set: { if !$0 { store.problem = nil } }), presenting: store.problem) { p in
             if let action = p.action {
@@ -332,11 +332,11 @@ struct Sidebar: View {
         VStack(alignment: .leading, spacing: 0) {
             // 品牌卡：图标、名字、一行小字
             HStack(spacing: 11) {
-                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 40, height: 40)
+                DevicePhotoView().frame(width: 40, height: 40)
                     .clipShape(.rect(cornerRadius: Theme.Radius.card))
                     .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).strokeBorder(Theme.warm300.opacity(0.5), lineWidth: 2))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("豆仓").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.warm900)
+                    Text("密盒助手").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.warm900)
                     Text("语音工作台").font(.system(size: 11)).foregroundStyle(Theme.warm500)
                 }
                 Spacer(minLength: 0)
@@ -350,19 +350,25 @@ struct Sidebar: View {
 
             SidebarRecord().padding(.bottom, 20)
 
-            VStack(spacing: 4) {
-                item(String(localized: "总览"), "house.fill", 0) { nav.route = .dashboard }
-                item(String(localized: "录音"), "waveform", 1, count: store.ownRecordings.count) { nav.route = .all }
-                item(String(localized: "素材"), "play.rectangle.fill", 3, count: store.recordings.filter(\.isMaterial).count) { nav.route = .materials }
-                // 语音输入：开着「记下说过的话」或者已经记过才出现
-                if store.settings.dictationSave || !store.dictations.isEmpty {
-                    item(String(localized: "语音输入"), "keyboard", 4, count: store.dictations.count) { nav.route = .dictation }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    VStack(spacing: 4) {
+                        item(String(localized: "总览"), "house.fill", 0) { nav.route = .dashboard }
+                        item(String(localized: "录音"), "waveform", 1, count: store.ownRecordings.count) { nav.route = .all }
+                        item(String(localized: "素材"), "play.rectangle.fill", 3, count: store.recordings.filter(\.isMaterial).count) { nav.route = .materials }
+                        // 语音输入：开着「记下说过的话」或者已经记过才出现
+                        if store.settings.dictationSave || !store.dictations.isEmpty {
+                            item(String(localized: "语音输入"), "keyboard", 4, count: store.dictations.count) { nav.route = .dictation }
+                        }
+                        item(String(localized: "知识库"), "book.closed.fill", 2) { nav.route = .knowledge }
+                    }
+                    projectList.padding(.top, 20)
+                    SidebarTags().padding(.top, 16)
                 }
-                item(String(localized: "知识库"), "book.closed.fill", 2) { nav.route = .knowledge }
+                .padding(.bottom, 16)
             }
-            projectList.padding(.top, 20)
-            SidebarTags().padding(.top, 16)
-            Spacer(minLength: 0)
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: .infinity)
             // 最近删除：里面有东西（或者正开着）才出现
             if !store.trash.isEmpty || nav.route == .trash {
                 let on = nav.route == .trash
@@ -585,7 +591,7 @@ struct DeviceChip: View {
                     .font(.system(size: 13, weight: .medium)).foregroundStyle(store.link == .ready || showCard ? Theme.amber : Theme.warm500)
                     .frame(width: 28, height: 28).background((store.link == .ready || showCard ? Theme.amber : Theme.warm400).opacity(0.16), in: .rect(cornerRadius: Theme.Radius.card))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(showCard ? store.card.name : store.link == .ready ? store.displayDeviceName : String(localized: "录音豆")).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.warm900)
+                    Text(showCard ? store.card.name : store.link == .ready ? store.displayDeviceName : String(localized: "密盒")).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.warm900)
                         .lineLimit(1).minimumScaleFactor(0.8).truncationMode(.middle)
                     HStack(spacing: 4) {
                         Circle().fill(statusColor).frame(width: 6, height: 6)
@@ -603,7 +609,7 @@ struct DeviceChip: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(showCard ? "\(store.card.name)：卡里的录音和连接" : "\(store.link == .ready ? store.displayDeviceName : String(localized: "录音豆"))：电量、存储和连接")
+        .help(showCard ? "\(store.card.name)：卡里的录音和连接" : "\(store.link == .ready ? store.displayDeviceName : String(localized: "密盒"))：电量、存储和连接")
     }
 
     /// 录音豆没连上、得到录音卡连着：这张卡片显示录音卡。
@@ -784,7 +790,7 @@ struct RecordingsView: View {
             case .all: ""
             case .starred: String(localized: "还没有星标的录音。打开一条录音，点右上角的星，它就会出现在这里。")
             case .todos: String(localized: "没有还没做完的待办。")
-            case .marked: String(localized: "还没有打过重点标记的录音。录音时按 ⌘D，或者按录音豆上的标记键。")
+            case .marked: String(localized: "还没有打过重点标记的录音。录音时按 ⌘D，或者按密盒上的标记键。")
             }
         }
     }
@@ -1052,7 +1058,7 @@ struct RecordingsView: View {
                 } else {
                     // 只有一条录音都没有的时候才会到这里：给一个能直接动手的开始
                     VStack(spacing: 14) {
-                        MascotView(mood: .idle, power: store.mascotPower).frame(width: 130, height: 130).accessibilityHidden(true)
+                        DevicePhotoView().frame(width: 130, height: 130).accessibilityHidden(true)
                         Text("录下第一段").font(.title2.bold())
                         Text("点左上角的「开始录音」。录完会自动转成文字，再整理成摘要、待办和重点。").foregroundStyle(.secondary)
                     }
@@ -1113,7 +1119,7 @@ struct RecordingsView: View {
         if quick != .all { return quick.emptyHint }
         if source != nil { return String(localized: "在「来源」里换回「全部来源」，就能看到其它录音。") }
         switch nav.route {
-        case .materials: return String(localized: "把抖音、B 站、YouTube 这些视频链接贴到左边的框里，豆仓会下载声音、转成文字稿，再整理成纪要。")
+        case .materials: return String(localized: "把抖音、B 站、YouTube 这些视频链接贴到左边的框里，密盒助手会下载声音、转成文字稿，再整理成纪要。")
         case .project: return String(localized: "在任意一条录音上右键「移到项目」，或者在「全部录音」里点「选择」，一次放好几条进来。")
         case .tag: return String(localized: "在录音详情的标题下面点「＋ 标签」，就能给它加上。")
         default: return String(localized: "整理过的录音会自动归到对应的场景。")
@@ -1167,8 +1173,8 @@ struct RecordingsView: View {
                 Button("从文件导入…", systemImage: "doc") { store.chooseFilesToImport() }
                 Button("从链接导入…", systemImage: "link") { nav.linkSheet = true }
             }
-            Section("录音豆") {
-                Button("重新读取录音豆", systemImage: "arrow.clockwise") { store.refreshFiles() }
+            Section("密盒") {
+                Button("重新读取密盒", systemImage: "arrow.clockwise") { store.refreshFiles() }
                     .disabled(store.link != .ready || store.loadingList || store.pull != nil)
                 if store.wifi == nil, store.pull != nil || !store.queue.isEmpty {
                     Button("取消下载", systemImage: "xmark.circle") { store.cancelDownloads() }
@@ -1188,7 +1194,7 @@ struct RecordingsView: View {
                 .frame(width: 26, height: 26).contentShape(Rectangle())
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-        .help("导入、录音豆、按场景看")
+        .help("导入、密盒、按场景看")
     }
 
     /// 点一张卡片：多选时是勾选，平时是打开。
@@ -1228,7 +1234,7 @@ struct RecordingsView: View {
                 Button("移到最近删除", role: .destructive) { store.trashWithUndo([rec.id]) }
             }
             if rec.onDevice, store.link == .ready, !rec.inProgress {
-                Button("从录音豆删除…", role: .destructive) { nav.selection = rec.id; Task { nav.confirmDeviceDelete = true } }
+                Button("从密盒删除…", role: .destructive) { nav.selection = rec.id; Task { nav.confirmDeviceDelete = true } }
             }
         }
     }
@@ -1364,7 +1370,7 @@ struct RecordingRow: View {
         if !recording.textOnly { parts.append(clock(recording.duration)) }
         else if recording.recordedOn != .note { parts.append(String(localized: "文字")) }
         if let scene = recording.scene { parts.append(scene.name) }
-        else if !recording.downloaded { parts.append(String(localized: "还在录音豆里")) }
+        else if !recording.downloaded { parts.append(String(localized: "还在密盒里")) }
         else if recording.transcript == nil { parts.append(String(localized: "还没转成文字")) }
         else if !recording.isAnalyzed { parts.append(String(localized: "还没整理")) }
         return parts.joined(separator: " • ")
@@ -1380,7 +1386,7 @@ struct RecordingRow: View {
         } else if let stage = store.stages[recording.id] {
             StageBadge(stage: stage)
         } else if !recording.downloaded {
-            Image(systemName: "icloud.and.arrow.down").foregroundStyle(.secondary).help("还在录音豆里，没下载")
+            Image(systemName: "icloud.and.arrow.down").foregroundStyle(.secondary).help("还在密盒里，没下载")
         }
     }
 }
@@ -1454,7 +1460,13 @@ struct RecordingDetail: View {
             }
         }
         .onAppear { title = recording.title ?? "" }
-        .confirmationDialog("从录音豆里删除这条录音？", isPresented: Bindable(nav).confirmDeviceDelete) {
+        .onChange(of: recording.id) { _, _ in title = recording.title ?? "" }
+        .onChange(of: recording.title) { _, value in
+            if title.trimmingCharacters(in: .whitespacesAndNewlines) != (value ?? "") {
+                title = value ?? ""
+            }
+        }
+        .confirmationDialog("从密盒里删除这条录音？", isPresented: Bindable(nav).confirmDeviceDelete) {
             Button("删除", role: .destructive) { store.deleteFromDevice(recording.id) }
         } message: {
             Text(recording.downloaded ? "这台 Mac 上已下载的副本会保留。" : "这条录音还没下载，删除后无法找回。")
@@ -1485,10 +1497,12 @@ struct RecordingDetail: View {
             }
             HStack(alignment: .center, spacing: 16) {
                 // 标题长的时候折成两行，不被右边的页签挤掉
-                TextField("标题", text: $title, prompt: Text(recording.displayTitle), axis: .vertical)
+                TextField("标题", text: Binding(get: { title }, set: { value in
+                    title = value
+                    store.rename(recording.id, to: value)
+                }), prompt: Text(recording.displayTitle), axis: .vertical)
                     .lineLimit(1...2)
                     .textFieldStyle(.plain).font(.system(size: 24, weight: .bold)).foregroundStyle(Theme.warm900)
-                    .onSubmit { store.rename(recording.id, to: title) }
                     .disabled(!recording.downloaded)
                 if recording.downloaded, recording.transcript != nil {
                     PaneSwitch(selection: $tab, titles: [String(localized: "纪要"), String(localized: "文字稿"), String(localized: "改写")])
@@ -1504,7 +1518,7 @@ struct RecordingDetail: View {
     private var tools: some View {
         HStack(spacing: 4) {
             if recording.downloaded, recording.transcript != nil {
-                IconTool("arrow.triangle.2.circlepath", help: String(localized: "用分析模型重新判断场景、整理纪要")) { store.process(recording.id) }
+                IconTool("arrow.triangle.2.circlepath", help: String(localized: "重新整理纪要")) { store.process(recording.id) }
                     .disabled(store.stages[recording.id] != nil)
             }
             if recording.downloaded {
@@ -1524,7 +1538,7 @@ struct RecordingDetail: View {
                     .disabled(!store.analysisAvailable || store.retitling.contains(recording.id))
             }
             if recording.downloaded {
-                IconMenu("ellipsis", help: String(localized: "更多")) {
+                IconMenu("ellipsis", help: String(localized: "更多操作")) {
                     Menu("移到项目") { ProjectMenuItems(ids: [recording.id]) }
                     Divider()
                     Button("重新整理纪要") { store.process(recording.id) }.disabled(recording.transcript == nil)
@@ -1554,7 +1568,7 @@ struct RecordingDetail: View {
             }
             IconMenu("trash", help: String(localized: "删除"), danger: true) {
                 if recording.downloaded { Button("移到最近删除") { store.trashWithUndo([recording.id]) } }
-                if recording.onDevice { Button("从录音豆删除…") { nav.confirmDeviceDelete = true } }
+                if recording.onDevice { Button("从密盒删除…") { nav.confirmDeviceDelete = true } }
             }
         }
     }
@@ -1598,13 +1612,13 @@ struct RecordingDetail: View {
     @ViewBuilder private var notDownloaded: some View {
         VStack(alignment: .leading, spacing: 12) {
             if recording.inProgress {
-                Label("这条还在录。在录音豆上按一下停止，或者点「结束录音」；录完会自动下载、转成文字。", systemImage: "record.circle").foregroundStyle(.secondary)
+                Label("这条还在录。在密盒上按一下停止，或者点「结束录音」；录完会自动下载、转成文字。", systemImage: "record.circle").foregroundStyle(.secondary)
             } else if let pull = store.pull, pull.id == recording.id {
                 if store.wifi != nil {
                     ProgressView(value: pull.fraction) { Text("正在通过 Wi‑Fi 快传 \(Int(pull.fraction * 100))%") }
                 } else {
                     ProgressView(value: pull.fraction) { Text("正在通过蓝牙下载 \(Int(pull.fraction * 100))%") }
-                    Text("蓝牙比较慢，长录音要等几分钟。期间请让录音豆留在电脑旁边。").font(.callout).foregroundStyle(.secondary)
+                    Text("蓝牙比较慢，长录音要等几分钟。期间请让密盒留在电脑旁边。").font(.callout).foregroundStyle(.secondary)
                     HStack {
                         Button("取消") { store.cancelDownloads() }
                         if store.wifiSyncWorthOffering { Button("改用 Wi‑Fi 快传…") { nav.confirmWiFiSync = true } }
@@ -1613,12 +1627,61 @@ struct RecordingDetail: View {
             } else if store.isQueued(recording.id) {
                 Label("排队中，等前面的下载完", systemImage: "clock").foregroundStyle(.secondary)
             } else {
-                Text("这条录音还在录音豆里。下载后会自动转写并整理。").foregroundStyle(.secondary)
+                Text("这条录音还在密盒里。下载后会自动转写并整理。").foregroundStyle(.secondary)
                 Button("下载到这台 Mac", systemImage: "arrow.down.circle") { store.download(recording.id) }
                     .controlSize(.large).buttonStyle(.borderedProminent)
                     .disabled(store.link != .ready || !store.encryptionReady)
             }
         }
+    }
+}
+
+private struct RecordingToolTip: ViewModifier {
+    let text: String
+    @Binding var hover: Bool
+    @Environment(\.isEnabled) private var enabled
+    @State private var visible = false
+
+    func body(content: Content) -> some View {
+        ZStack {
+            content.disabled(!enabled)
+        }
+        .contentShape(Rectangle())
+        .onHover { inside in
+            hover = inside
+            visible = false
+        }
+        .task(id: hover) {
+            guard hover else { return }
+            do {
+                try await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled else { return }
+                visible = true
+            } catch { }
+        }
+        .overlay(alignment: .topTrailing) {
+            if hover && visible {
+                Text(text)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(Theme.warm900)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Theme.surface, in: .rect(cornerRadius: Theme.Radius.chip))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Theme.Radius.chip)
+                            .strokeBorder(Theme.warm200, lineWidth: 1)
+                    }
+                    .fixedSize()
+                    .offset(y: -24)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
+        }
+        .onDisappear {
+            hover = false
+            visible = false
+        }
+        .environment(\.isEnabled, true)
     }
 }
 
@@ -1644,8 +1707,8 @@ struct IconTool: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain).opacity(enabled ? 1 : 0.4)
-        .onHover { hover = $0 }
-        .help(help).accessibilityLabel(help)
+        .accessibilityLabel(help)
+        .modifier(RecordingToolTip(text: help, hover: $hover))
     }
 }
 
@@ -1670,8 +1733,8 @@ struct IconMenu<Content: View>: View {
                 .contentShape(Rectangle())
         }
         .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
-        .onHover { hover = $0 }
-        .help(help).accessibilityLabel(help)
+        .accessibilityLabel(help)
+        .modifier(RecordingToolTip(text: help, hover: $hover))
     }
 }
 
@@ -1846,7 +1909,7 @@ struct RecordDock: View {
                         Label(store.link == .ready ? "开始录音" : "用 Mac 录音", systemImage: "record.circle.fill").padding(.horizontal, 6)
                     }
                     .buttonStyle(.glassProminent).tint(Theme.rec).controlSize(.extraLarge)
-                            .help(store.link == .ready ? "让录音豆开始录音（⌘R）" : "录音豆没连上，用这台 Mac 的麦克风录（⌘R）")
+                            .help(store.link == .ready ? "让密盒开始录音（⌘R）" : "密盒没连上，用这台 Mac 的麦克风录（⌘R）")
                 }
             } else {
                 active
@@ -2085,6 +2148,7 @@ struct TranscriptView: View {
     let recording: Recording
     @State private var showClean = true
     @State private var editing = false
+    @State private var segmentEdit: SegmentEdit?
     @State private var replacing = false
     @State private var wrong = ""
     @State private var right = ""
@@ -2100,6 +2164,13 @@ struct TranscriptView: View {
     @AppStorage("followPlayback") private var follow = true
     @State private var hovered: TimeInterval?
 
+    private struct SegmentEdit: Identifiable {
+        let start: TimeInterval
+        let clean: Bool
+        let text: String
+        var id: TimeInterval { start }
+    }
+
     enum Shown: String, CaseIterable {
         case original = "原文", both = "双语", translated = "译文"
         /// 显示用的名字（rawValue 只当标识用）。
@@ -2113,6 +2184,11 @@ struct TranscriptView: View {
     }
 
     private var hasClean: Bool { recording.segments.contains { $0.clean != nil } }
+    private var replacingTranscript: Bool {
+        if case .transcribing = store.stages[recording.id] { return true }
+        if case .queued = store.stages[recording.id], store.retranscribing.contains(recording.id) { return true }
+        return false
+    }
     private var translation: Translation? { recording.translation }
     /// 这一句的译文（分句数对不上就不显示，免得错位）。
     private func translated(_ index: Int) -> String? {
@@ -2165,6 +2241,11 @@ struct TranscriptView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(item: $segmentEdit) { edit in
+            TranscriptSegmentSheet(text: edit.text, clean: edit.clean) { text in
+                store.editSegment(recording.id, start: edit.start, to: text, clean: edit.clean)
+            }
+        }
         .alert("给这位说话人起个名字", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
             TextField("名字", text: $newName)
             Button("好") { if let r = renaming { store.renameSpeaker(recording.id, r, to: newName) }; renaming = nil }
@@ -2419,6 +2500,12 @@ struct TranscriptView: View {
             if inside { hovered = seg.start } else if hovered == seg.start { hovered = nil }
         }
         .contextMenu {
+            Button("修改这段文字") {
+                segmentEdit = SegmentEdit(start: seg.start, clean: useClean, text: useClean ? (seg.clean ?? seg.text) : seg.text)
+            }
+            .disabled(editing || replacingTranscript)
+            .help(replacingTranscript ? "转写中，请等它完成后修改" : "修改这段文字")
+            Divider()
             if marked {
                 Button("取消重点标记") { for m in marksIn(seg) { store.removeMark(recording.id, m) } }
             } else {
@@ -2486,6 +2573,48 @@ struct Selectable: ViewModifier {
     }
 }
 
+private struct TranscriptSegmentSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: String
+    @FocusState private var focused: Bool
+    let text: String
+    let clean: Bool
+    let commit: (String) -> Void
+
+    init(text: String, clean: Bool, commit: @escaping (String) -> Void) {
+        self.text = text
+        self.clean = clean
+        self.commit = commit
+        _draft = State(initialValue: text)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("修改这段文字").font(.title2.bold())
+            Text(clean ? "修改润色版本" : "修改原文").foregroundStyle(.secondary)
+            TextEditor(text: $draft)
+                .font(.body)
+                .focused($focused)
+                .frame(minHeight: 150)
+                .padding(8)
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Theme.warm200))
+                .accessibilityLabel("修改这段文字")
+            Text("只修改这一段，不会加入词库。").font(.callout).foregroundStyle(.secondary)
+            HStack {
+                Spacer()
+                Button("取消") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("保存修改") { commit(draft); dismiss() }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || draft == text)
+            }
+        }
+        .padding(24)
+        .frame(width: 540)
+        .onAppear { focused = true }
+    }
+}
+
 /// 一句话的编辑框：改完按回车或点到别处才提交。
 struct SegmentEditor: View {
     @State private var draft: String
@@ -2514,7 +2643,6 @@ struct DeviceView: View {
     @Environment(BeanStore.self) private var store
     @Environment(Navigator.self) private var nav
     @Environment(\.openWindow) private var openWindow
-    @State private var justPaired = false
 
     var body: some View {
         // 这一页内容不多：摆在页面正中间，不贴着左上角留一大片空
@@ -2524,7 +2652,7 @@ struct DeviceView: View {
                 switch store.link {
                 case .ready: connected
                 case .off: ContentUnavailableView("蓝牙没打开", systemImage: "antenna.radiowaves.left.and.right.slash", description: Text("请在菜单栏或系统设置里打开蓝牙。"))
-                case .unauthorized: ContentUnavailableView("没有蓝牙权限", systemImage: "lock", description: Text("请到 系统设置 → 隐私与安全性 → 蓝牙 里允许「豆仓」。"))
+                case .unauthorized: ContentUnavailableView("没有蓝牙权限", systemImage: "lock", description: Text("请到 系统设置 → 隐私与安全性 → 蓝牙 里允许「密盒助手」。"))
                 case .connecting: connecting
                 case .idle, .scanning: scanner
                 }
@@ -2548,7 +2676,7 @@ struct DeviceView: View {
             VStack(spacing: 14) {
                 Radar(active: true, found: true)
                 Text(store.waitingForKnownDevice ? "正在等「\(store.displayDeviceName)」出现" : "正在连接…").font(.headline)
-                Text("把录音豆从充电盒里取出来，放在电脑旁边。\n手机连着它的话，先关掉手机蓝牙。")
+                Text("确认密盒已开机，放在电脑旁边。\n手机连着它的话，先关掉手机蓝牙。")
                     .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 Button("取消") { store.disconnect() }
             }
@@ -2561,12 +2689,12 @@ struct DeviceView: View {
             let beans = store.found.filter(\.isBean)
             VStack(spacing: 14) {
                 Radar(active: store.link == .scanning, found: !beans.isEmpty)
-                Text(beans.isEmpty ? (store.link == .scanning ? "正在找附近的录音豆" : "连接录音豆") : (beans.count == 1 ? "找到了，正在连接…" : "找到 \(beans.count) 颗，选一颗"))
+                Text(beans.isEmpty ? (store.link == .scanning ? "正在找附近的密盒" : "连接密盒") : (beans.count == 1 ? "找到了，正在连接…" : "找到 \(beans.count) 台，选一台"))
                     .font(.headline)
                     .contentTransition(.opacity)
                 if beans.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        step("1", String(localized: "把录音豆从充电盒里取出来"))
+                        step("1", String(localized: "确认密盒已开机"))
                         step("2", String(localized: "放在电脑旁边"))
                         step("3", String(localized: "手机连着它的话，先关掉手机蓝牙"))
                     }
@@ -2602,18 +2730,12 @@ struct DeviceView: View {
         }
     }
 
-    /// 已连接：小豆坐在充电仓里当主视觉，三个圆环说清电量和空间，其余参数排成一张表。
+    /// 已连接：设备照片、电量、存储空间和设备参数。
     @ViewBuilder private var connected: some View {
         VStack(spacing: 22) {
             HStack(spacing: 28) {
-                MascotView(mood: justPaired ? .happy : .idle, power: store.mascotPower, inPod: true)
+                DevicePhotoView()
                     .frame(width: 230, height: 230)
-                    .task {
-                        try? await Task.sleep(for: .seconds(0.3))
-                        justPaired = true
-                        try? await Task.sleep(for: .seconds(2.2))
-                        justPaired = false
-                    }
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 8) {
                     TextField("给它起个名字", text: Bindable(store.settings).deviceAlias, prompt: Text(store.deviceName))
@@ -2621,7 +2743,7 @@ struct DeviceView: View {
                         .help("点这里改名。名字只存在这台 Mac 上")
                     HStack(spacing: 7) {
                         Circle().fill(Theme.ok).frame(width: 9, height: 9)
-                        Text(store.recState == .recording ? "已连接 · 正在录音" : store.inCase ? "已连接 · 正在充电盒里充电" : "已连接").font(.title3).foregroundStyle(.secondary)
+                        Text(store.recState == .recording ? "已连接 · 正在录音" : store.inCase ? "已连接 · 正在充电" : "已连接").font(.title3).foregroundStyle(.secondary)
                     }
                     Button("断开连接") { store.disconnect() }.buttonStyle(.glass).controlSize(.large)
                         .padding(.top, 10)
@@ -2631,7 +2753,7 @@ struct DeviceView: View {
 
             if let info = store.info {
                 HStack(spacing: 18) {
-                    ring(String(localized: "录音豆"), "\(info.micBattery)%", Double(info.micBattery) / 100, note: info.micCharging ? String(localized: "充电中") : nil, warn: info.micBattery < 20)
+                    ring(String(localized: "密盒"), "\(info.micBattery)%", Double(info.micBattery) / 100, note: info.micCharging ? String(localized: "充电中") : nil, warn: info.micBattery < 20)
                     ring(String(localized: "充电盒"), "\(info.caseBattery)%", Double(info.caseBattery) / 100, note: info.caseCharging ? String(localized: "充电中") : nil, warn: info.caseBattery < 20)
                     if info.totalKB > 0 {
                         ring(String(localized: "已用空间"), size(info.usedKB), max(0.004, Double(info.usedKB) / Double(info.totalKB)), note: String(localized: "共 \(size(info.totalKB))"), warn: false)
@@ -2645,11 +2767,11 @@ struct DeviceView: View {
                 Card {
                     Grid(alignment: .leading, horizontalSpacing: 28, verticalSpacing: 11) {
                         GridRow {
-                            fact(String(localized: "录音豆里的录音"), String(localized: "\(onDevice.count) 条") + (waiting > 0 ? String(localized: "，\(waiting) 条没下载") : String(localized: "，都已下载")))
+                            fact(String(localized: "密盒里的录音"), String(localized: "\(onDevice.count) 条") + (waiting > 0 ? String(localized: "，\(waiting) 条没下载") : String(localized: "，都已下载")))
                             fact(String(localized: "还能录"), hoursLeft >= 100 ? String(localized: "约 \(Int(hoursLeft)) 小时") : String(format: String(localized: "约 %.1f 小时"), hoursLeft))
                         }
                         GridRow {
-                            fact(String(localized: "录音豆固件"), info.firmware)
+                            fact(String(localized: "密盒固件"), info.firmware)
                             fact(String(localized: "充电盒固件"), info.caseFirmware.isEmpty ? "—" : info.caseFirmware)
                         }
                         GridRow {
@@ -2660,7 +2782,7 @@ struct DeviceView: View {
                     if waiting > 0 {
                         Divider()
                         HStack {
-                            Text("有 \(waiting) 条录音还在录音豆里。").foregroundStyle(.secondary)
+                            Text("有 \(waiting) 条录音还在密盒里。").foregroundStyle(.secondary)
                             Spacer()
                             if store.wifiSyncWorthOffering { Button("Wi‑Fi 快传…") { nav.confirmWiFiSync = true } }
                             Button("全部下载") { store.downloadAll() }.disabled(store.pull != nil || !store.encryptionReady)
@@ -2811,7 +2933,7 @@ struct KeepCard: View {
             }
             Text(just.discardAt == nil
                  ? (store.settings.autoProcess ? "留着的话，会自动转成文字并整理成纪要。" : "留着的话，它会出现在录音列表里。")
-                 : (just.onMac ? "马上从这台 Mac 上删掉，删了找不回来。" : "马上从录音豆里删掉，删了找不回来。"))
+                 : (just.onMac ? "马上从这台 Mac 上删掉，删了找不回来。" : "马上从密盒里删掉，删了找不回来。"))
                 .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
 
             if just.discardAt == nil {
@@ -2957,7 +3079,7 @@ struct TranslatePanel: View {
             }
             Divider()
             HStack {
-                Text(store.analysisAvailable ? "用整理纪要的那个云端模型来翻译" : "还没设置分析模型")
+                Text(store.analysisAvailable ? "使用选定的整理模型翻译" : "还没设置分析模型")
                     .font(.caption).foregroundStyle(Theme.warm500)
                 Spacer()
                 Button("开始翻译") {

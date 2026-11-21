@@ -52,6 +52,7 @@ final class DownloadJob {
 
     private var task: Task<Void, Never>?
     private var fetcher: RangeFetcher?
+    private var generation = UUID()
 
     init(files: [ModelFile], folder: URL) {
         self.files = files
@@ -63,7 +64,9 @@ final class DownloadJob {
     func start() {
         guard task == nil else { return }
         state = .running
-        task = Task { await run() }
+        let id = UUID()
+        generation = id
+        task = Task { await run(id) }
     }
 
     func pause() {
@@ -81,13 +84,24 @@ final class DownloadJob {
         onFinish?(false)
     }
 
-    private func run() async {
-        defer { task = nil }
+    private func run(_ id: UUID) async {
+        defer { if generation == id { task = nil } }
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let fm = FileManager.default
         for f in files {
+            guard !Task.isCancelled, generation == id else { return }
             let target = folder.appendingPathComponent(f.name)
-            if fm.fileExists(atPath: target.path) { continue }
+            guard !Self.externalDownload(target) else {
+                fail(String(localized: "该模型正在由其他程序下载，请等待完成后再试。"))
+                return
+            }
+            if fm.fileExists(atPath: target.path) {
+                guard Self.fileSize(target) == f.size else {
+                    fail(String(localized: "模型文件大小不符，请检查模型文件夹。"))
+                    return
+                }
+                continue
+            }
             let part = Self.part(f, in: folder)
             if !fm.fileExists(atPath: part.path) { fm.createFile(atPath: part.path, contents: nil) }
             refreshReceived()
@@ -108,17 +122,22 @@ final class DownloadJob {
                 case .slow, .failed: continue
                 }
             }
+            guard !Task.isCancelled, generation == id else { return }
             guard ok else { fail(String(localized: "三个下载源都没下下来，检查网络后点「继续」再试。")); return }
 
             // 校验
             state = .verifying
             let sum = await Task.detached { Self.sha256(of: part) }.value
+            guard !Task.isCancelled, generation == id else { return }
             guard sum == f.sha256 else {
                 try? fm.removeItem(at: part)
                 fail(String(localized: "「\(f.name)」下载下来的文件不完整，已删掉，点「继续」重新下载。"))
                 return
             }
-            try? fm.removeItem(at: target)
+            guard !Self.externalDownload(target), !fm.fileExists(atPath: target.path) else {
+                fail(String(localized: "模型文件已被其他程序更新，请检查后重试。"))
+                return
+            }
             do { try fm.moveItem(at: part, to: target) } catch { fail(String(localized: "下载好了，但没能放进模型文件夹：\(error.localizedDescription)")); return }
             state = .running
         }
@@ -147,7 +166,7 @@ final class DownloadJob {
         if start >= f.size { return .done }
         let fetcher = RangeFetcher(url: src.url(f), offset: start, file: part)
         self.fetcher = fetcher
-        defer { self.fetcher = nil }
+        defer { if self.fetcher === fetcher { self.fetcher = nil } }
 
         let began = Date()
         var lastBytes = start, lastTick = Date()
@@ -174,6 +193,10 @@ final class DownloadJob {
                 return .failed
             }
         }
+    }
+
+    nonisolated static func externalDownload(_ target: URL) -> Bool {
+        [".partial", ".aria2", ".partial.aria2"].contains { FileManager.default.fileExists(atPath: target.path + $0) }
     }
 
     nonisolated static func fileSize(_ url: URL) -> Int64 {
@@ -224,8 +247,10 @@ nonisolated final class RangeFetcher: NSObject, URLSessionDataDelegate, @uncheck
 
     func cancel() {
         session?.invalidateAndCancel()
-        lock.withLock { if _status == .running { _status = .failed } }
-        try? handle?.close(); handle = nil
+        lock.withLock {
+            if _status == .running { _status = .failed }
+            try? handle?.close(); handle = nil
+        }
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse) async -> URLSession.ResponseDisposition {
@@ -237,14 +262,18 @@ nonisolated final class RangeFetcher: NSObject, URLSessionDataDelegate, @uncheck
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        guard let handle else { return }
-        do { try handle.write(contentsOf: data) } catch { lock.withLock { _status = .failed }; dataTask.cancel(); return }
-        lock.withLock { _written += Int64(data.count); _lastData = Date() }
+        lock.withLock {
+            guard _status == .running, let handle else { return }
+            do { try handle.write(contentsOf: data) } catch { _status = .failed; dataTask.cancel(); return }
+            _written += Int64(data.count); _lastData = Date()
+        }
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        lock.withLock { if _status == .running { _status = error == nil ? .finished : .failed } }
-        try? handle?.close(); handle = nil
+        lock.withLock {
+            if _status == .running { _status = error == nil ? .finished : .failed }
+            try? handle?.close(); handle = nil
+        }
         session.finishTasksAndInvalidate()
     }
 }

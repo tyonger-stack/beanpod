@@ -6,14 +6,17 @@ nonisolated struct ASRConfig: Sendable, Equatable {
     var baseURL: String
     var model: String
     var key: String
+    enum API: Sendable { case automatic, openAI }
+    var api: API = .automatic
 }
 
 nonisolated enum CloudASRError: LocalizedError {
-    case badURL, http(Int, String), noText
+    case badURL, miniMaxTextOnly, http(Int, String), noText, malformedResponse
 
     var errorDescription: String? {
         switch self {
         case .badURL: String(localized: "云端转写的接口地址不对")
+        case .miniMaxTextOnly: String(localized: "MiniMax 文本接口可以用于整理，但没有录音转写接口。请选择本机转写，或配置小米 MiMo 等支持转写的服务。")
         case .http(let code, let body):
             switch code {
             case 401, 403: String(localized: "云端转写的密钥不对，或者没有权限（\(code)）")
@@ -22,6 +25,7 @@ nonisolated enum CloudASRError: LocalizedError {
             default: String(localized: "云端转写返回错误 \(code)：\(String(body.prefix(160)))")
             }
         case .noText: String(localized: "云端转写没有返回文字")
+        case .malformedResponse: String(localized: "密盒转写返回的数据格式不对，请检查接口地址是否为兼容 OpenAI 的转写服务。")
         }
     }
 }
@@ -43,6 +47,7 @@ nonisolated enum CloudASR {
 
     static func transcribe(_ url: URL, config: ASRConfig, language: String,
                            progress: @Sendable @escaping (Double) -> Void) async throws -> [Segment] {
+        try validateProvider(config)
         let samples = try QwenASR.loadMono16k(url)
         // 先沿着安静的地方切成小段，再把相邻的小段并成不超过五分钟的一批，这样不会把一句话切在两批中间
         var batches: [Range<Int>] = []
@@ -73,10 +78,19 @@ nonisolated enum CloudASR {
 
     /// 试一下这家能不能用：发两秒很轻的噪声过去，只看它肯不肯收。
     static func test(_ config: ASRConfig) async throws {
+        try validateProvider(config)
         var noise = [Float](repeating: 0, count: 32000)
         for i in noise.indices { noise[i] = Float.random(in: -0.002...0.002) }
         do { _ = try await request(noise, config: config, language: "zh", rich: false) }
         catch CloudASRError.noText { /* 噪声里本来就没有话，能走到这一步说明接口是通的 */ }
+    }
+
+    private static func validateProvider(_ config: ASRConfig) throws {
+        let address = config.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let host = URL(string: address)?.host?.lowercased() else { return }
+        if ["api.minimaxi.com", "api.minimax.cn", "api.minimax.io"].contains(host) {
+            throw CloudASRError.miniMaxTextOnly
+        }
     }
 
     // MARK: 一次请求
@@ -119,7 +133,7 @@ nonisolated enum CloudASR {
     }
 
     private static func request(_ samples: [Float], config: ASRConfig, language: String, rich: Bool) async throws -> [Segment] {
-        if isMiMo(config.baseURL) { return try await requestMiMo(samples, config: config) }
+        if config.api == .automatic, isMiMo(config.baseURL) { return try await requestMiMo(samples, config: config) }
         guard let endpoint = URL(string: config.baseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/ ")) + "/audio/transcriptions") else {
             throw CloudASRError.badURL
         }
@@ -148,18 +162,26 @@ nonisolated enum CloudASR {
         let (data, response) = try await URLSession.shared.upload(for: req, from: body)
         let code = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(code) else { throw CloudASRError.http(code, String(decoding: data, as: UTF8.self)) }
-        return try parse(data, seconds: seconds)
+        return try parse(data, seconds: seconds, requireJSON: config.api == .openAI)
     }
 
     /// 读返回：有分句和时间就用；只有一整段文字就自己分句。
-    static func parse(_ data: Data, seconds: Double) throws -> [Segment] {
+    static func parse(_ data: Data, seconds: Double, requireJSON: Bool = false) throws -> [Segment] {
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            if requireJSON { throw CloudASRError.malformedResponse }
             // 有的服务直接回纯文字
             let text = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { throw CloudASRError.noText }
             return sentences(text, seconds: seconds)
         }
-        if let list = object["segments"] as? [[String: Any]], !list.isEmpty {
+        let list = object["segments"] as? [[String: Any]]
+        if requireJSON {
+            guard object["error"] == nil else { throw CloudASRError.malformedResponse }
+            if !(object["text"] is String) {
+                guard let list, list.allSatisfy({ $0["text"] is String }) else { throw CloudASRError.malformedResponse }
+            }
+        }
+        if let list, !list.isEmpty {
             let segments = list.compactMap { item -> Segment? in
                 guard let text = (item["text"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
                 let start = (item["start"] as? Double) ?? (item["start"] as? NSNumber)?.doubleValue ?? 0

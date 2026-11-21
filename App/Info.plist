@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh-Hans</string>
 	<key>CFBundleDisplayName</key>
-	<string>豆仓</string>
+	<string>密盒助手</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconName</key>
@@ -22,7 +22,7 @@
 		<string>en</string>
 	</array>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>密盒助手</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -31,10 +31,17 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>需要蓝牙来连接你的录音豆。</string>
+	<string>需要蓝牙来连接你的密盒。</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>连接你设置的局域网密盒，发送录音进行转写，或发送文字进行整理。</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>录音豆没连上时，用这台 Mac 的麦克风录音。</string>
+	<string>密盒没连上时，用这台 Mac 的麦克风录音。</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>需要语音识别来把录音转成文字，全部在本机完成。</string>
 </dict>

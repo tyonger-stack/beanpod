@@ -67,7 +67,7 @@ extension BeanStore {
 
     private func reallyDiscard(_ j: JustRecorded) {
         justRecorded = nil
-        addLog("不要这条录音，删除：\(j.id)（\(j.onMac ? "Mac 上录的" : "录音豆里的")）")
+        addLog("不要这条录音，删除：\(j.id)（\(j.onMac ? "Mac 上录的" : "密盒里的")）")
         if playingID == j.id { stop() }
         if j.onMac {
             removeLocal(j.id)
@@ -79,7 +79,7 @@ extension BeanStore {
         pendingMarks.removeAll { $0.file == j.id }
         if recordings.first(where: { $0.id == j.id })?.downloaded == true { removeLocal(j.id) }
         guard link == .ready else {
-            problem = Problem(title: String(localized: "录音豆没连着，这条还在录音豆里"), detail: String(localized: "连上之后它会出现在列表里，到时候可以从录音豆删除。"))
+            problem = Problem(title: String(localized: "密盒没连着，这条还在密盒里"), detail: String(localized: "连上之后它会出现在列表里，到时候可以从密盒删除。"))
             return
         }
         deleteFromDevice(j.id)
@@ -100,6 +100,7 @@ extension BeanStore {
             return
         }
         let old = rec.title ?? ""
+        let titleRevision = titleEditRevisions[id]
         retitling.insert(id)
         Task {
             defer { retitling.remove(id) }
@@ -116,6 +117,7 @@ extension BeanStore {
                 let title = Analyzer.stripThinking(reply).components(separatedBy: "\n").first { !$0.trimmingCharacters(in: .whitespaces).isEmpty }?
                     .trimmingCharacters(in: CharacterSet(charactersIn: " 「」\"“”《》。#*")) ?? ""
                 guard !title.isEmpty, title.count <= 40, let i = recordings.firstIndex(where: { $0.id == id }) else { return }
+                guard titleEditRevisions[id] == titleRevision else { return }
                 recordings[i].title = title
                 recordings[i].titleEdited = false
                 saveLibrary()

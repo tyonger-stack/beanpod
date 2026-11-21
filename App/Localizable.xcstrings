@@ -1,6 +1,406 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "预览": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview"
+          }
+        }
+      }
+    },
+    "结束设备预览": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End Device Preview"
+          }
+        }
+      }
+    },
+    "正在查询你的录音…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Searching your recordings…"
+          }
+        }
+      }
+    },
+    "已整理好": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notes are ready"
+          }
+        }
+      }
+    },
+    "录音已结束": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recording ended"
+          }
+        }
+      }
+    },
+    "预览录音开始提示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview Recording Start"
+          }
+        }
+      }
+    },
+    "预览录音结束提示": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview Recording End"
+          }
+        }
+      }
+    },
+    "预览 · 正在录音": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview · Recording"
+          }
+        }
+      }
+    },
+    "预览 · 录音已结束": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview · Recording ended"
+          }
+        }
+      }
+    },
+    "预览时长": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview duration"
+          }
+        }
+      }
+    },
+    "密盒转写返回的数据格式不对，请检查接口地址是否为兼容 OpenAI 的转写服务。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi Box returned an unexpected response. Check that the endpoint supports OpenAI-compatible transcription."
+          }
+        }
+      }
+    },
+    "密盒转写服务": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi Box transcription service"
+          }
+        }
+      }
+    },
+    "密盒整理服务": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi Box notes service"
+          }
+        }
+      }
+    },
+    "密盒转写": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi Box transcription"
+          }
+        }
+      }
+    },
+    "密盒整理": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi Box notes"
+          }
+        }
+      }
+    },
+    "使用密盒上配置的模型整理纪要、回答提问和翻译。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use the configured Mi Box model for notes, questions, and translation."
+          }
+        }
+      }
+    },
+    "用上面选定的整理模型逐句翻译。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Translate each sentence with the model selected above for notes."
+          }
+        }
+      }
+    },
+    "这个服务没给列表，可以直接填写模型名。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This service did not return a list. Enter a model name directly."
+          }
+        }
+      }
+    },
+    "先刷新列表，也可以直接填写模型名。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refresh the list or enter a model name directly."
+          }
+        }
+      }
+    },
+    "请在模型设置中填写有效的密盒转写接口地址和模型。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a valid Mi Box transcription endpoint and model in Model Settings."
+          }
+        }
+      }
+    },
+    "请在模型设置中填写有效的密盒分析接口地址和模型。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter a valid Mi Box analysis endpoint and model in Model Settings."
+          }
+        }
+      }
+    },
+    "密盒请求失败：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi Box request failed: %@"
+          }
+        }
+      }
+    },
+    "密盒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi Box"
+          }
+        }
+      }
+    },
+    "密盒助手": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi Box Assistant"
+          }
+        }
+      }
+    },
+    "连接密盒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connect Mi Box"
+          }
+        }
+      }
+    },
+    "密盒未连接。想现在就录，也可以使用这台 Mac。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mi Box is not connected. You can also record using this Mac."
+          }
+        }
+      }
+    },
+    "TeleAgent 正在切换账号。请先打开 TeleAgent 完成账号切换，再退出后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "TeleAgent is switching accounts. Open TeleAgent to finish the switch, then quit and try again."
+          }
+        }
+      }
+    },
+    "Claude、Codex、OpenClaw、TeleAgent、Grok Bot": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude, Codex, OpenClaw, TeleAgent, Grok Bot"
+          }
+        }
+      }
+    },
+    "本机分析模型等了五分钟还没就绪": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local analysis model was not ready after five minutes."
+          }
+        }
+      }
+    },
+    "没找到所选本机转写模型文件。请在设置里下载。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The selected local transcription model files were not found. Download them in Settings."
+          }
+        }
+      }
+    },
+    "该模型正在由其他程序下载，请等待完成后再试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another program is downloading this model. Wait for it to finish and try again."
+          }
+        }
+      }
+    },
+    "模型文件大小不符，请检查模型文件夹。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The model file has an unexpected size. Check the model folder."
+          }
+        }
+      }
+    },
+    "模型文件已被其他程序更新，请检查后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Another program changed the model file. Check it and try again."
+          }
+        }
+      }
+    },
+    "%@ · 已下载": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · Downloaded"
+          }
+        }
+      }
+    },
+    "%@ · 还没下载": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ · Not downloaded"
+          }
+        }
+      }
+    },
+    "本机转写模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local transcription model"
+          }
+        }
+      }
+    },
+    "本机整理模型": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local summarization model"
+          }
+        }
+      }
+    },
+    "模型文件": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Model files"
+          }
+        }
+      }
+    },
+    "本机": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local"
+          }
+        }
+      }
+    },
+    "把录音转成文字。可在设置中选择 Qwen3-ASR 或 Gemma 4 E2B；转写在这台 Mac 上完成，录音不上传。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn recordings into text. Choose Qwen3-ASR or Gemma 4 E2B in Settings. Transcription runs on this Mac without uploading audio."
+          }
+        }
+      }
+    },
     "": {
       "shouldTranslate": false
     },
@@ -158,12 +558,12 @@
         }
       }
     },
-    "%@\n看看磁盘是不是满了。录音还在录音豆里，腾出空间后可以重新下载。": {
+    "%@\n看看磁盘是不是满了。录音还在密盒里，腾出空间后可以重新下载。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@\nCheck whether the disk is full. The recording is still on the bean; you can download it again after freeing up space."
+            "value": "%@\nCheck whether the disk is full. The recording is still on Mi Box; you can download it again after freeing up space."
           }
         }
       }
@@ -252,12 +652,12 @@
         }
       }
     },
-    "%@ · 已下载 · 1.0 GB": {
+    "%@ · 已下载 · 10.3 GB": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ · Downloaded · 1.0 GB"
+            "value": "%@ · Downloaded · 10.3 GB"
           }
         }
       }
@@ -352,12 +752,12 @@
         }
       }
     },
-    "%@上次在豆仓登录的腾讯元宝过期了，再扫一次码。": {
+    "%@上次在密盒助手登录的腾讯元宝过期了，再扫一次码。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@Your Tencent Yuanbao sign-in in BeanPod has expired. Scan the code again."
+            "value": "%@Your Tencent Yuanbao sign-in in Mi Box Assistant has expired. Scan the code again."
           }
         }
       }
@@ -442,12 +842,12 @@
         }
       }
     },
-    "%@要登录之后才给看这条内容。可以用别的工具把它下载成文件，再拖进豆仓的窗口。": {
+    "%@要登录之后才给看这条内容。可以用别的工具把它下载成文件，再拖进密盒助手的窗口。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ only shows this content after you sign in. You can download it as a file with another tool, then drag it into the BeanPod window."
+            "value": "%@ only shows this content after you sign in. You can download it as a file with another tool, then drag it into the Mi Box Assistant window."
           }
         }
       }
@@ -462,12 +862,12 @@
         }
       }
     },
-    "%@视频号网页版不给下载地址，豆仓借腾讯元宝的视频号解析拿视频。在下面点「登录」用微信扫码，登好了点右边的按钮%@。只要登一次。": {
+    "%@视频号网页版不给下载地址，密盒助手借腾讯元宝的视频号解析拿视频。在下面点「登录」用微信扫码，登好了点右边的按钮%@。只要登一次。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@The WeChat Channels website doesn't give a download link, so BeanPod gets the video through Tencent Yuanbao's Channels parser. Click “Sign In” below and scan with WeChat; once signed in, click the button on the right%@. You only need to do this once."
+            "value": "%@The WeChat Channels website doesn't give a download link, so Mi Box Assistant gets the video through Tencent Yuanbao's Channels parser. Click “Sign In” below and scan with WeChat; once signed in, click the button on the right%@. You only need to do this once."
           }
         }
       }
@@ -1142,22 +1542,22 @@
         }
       }
     },
-    "Claude、Codex 这些助手连上后，可以直接问豆仓里的录音、纪要和待办。": {
+    "Claude、Codex 这些助手连上后，可以直接问密盒助手里的录音、纪要和待办。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Once assistants like Claude and Codex are connected, they can ask about recordings, notes and to-dos in BeanPod directly."
+            "value": "Once assistants like Claude and Codex are connected, they can ask about recordings, notes and to-dos in Mi Box Assistant directly."
           }
         }
       }
     },
-    "Claude、Codex、OpenClaw、Grok Bot 都可以。连上后在它们那边就能直接问豆仓里的录音和待办。": {
+    "Claude、Codex、OpenClaw、Grok Bot 都可以。连上后在它们那边就能直接问密盒助手里的录音和待办。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claude, Codex, OpenClaw and Grok Bot all work. Once connected, you can ask about recordings and to-dos in BeanPod directly from them."
+            "value": "Claude, Codex, OpenClaw and Grok Bot all work. Once connected, you can ask about recordings and to-dos in Mi Box Assistant directly from them."
           }
         }
       }
@@ -1182,12 +1582,12 @@
         }
       }
     },
-    "Grok Bot 只认网址：拷贝豆仓的地址，到它的设置里粘贴。豆仓要开着才连得上": {
+    "Grok Bot 只认网址：拷贝密盒助手的地址，到它的设置里粘贴。密盒助手要开着才连得上": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Grok Bot only takes a URL: copy BeanPod's address and paste it in its settings. BeanPod must be open to connect"
+            "value": "Grok Bot only takes a URL: copy Mi Box Assistant's address and paste it in its settings. Mi Box Assistant must be open to connect"
           }
         }
       }
@@ -1232,12 +1632,12 @@
         }
       }
     },
-    "Qwen3‑ASR（本机）": {
+    "Gemma 4 E2B BF16（本机）": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Qwen3‑ASR (local)"
+            "value": "Gemma 4 E2B BF16 (local)"
           }
         }
       }
@@ -2003,7 +2403,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod works without them: only the feature for a missing permission is unavailable; everything else works as usual."
+            "value": "Mi Box Assistant works without them: only the feature for a missing permission is unavailable; everything else works as usual."
           }
         }
       }
@@ -2478,32 +2878,32 @@
         }
       }
     },
-    "从录音豆删除…": {
+    "从密盒删除…": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Delete from the Bean…"
+            "value": "Delete from Mi Box…"
           }
         }
       }
     },
-    "从录音豆删除选中的录音…": {
+    "从密盒删除选中的录音…": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Delete Selected Recordings from the Bean…"
+            "value": "Delete Selected Recordings from Mi Box…"
           }
         }
       }
     },
-    "从录音豆里删除这条录音？": {
+    "从密盒里删除这条录音？": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Delete this recording from the bean?"
+            "value": "Delete this recording from Mi Box?"
           }
         }
       }
@@ -2548,22 +2948,22 @@
         }
       }
     },
-    "从豆仓移除": {
+    "从密盒助手移除": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remove from BeanPod"
+            "value": "Remove from Mi Box Assistant"
           }
         }
       }
     },
-    "从豆仓移除「%@」？": {
+    "从密盒助手移除「%@」？": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remove “%@” from BeanPod?"
+            "value": "Remove “%@” from Mi Box Assistant?"
           }
         }
       }
@@ -2710,12 +3110,12 @@
         }
       }
     },
-    "以后放回充电盒、或者一连上，在外面录的都会自动同步过来。": {
+    "以后连上密盒，在外面录的都会自动同步过来。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "From now on, whenever it goes back in the charging case or connects, anything recorded while you were out syncs over automatically."
+            "value": "From now on, recordings made while you were out sync automatically when Mi Box connects."
           }
         }
       }
@@ -2750,12 +3150,12 @@
         }
       }
     },
-    "会打开浏览器，在网页上点「允许并连接」。豆仓不经手你的密码。": {
+    "会打开浏览器，在网页上点「允许并连接」。密盒助手不经手你的密码。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Opens your browser — click “Allow and Connect” on the page. BeanPod never sees your password."
+            "value": "Opens your browser — click “Allow and Connect” on the page. Mi Box Assistant never sees your password."
           }
         }
       }
@@ -2960,12 +3360,12 @@
         }
       }
     },
-    "充满了，拿出来就能录。": {
+    "充满了，可以开始录音。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fully charged. Take it out and start recording."
+            "value": "Fully charged. Ready to record."
           }
         }
       }
@@ -3290,12 +3690,12 @@
         }
       }
     },
-    "关着的时候，豆仓不会监听任何按键。": {
+    "关着的时候，密盒助手不会监听任何按键。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When off, BeanPod doesn't listen to any keys."
+            "value": "When off, Mi Box Assistant doesn't listen to any keys."
           }
         }
       }
@@ -3310,12 +3710,12 @@
         }
       }
     },
-    "其中 %lld 条豆仓还没下载过。": {
+    "其中 %lld 条密盒助手还没下载过。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld of them were never downloaded to BeanPod."
+            "value": "%lld of them were never downloaded to Mi Box Assistant."
           }
         }
       }
@@ -3702,12 +4102,12 @@
         }
       }
     },
-    "到 Grok Bot 的设置里把豆仓那一条删掉就行。": {
+    "到 Grok Bot 的设置里把密盒助手那一条删掉就行。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Just delete the BeanPod entry in Grok Bot's settings."
+            "value": "Just delete the Mi Box Assistant entry in Grok Bot's settings."
           }
         }
       }
@@ -3722,12 +4122,12 @@
         }
       }
     },
-    "到系统设置的「隐私与安全性 → 麦克风」里把豆仓打开，再点一次录音。": {
+    "到系统设置的「隐私与安全性 → 麦克风」里把密盒助手打开，再点一次录音。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn on BeanPod under “Privacy & Security → Microphone” in System Settings, then click Record again."
+            "value": "Turn on Mi Box Assistant under “Privacy & Security → Microphone” in System Settings, then click Record again."
           }
         }
       }
@@ -4184,12 +4584,12 @@
         }
       }
     },
-    "只从豆仓里去掉。这张照片在你 Renoise 账号里的素材不会被删除。": {
+    "只从密盒助手里去掉。这张照片在你 Renoise 账号里的素材不会被删除。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Removes it from BeanPod only. This photo's asset in your Renoise account won't be deleted."
+            "value": "Removes it from Mi Box Assistant only. This photo's asset in your Renoise account won't be deleted."
           }
         }
       }
@@ -4354,12 +4754,12 @@
         }
       }
     },
-    "只认网址的填（豆仓开着时才有）：": {
+    "只认网址的填（密盒助手开着时才有）：": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "For tools that only take a URL (available while BeanPod is open):"
+            "value": "For tools that only take a URL (available while Mi Box Assistant is open):"
           }
         }
       }
@@ -4684,12 +5084,12 @@
         }
       }
     },
-    "在 Claude Code 里说：「查一下豆仓里昨天的会议，把待办列出来」": {
+    "在 Claude Code 里说：「查一下密盒助手里昨天的会议，把待办列出来」": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "In Claude Code, say: “Check yesterday's meeting in BeanPod and list the to-dos”"
+            "value": "In Claude Code, say: “Check yesterday's meeting in Mi Box Assistant and list the to-dos”"
           }
         }
       }
@@ -4704,32 +5104,32 @@
         }
       }
     },
-    "在 Claude 里说：「豆仓里关于新品发布都说过什么？」": {
+    "在 Claude 里说：「密盒助手里关于新品发布都说过什么？」": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "In Claude, say: “What has been said in BeanPod about the new product launch?”"
+            "value": "In Claude, say: “What has been said in Mi Box Assistant about the new product launch?”"
           }
         }
       }
     },
-    "在 Codex 里说：「把豆仓里最新一条录音的脚本拿出来，做成网页」": {
+    "在 Codex 里说：「把密盒助手里最新一条录音的脚本拿出来，做成网页」": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "In Codex, say: “Take the script from the latest recording in BeanPod and make it a web page”"
+            "value": "In Codex, say: “Take the script from the latest recording in Mi Box Assistant and make it a web page”"
           }
         }
       }
     },
-    "在 Grok Bot 里添加上面的地址，然后说：「搜一下豆仓里提到黄仁勋的录音」": {
+    "在 Grok Bot 里添加上面的地址，然后说：「搜一下密盒助手里提到黄仁勋的录音」": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add the address above in Grok Bot, then say: “Search BeanPod for recordings that mention Jensen Huang”"
+            "value": "Add the address above in Grok Bot, then say: “Search Mi Box Assistant for recordings that mention Jensen Huang”"
           }
         }
       }
@@ -4784,12 +5184,12 @@
         }
       }
     },
-    "在充电盒里充电，现在 %lld%%。": {
+    "正在充电，现在 %lld%%。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Charging in the case, now at %lld%%."
+            "value": "Charging, now at %lld%%."
           }
         }
       }
@@ -4854,12 +5254,12 @@
         }
       }
     },
-    "在录音豆上录的，连上后同步过来": {
+    "在密盒上录的，连上后同步过来": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recorded on the bean, synced after connecting"
+            "value": "Recorded on Mi Box, synced after connecting"
           }
         }
       }
@@ -4874,12 +5274,12 @@
         }
       }
     },
-    "在微信里对它说：「帮我查豆仓，这周答应了谁什么事」": {
+    "在微信里对它说：「帮我查密盒助手，这周答应了谁什么事」": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "In WeChat, tell it: “Check BeanPod — what did I promise to whom this week?”"
+            "value": "In WeChat, tell it: “Check Mi Box Assistant — what did I promise to whom this week?”"
           }
         }
       }
@@ -4904,12 +5304,12 @@
         }
       }
     },
-    "在设置里选本机模型下载，或者填云端服务的地址和密钥。": {
+    "在设置的「模型」里选择本机、密盒或云端服务。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "In Settings, download a local model, or enter a cloud service's endpoint and API key."
+            "value": "Choose a local model, Mi Box, or a cloud service in Model Settings."
           }
         }
       }
@@ -4934,12 +5334,12 @@
         }
       }
     },
-    "在豆仓里删掉过，不会再自动拉回": {
+    "在密盒助手里删掉过，不会再自动拉回": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deleted in BeanPod; won't be pulled back automatically"
+            "value": "Deleted in Mi Box Assistant; won't be pulled back automatically"
           }
         }
       }
@@ -5034,12 +5434,12 @@
         }
       }
     },
-    "声音下下来了，但豆仓读不出这个音频文件。": {
+    "声音下下来了，但密盒助手读不出这个音频文件。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The audio was downloaded, but BeanPod can't read the file."
+            "value": "The audio was downloaded, but Mi Box Assistant can't read the file."
           }
         }
       }
@@ -5064,12 +5464,12 @@
         }
       }
     },
-    "复制了抖音、B 站、YouTube 这些链接，切回豆仓时提示一键导入。只看链接，不存剪贴板内容。": {
+    "复制了抖音、B 站、YouTube 这些链接，切回密盒助手时提示一键导入。只看链接，不存剪贴板内容。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When you copy a Douyin, Bilibili or YouTube link, BeanPod offers one-click import when you switch back. Only the link is checked; clipboard contents aren't stored."
+            "value": "When you copy a Douyin, Bilibili or YouTube link, Mi Box Assistant offers one-click import when you switch back. Only the link is checked; clipboard contents aren't stored."
           }
         }
       }
@@ -5204,12 +5604,12 @@
         }
       }
     },
-    "它可能正在传文件，或者电量太低。等几秒再点一次；还不行就把它放回充电盒再拿出来。": {
+    "它可能正在传文件，或者电量太低。等几秒再点一次；还不行就充电后重新连接。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "It may be transferring files, or its battery is too low. Wait a few seconds and click again; if that doesn't work, put it back in the charging case and take it out again."
+            "value": "It may be transferring files, or its battery is too low. Wait a few seconds and click again; if that doesn't work, charge it and reconnect."
           }
         }
       }
@@ -5234,12 +5634,12 @@
         }
       }
     },
-    "它还没下载到豆仓，删了就没有了。": {
+    "它还没下载到密盒助手，删了就没有了。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "It hasn't been downloaded to BeanPod yet. Once deleted, it's gone."
+            "value": "It hasn't been downloaded to Mi Box Assistant yet. Once deleted, it's gone."
           }
         }
       }
@@ -5364,12 +5764,12 @@
         }
       }
     },
-    "导入、录音豆、按场景看": {
+    "导入、密盒、按场景看": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Imports, the bean, by scene"
+            "value": "Imports, Mi Box, by scene"
           }
         }
       }
@@ -5404,12 +5804,12 @@
         }
       }
     },
-    "导入要登录才能看的内容时，豆仓会弹出登录窗口让你自己登录。登录状态只存在这台 Mac 上。": {
+    "导入要登录才能看的内容时，密盒助手会弹出登录窗口让你自己登录。登录状态只存在这台 Mac 上。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When importing content that requires sign-in, BeanPod opens a sign-in window for you to sign in yourself. Sign-in state is stored only on this Mac."
+            "value": "When importing content that requires sign-in, Mi Box Assistant opens a sign-in window for you to sign in yourself. Sign-in state is stored only on this Mac."
           }
         }
       }
@@ -5664,12 +6064,12 @@
         }
       }
     },
-    "已在豆仓": {
+    "已在密盒助手": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Already in BeanPod"
+            "value": "Already in Mi Box Assistant"
           }
         }
       }
@@ -5684,12 +6084,12 @@
         }
       }
     },
-    "已存进豆仓": {
+    "已存进密盒助手": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Saved to BeanPod"
+            "value": "Saved to Mi Box Assistant"
           }
         }
       }
@@ -5714,12 +6114,12 @@
         }
       }
     },
-    "已安装 · 连没连上豆仓看不出来": {
+    "已安装 · 连没连上密盒助手看不出来": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Installed · can't tell if it's connected to BeanPod"
+            "value": "Installed · can't tell if it's connected to Mi Box Assistant"
           }
         }
       }
@@ -5878,7 +6278,7 @@
         }
       }
     },
-    "已放回充电盒，开始同步 %lld 条录音": {
+    "已开始充电，开始同步 %lld 条录音": {
       "localizations": {
         "en": {
           "variations": {
@@ -5886,13 +6286,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Back in the charging case — syncing %lld recording"
+                  "value": "Charging, syncing %lld recording"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Back in the charging case — syncing %lld recordings"
+                  "value": "Charging, syncing %lld recordings"
                 }
               }
             }
@@ -5900,12 +6300,12 @@
         }
       }
     },
-    "已放回充电盒，正在充电": {
+    "正在充电": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Back in the charging case, charging"
+            "value": "Charging"
           }
         }
       }
@@ -5992,22 +6392,22 @@
         }
       }
     },
-    "已经带着你在豆仓里的%@登录状态试过了，还是被拦下。可能是登录过期了（去设置的「连接」里清掉重新登录），也可能是%@改了接口。": {
+    "已经带着你在密盒助手里的%@登录状态试过了，还是被拦下。可能是登录过期了（去设置的「连接」里清掉重新登录），也可能是%@改了接口。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Already tried with your %@ sign-in in BeanPod, and it was still blocked. The sign-in may have expired (clear it under Connections in Settings and sign in again), or %@ may have changed its API."
+            "value": "Already tried with your %@ sign-in in Mi Box Assistant, and it was still blocked. The sign-in may have expired (clear it under Connections in Settings and sign in again), or %@ may have changed its API."
           }
         }
       }
     },
-    "已经带着你在豆仓里的%@登录状态试过了，还是被拦在登录页。可能是登录过期了，去设置的「连接」里退出后重新登录。": {
+    "已经带着你在密盒助手里的%@登录状态试过了，还是被拦在登录页。可能是登录过期了，去设置的「连接」里退出后重新登录。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Already tried with your %@ sign-in from BeanPod, but it's still stuck at the sign-in page. The sign-in may have expired. Sign out and sign in again under “Connections” in Settings."
+            "value": "Already tried with your %@ sign-in from Mi Box Assistant, but it's still stuck at the sign-in page. The sign-in may have expired. Sign out and sign in again under “Connections” in Settings."
           }
         }
       }
@@ -6052,12 +6452,12 @@
         }
       }
     },
-    "已经连上 %lld 个。在它们那边就能直接问豆仓里的内容。": {
+    "已经连上 %lld 个。在它们那边就能直接问密盒助手里的内容。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%lld connected. You can ask about BeanPod content directly from them."
+            "value": "%lld connected. You can ask about Mi Box Assistant content directly from them."
           }
         }
       }
@@ -6072,12 +6472,12 @@
         }
       }
     },
-    "已连上你的飞书。手机 App 同步走的录音会在设备页列出来，可以拉回豆仓。": {
+    "已连上你的飞书。手机 App 同步走的录音会在设备页列出来，可以拉回密盒助手。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected to your Feishu. Recordings taken by the phone app's sync are listed on the Devices page and can be pulled back into BeanPod."
+            "value": "Connected to your Feishu. Recordings taken by the phone app's sync are listed on the Devices page and can be pulled back into Mi Box Assistant."
           }
         }
       }
@@ -6112,12 +6512,12 @@
         }
       }
     },
-    "已连接 · 正在充电盒里充电": {
+    "已连接 · 正在充电": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connected · Charging in the case"
+            "value": "Connected · Charging"
           }
         }
       }
@@ -6202,12 +6602,12 @@
         }
       }
     },
-    "应该是，比如：豆仓": {
+    "应该是，比如：密盒助手": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Should be, e.g. BeanPod"
+            "value": "Should be, e.g. Mi Box Assistant"
           }
         }
       }
@@ -6382,12 +6782,12 @@
         }
       }
     },
-    "录完一条、或者重新连上录音豆时，把还没下载的拉到这台 Mac 上。": {
+    "录完一条、或者重新连上密盒时，把还没下载的拉到这台 Mac 上。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "When a recording finishes or the bean reconnects, pull anything not yet downloaded to this Mac."
+            "value": "When a recording finishes or Mi Box reconnects, pull anything not yet downloaded to this Mac."
           }
         }
       }
@@ -6564,12 +6964,12 @@
         }
       }
     },
-    "录音整理好了、录音豆连上了告诉你": {
+    "录音整理好了、密盒连上了告诉你": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Let you know when a recording is summarized or the bean connects"
+            "value": "Let you know when a recording is summarized or Mi Box connects"
           }
         }
       }
@@ -6614,267 +7014,257 @@
         }
       }
     },
-    "录音豆": {
+    "密盒、录音卡、Mac 自己录、导入的音频、视频链接、飞书妙记，都在这里，标着来源。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The Bean"
+            "value": "Mi Box, the recording card, recordings made on the Mac, imported audio, video links and Feishu Minutes all live here, labeled by source."
           }
         }
       }
     },
-    "录音豆、录音卡、Mac 自己录、导入的音频、视频链接、飞书妙记，都在这里，标着来源。": {
+    "密盒同一时间只连一台设备，手机上的设备配套 App 或飞书连过它的话，会把录音同步走，这期间新录的也在那边。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean, the recording card, recordings made on the Mac, imported audio, video links and Feishu Minutes all live here, labeled by source."
+            "value": "Mi Box connects to only one device at a time. If the companion app on your phone or Feishu connected to it, the recordings were synced there, and anything recorded meanwhile is there too."
           }
         }
       }
     },
-    "录音豆同一时间只连一台设备，手机上的录音豆 App 或飞书连过它的话，会把录音同步走，这期间新录的也在那边。": {
+    "密盒固件": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean connects to only one device at a time. If the bean app on your phone or Feishu connected to it, the recordings were synced there, and anything recorded meanwhile is there too."
+            "value": "Mi Box firmware"
           }
         }
       }
     },
-    "录音豆固件": {
+    "密盒已就绪，可以开始录音": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bean firmware"
+            "value": "Mi Box is ready to record"
           }
         }
       }
     },
-    "录音豆已取出，可以开始录音": {
+    "密盒已断开": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean is out of the case — ready to record"
+            "value": "Mi Box is disconnected"
           }
         }
       }
     },
-    "录音豆已断开": {
+    "密盒已连上，录音都同步过了": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean is disconnected"
+            "value": "Mi Box is connected, all recordings are synced"
           }
         }
       }
     },
-    "录音豆已连上，录音都同步过了": {
+    "密盒已连接": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean is connected, all recordings are synced"
+            "value": "Mi Box is connected"
           }
         }
       }
     },
-    "录音豆已连接": {
+    "密盒开始录音了": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean is connected"
+            "value": "Mi Box started recording"
           }
         }
       }
     },
-    "录音豆开始录音了": {
+    "密盒开始录音了，快传中止": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean started recording"
+            "value": "Mi Box started recording; fast transfer stopped"
           }
         }
       }
     },
-    "录音豆开始录音了，快传中止": {
+    "密盒快没电了，请先充电。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean started recording; fast transfer stopped"
+            "value": "Mi Box is almost out of battery. Please charge it."
           }
         }
       }
     },
-    "录音豆快没电了，放回充电盒歇一会儿吧。": {
+    "密盒未连接": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean is almost out of battery. Put it back in the case to rest a bit."
+            "value": "Mi Box not connected"
           }
         }
       }
     },
-    "录音豆未连接": {
+    "密盒正忙，先停下当前的录音或下载": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bean not connected"
+            "value": "Mi Box is busy. Stop the current recording or download first"
           }
         }
       }
     },
-    "录音豆正忙，先停下当前的录音或下载": {
+    "密盒没有删掉这条录音": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean is busy. Stop the current recording or download first"
+            "value": "Mi Box didn't delete this recording"
           }
         }
       }
     },
-    "录音豆没有删掉这条录音": {
+    "密盒没有响应": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean didn't delete this recording"
+            "value": "Mi Box isn't responding"
           }
         }
       }
     },
-    "录音豆没有响应": {
+    "密盒没有开始传声音，松开再试一次": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean isn't responding"
+            "value": "Mi Box didn't start sending audio. Release and try again"
           }
         }
       }
     },
-    "录音豆没有开始传声音，松开再试一次": {
+    "密盒没有开始录音": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean didn't start sending audio. Release and try again"
+            "value": "Mi Box didn't start recording"
           }
         }
       }
     },
-    "录音豆没有开始录音": {
+    "密盒没能打开 Wi‑Fi": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean didn't start recording"
+            "value": "Mi Box couldn't turn on Wi‑Fi"
           }
         }
       }
     },
-    "录音豆没能打开 Wi‑Fi": {
+    "密盒没连上": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean couldn't turn on Wi‑Fi"
+            "value": "Mi Box isn't connected"
           }
         }
       }
     },
-    "录音豆没连上": {
+    "密盒没连上 · 可以用这台 Mac 录": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean isn't connected"
+            "value": "Mi Box isn't connected · You can record on this Mac"
           }
         }
       }
     },
-    "录音豆没连上 · 可以用这台 Mac 录": {
+    "密盒没连上。连接后即可使用；想现在就录，用这台 Mac 也行。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean isn't connected · You can record on this Mac"
+            "value": "Mi Box isn't connected. Connect it to get started. To record right now, you can use this Mac."
           }
         }
       }
     },
-    "录音豆没连上。把它拿出来我就醒；想现在就录，用这台 Mac 也行。": {
+    "密盒没连上，用这台 Mac 的麦克风录（⌘R）": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean isn't connected. Take it out and I'll wake up. To record right now, you can use this Mac."
+            "value": "Mi Box isn't connected; record with this Mac's microphone (⌘R)"
           }
         }
       }
     },
-    "录音豆没连上，用这台 Mac 的麦克风录（⌘R）": {
+    "密盒没连着，这条还在密盒里": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean isn't connected; record with this Mac's microphone (⌘R)"
+            "value": "Mi Box isn't connected; this recording is still on Mi Box"
           }
         }
       }
     },
-    "录音豆没连着，这条还在录音豆里": {
+    "密盒负责听，密盒助手负责把它变成文字和纪要。接下来几步把要准备的东西过一遍，几分钟就好；每一步都能先跳过。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean isn't connected; this recording is still on the bean"
+            "value": "Mi Box listens; Mi Box Assistant turns it into text and notes. The next few steps walk through what to set up and take just a few minutes. You can skip any step for now."
           }
         }
       }
     },
-    "录音豆负责听，豆仓负责把它变成文字和纪要。接下来几步把要准备的东西过一遍，几分钟就好；每一步都能先跳过。": {
+    "密盒还没准备好，稍等一下": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean listens; BeanPod turns it into text and notes. The next few steps walk through what to set up and take just a few minutes. You can skip any step for now."
+            "value": "Mi Box isn't ready yet. Wait a moment"
           }
         }
       }
     },
-    "录音豆还没准备好，稍等一下": {
+    "密盒还没连上": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean isn't ready yet. Wait a moment"
+            "value": "Mi Box isn't connected yet"
           }
         }
       }
     },
-    "录音豆还没连上": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The bean isn't connected yet"
-          }
-        }
-      }
-    },
-    "录音豆里有 %lld 条录音还没下载": {
+    "密盒里有 %lld 条录音还没下载": {
       "localizations": {
         "en": {
           "variations": {
@@ -6882,13 +7272,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld recording on the bean haven't been downloaded"
+                  "value": "%lld recording on Mi Box haven't been downloaded"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld recordings on the bean haven't been downloaded"
+                  "value": "%lld recordings on Mi Box haven't been downloaded"
                 }
               }
             }
@@ -6896,72 +7286,72 @@
         }
       }
     },
-    "录音豆里有 %lld 条新录音，开始同步": {
+    "密盒里有 %lld 条新录音，开始同步": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean has %lld new recordings — syncing"
+            "value": "Mi Box has %lld new recordings — syncing"
           }
         }
       }
     },
-    "录音豆里有 %lld 条新录音，自动下载关着，可以在录音列表里下载": {
+    "密盒里有 %lld 条新录音，自动下载关着，可以在录音列表里下载": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean has %lld new recordings. Auto download is off — you can download them from the recordings list"
+            "value": "Mi Box has %lld new recordings. Auto download is off — you can download them from the recordings list"
           }
         }
       }
     },
-    "录音豆里有一条暂停中的录音，先把它下载或结束": {
+    "密盒里有一条暂停中的录音，先把它下载或结束": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "There's a paused recording on the bean. Download or end it first"
+            "value": "There's a paused recording on Mi Box. Download or end it first"
           }
         }
       }
     },
-    "录音豆里有一条还没结束的录音，点「结束」后会同步过来": {
+    "密盒里有一条还没结束的录音，点「结束」后会同步过来": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The bean has an unfinished recording; it will sync after you click “Stop”"
+            "value": "Mi Box has an unfinished recording; it will sync after you click “Stop”"
           }
         }
       }
     },
-    "录音豆里没有新录音：上次在里面的 %lld 条不见了，可能被手机同步走了": {
+    "密盒里没有新录音：上次在里面的 %lld 条不见了，可能被手机同步走了": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No new recordings on the bean: the %lld that were on it last time are gone — maybe synced to your phone"
+            "value": "No new recordings on Mi Box: the %lld that were on it last time are gone — maybe synced to your phone"
           }
         }
       }
     },
-    "录音豆里的录音": {
+    "密盒里的录音": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recordings on the bean"
+            "value": "Recordings on Mi Box"
           }
         }
       }
     },
-    "录音豆里这一条没有声音数据，可能刚开始就结束了。": {
+    "密盒里这一条没有声音数据，可能刚开始就结束了。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This one on the bean has no audio data; it may have ended right after it started."
+            "value": "This one on Mi Box has no audio data; it may have ended right after it started."
           }
         }
       }
@@ -7138,12 +7528,12 @@
         }
       }
     },
-    "快传时这台 Mac 会离开现在的 Wi‑Fi、连到录音豆上，大约一分钟上不了网，传完自动连回来。": {
+    "快传时这台 Mac 会离开现在的 Wi‑Fi、连到密盒上，大约一分钟上不了网，传完自动连回来。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "During fast transfer this Mac leaves its current Wi‑Fi and joins the bean, so it's offline for about a minute. It reconnects automatically when the transfer is done."
+            "value": "During fast transfer this Mac leaves its current Wi‑Fi and joins Mi Box, so it's offline for about a minute. It reconnects automatically when the transfer is done."
           }
         }
       }
@@ -7308,32 +7698,32 @@
         }
       }
     },
-    "手机上的录音豆 App 先连上录音豆的话，录音会被同步进飞书、录音豆上就没有了。装好飞书命令行工具并授权后，豆仓能把它们拉回来。": {
+    "手机上的设备配套 App 先连上密盒的话，录音会被同步进飞书、密盒上就没有了。装好飞书命令行工具并授权后，密盒助手能把它们拉回来。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "If the bean app on your phone connects to the bean first, recordings get synced into Feishu and disappear from the bean. With the Feishu command-line tool installed and authorized, BeanPod can pull them back."
+            "value": "If the companion app on your phone connects to Mi Box first, recordings get synced into Feishu and disappear from Mi Box. With the Feishu command-line tool installed and authorized, Mi Box Assistant can pull them back."
           }
         }
       }
     },
-    "手机上的录音豆 App 把录音同步到飞书后，录音豆上就没有了。豆仓从飞书把它们拉回来。": {
+    "手机上的设备配套 App 把录音同步到飞书后，密盒上就没有了。密盒助手从飞书把它们拉回来。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Once the bean's phone app syncs recordings to Feishu, they're gone from the bean. BeanPod pulls them back from Feishu."
+            "value": "Once the companion app syncs recordings to Feishu, they're gone from Mi Box. Mi Box Assistant pulls them back from Feishu."
           }
         }
       }
     },
-    "手机录音豆 App 同步进飞书妙记的，从飞书拉回来": {
+    "手机设备配套 App 同步进飞书妙记的，从飞书拉回来": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Synced into Feishu Minutes by the bean's phone app, pulled back from Feishu"
+            "value": "Synced into Feishu Minutes by the companion app, pulled back from Feishu"
           }
         }
       }
@@ -7428,12 +7818,12 @@
         }
       }
     },
-    "打开豆仓": {
+    "打开密盒助手": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open BeanPod"
+            "value": "Open Mi Box Assistant"
           }
         }
       }
@@ -7468,12 +7858,12 @@
         }
       }
     },
-    "找到 %lld 颗，选一颗": {
+    "找到 %lld 台，选一台": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Found %lld beans — pick one"
+            "value": "Found %lld Mi Box — pick one"
           }
         }
       }
@@ -7538,62 +7928,62 @@
         }
       }
     },
-    "把录音豆从充电盒里取出来": {
+    "确认密盒已开机": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Take the bean out of its charging case"
+            "value": "Make sure Mi Box is turned on"
           }
         }
       }
     },
-    "把录音豆从充电盒里取出来，放在电脑旁边。\n手机连着它的话，先关掉手机蓝牙。": {
+    "确认密盒已开机，放在电脑旁边。\n手机连着它的话，先关掉手机蓝牙。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Take the bean out of its charging case and put it next to your Mac.\nIf your phone is connected to it, turn off Bluetooth on the phone first."
+            "value": "Put Mi Box next to your Mac and make sure it is turned on.\nIf your phone is connected to it, turn off Bluetooth on the phone first."
           }
         }
       }
     },
-    "把录音豆从充电盒里拿出来，放在 Mac 旁边。录音豆同一时间只能连一台设备：手机上的录音豆 App 连着的话，先关掉手机蓝牙。": {
+    "把密盒放在 Mac 旁边，并确认已开机。密盒同一时间只能连一台设备：手机上的设备配套 App 连着的话，先关掉手机蓝牙。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Take the bean out of its charging case and put it next to your Mac. The bean connects to one device at a time: if the bean app on your phone is connected, turn off your phone's Bluetooth first."
+            "value": "Put Mi Box next to your Mac and make sure it is turned on. Mi Box connects to one device at a time: if the companion app on your phone is connected, turn off your phone's Bluetooth first."
           }
         }
       }
     },
-    "把录音豆当随身麦克风：在任何 App 里按住你选的那个键，对着录音豆说话，松开后文字出现在光标处。": {
+    "把密盒当随身麦克风：在任何 App 里按住你选的那个键，对着密盒说话，松开后文字出现在光标处。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Use the bean as a portable mic: in any app, hold the key you chose, speak into the bean, and when you let go the text appears at the cursor."
+            "value": "Use Mi Box as a portable mic: in any app, hold the key you chose, speak into Mi Box, and when you let go the text appears at the cursor."
           }
         }
       }
     },
-    "把录音转成文字。模型约 1 GB，下一次就一直能用；转写在这台 Mac 上完成，录音不上传。": {
+    "把录音转成文字。模型约 10.3 GB，下一次就一直能用；转写在这台 Mac 上完成，录音不上传。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turns recordings into text. The model is about 1 GB and only needs downloading once; transcription happens on this Mac and recordings aren't uploaded."
+            "value": "Turns recordings into text. The model is about 10.3 GB and only needs downloading once; transcription happens on this Mac and recordings aren't uploaded."
           }
         }
       }
     },
-    "把抖音、B 站、YouTube 这些视频链接贴到左边的框里，豆仓会下载声音、转成文字稿，再整理成纪要。": {
+    "把抖音、B 站、YouTube 这些视频链接贴到左边的框里，密盒助手会下载声音、转成文字稿，再整理成纪要。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Paste video links from Douyin, Bilibili, YouTube and the like into the box on the left. BeanPod downloads the audio, transcribes it, and summarizes it into notes."
+            "value": "Paste video links from Douyin, Bilibili, YouTube and the like into the box on the left. Mi Box Assistant downloads the audio, transcribes it, and summarizes it into notes."
           }
         }
       }
@@ -7718,12 +8108,12 @@
         }
       }
     },
-    "拉回来的录音来源标成「飞书」。有音频的由豆仓自己转写整理；拿不到音频时先用飞书的文字稿。": {
+    "拉回来的录音来源标成「飞书」。有音频的由密盒助手自己转写整理；拿不到音频时先用飞书的文字稿。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recordings pulled back are marked with the source “Feishu”. Those with audio are transcribed and summarized by BeanPod; when audio isn't available, Feishu's transcript is used for now."
+            "value": "Recordings pulled back are marked with the source “Feishu”. Those with audio are transcribed and summarized by Mi Box Assistant; when audio isn't available, Feishu's transcript is used for now."
           }
         }
       }
@@ -7868,22 +8258,22 @@
         }
       }
     },
-    "按住一个键对着录音豆或麦克风说话，松开后文字直接打进当前的软件，像输入法一样。要「辅助功能」权限。": {
+    "按住一个键对着密盒或麦克风说话，松开后文字直接打进当前的软件，像输入法一样。要「辅助功能」权限。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hold a key and speak to the bean or the microphone; release and the text is typed straight into the current app, like an input method. Requires Accessibility permission."
+            "value": "Hold a key and speak to Mi Box or the microphone; release and the text is typed straight into the current app, like an input method. Requires Accessibility permission."
           }
         }
       }
     },
-    "按住快捷键对着录音豆说话，松开后文字会打进当前的软件，也会记在这里。": {
+    "按住快捷键对着密盒说话，松开后文字会打进当前的软件，也会记在这里。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hold the shortcut and speak into the bean. When you let go, the text is typed into the current app and saved here too."
+            "value": "Hold the shortcut and speak into Mi Box. When you let go, the text is typed into the current app and saved here too."
           }
         }
       }
@@ -8098,12 +8488,12 @@
         }
       }
     },
-    "接上之后，在你常用的 AI 助手里就能直接问豆仓里的录音、纪要和待办，也能让它们把内容存进豆仓。": {
+    "接上之后，在你常用的 AI 助手里就能直接问密盒助手里的录音、纪要和待办，也能让它们把内容存进密盒助手。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Once connected, you can ask your usual AI assistant about the recordings, notes and to-dos in BeanPod, and have it save things into BeanPod."
+            "value": "Once connected, you can ask your usual AI assistant about the recordings, notes and to-dos in Mi Box Assistant, and have it save things into Mi Box Assistant."
           }
         }
       }
@@ -8418,12 +8808,12 @@
         }
       }
     },
-    "收起舞台，回到豆仓。录音不会停（Esc）": {
+    "收起舞台，回到密盒助手。录音不会停（Esc）": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Close the stage and return to BeanPod. Recording keeps going (Esc)"
+            "value": "Close the stage and return to Mi Box Assistant. Recording keeps going (Esc)"
           }
         }
       }
@@ -9178,7 +9568,7 @@
         }
       }
     },
-    "有 %lld 条录音还在录音豆里。": {
+    "有 %lld 条录音还在密盒里。": {
       "localizations": {
         "en": {
           "variations": {
@@ -9186,13 +9576,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld recording are still on the bean."
+                  "value": "%lld recording are still on Mi Box."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld recordings are still on the bean."
+                  "value": "%lld recordings are still on Mi Box."
                 }
               }
             }
@@ -9320,12 +9710,12 @@
         }
       }
     },
-    "本机 Qwen3‑ASR": {
+    "本机 Gemma 4 E2B BF16": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Local Qwen3‑ASR"
+            "value": "Local Gemma 4 E2B BF16"
           }
         }
       }
@@ -9814,12 +10204,12 @@
         }
       }
     },
-    "欢迎来到豆仓": {
+    "欢迎来到密盒助手": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Welcome to BeanPod"
+            "value": "Welcome to Mi Box Assistant"
           }
         }
       }
@@ -9874,12 +10264,12 @@
         }
       }
     },
-    "正在从录音豆里往外搬录音…": {
+    "正在从密盒里往外搬录音…": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Moving recordings off the bean…"
+            "value": "Moving recordings off Mi Box…"
           }
         }
       }
@@ -10058,12 +10448,12 @@
         }
       }
     },
-    "正在找附近的录音豆": {
+    "正在找附近的密盒": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Looking for a bean nearby"
+            "value": "Looking for Mi Box nearby"
           }
         }
       }
@@ -10248,12 +10638,12 @@
         }
       }
     },
-    "正在让录音豆打开 Wi‑Fi…": {
+    "正在让密盒打开 Wi‑Fi…": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Asking the bean to turn on Wi‑Fi…"
+            "value": "Asking Mi Box to turn on Wi‑Fi…"
           }
         }
       }
@@ -10308,12 +10698,12 @@
         }
       }
     },
-    "正在连到录音豆上…": {
+    "正在连到密盒上…": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connecting to the bean…"
+            "value": "Connecting to Mi Box…"
           }
         }
       }
@@ -10558,12 +10948,12 @@
         }
       }
     },
-    "没找到 Qwen3‑ASR 模型文件。请在设置里下载。": {
+    "没找到 Gemma 4 E2B BF16 模型文件。请在设置里下载。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Qwen3‑ASR model files not found. Download them in Settings."
+            "value": "Gemma 4 E2B BF16 model files not found. Download them in Settings."
           }
         }
       }
@@ -11115,7 +11505,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Click “Connect” to go to the Devices page, then click the bean when you see it."
+            "value": "Click “Connect” to go to the Devices page, then click Mi Box when you see it."
           }
         }
       }
@@ -11430,12 +11820,12 @@
         }
       }
     },
-    "用录音豆录": {
+    "用密盒录": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Record with the Bean"
+            "value": "Record with Mi Box"
           }
         }
       }
@@ -11470,12 +11860,12 @@
         }
       }
     },
-    "用整理纪要的那个云端模型来翻译": {
+    "使用选定的整理模型翻译": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Translate with the cloud model used for notes"
+            "value": "Translate with the model selected for notes"
           }
         }
       }
@@ -11540,12 +11930,12 @@
         }
       }
     },
-    "电脑里这段时间没有播放任何声音，或者系统没有把声音交给豆仓。": {
+    "电脑里这段时间没有播放任何声音，或者系统没有把声音交给密盒助手。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing was playing on your Mac during this time, or macOS didn't pass the audio to BeanPod."
+            "value": "Nothing was playing on your Mac during this time, or macOS didn't pass the audio to Mi Box Assistant."
           }
         }
       }
@@ -12230,22 +12620,22 @@
         }
       }
     },
-    "等了一分钟还没就绪": {
+    "转写模型等了五分钟还没就绪": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Still not ready after a minute"
+            "value": "Transcription model still not ready after five minutes"
           }
         }
       }
     },
-    "等录音豆把声音传过来…": {
+    "等密盒把声音传过来…": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Waiting for the bean to send audio…"
+            "value": "Waiting for Mi Box to send audio…"
           }
         }
       }
@@ -12300,12 +12690,12 @@
         }
       }
     },
-    "系统要你亲自允许一次：到「系统设置 → 隐私与安全性 → 屏幕与系统音频录制」里把豆仓打开，然后退出豆仓再重新打开。\n豆仓只取其中的声音，不会保存屏幕画面。": {
+    "系统要你亲自允许一次：到「系统设置 → 隐私与安全性 → 屏幕与系统音频录制」里把密盒助手打开，然后退出密盒助手再重新打开。\n密盒助手只取其中的声音，不会保存屏幕画面。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "macOS needs you to allow it once yourself: go to “System Settings → Privacy & Security → Screen & System Audio Recording”, turn on BeanPod, then quit and reopen BeanPod.\nBeanPod only takes the audio and never saves the screen."
+            "value": "macOS needs you to allow it once yourself: go to “System Settings → Privacy & Security → Screen & System Audio Recording”, turn on Mi Box Assistant, then quit and reopen Mi Box Assistant.\nMi Box Assistant only takes the audio and never saves the screen."
           }
         }
       }
@@ -12420,12 +12810,12 @@
         }
       }
     },
-    "约 1 GB": {
+    "约 10.3 GB": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "About 1 GB"
+            "value": "About 10.3 GB"
           }
         }
       }
@@ -12720,12 +13110,12 @@
         }
       }
     },
-    "自动从录音豆下载": {
+    "自动从密盒下载": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Download from the bean automatically"
+            "value": "Download from Mi Box automatically"
           }
         }
       }
@@ -12870,12 +13260,12 @@
         }
       }
     },
-    "蓝牙中途断了一下，只收到 %lld%%。录音还在录音豆里，没有丢。": {
+    "蓝牙中途断了一下，只收到 %lld%%。录音还在密盒里，没有丢。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bluetooth dropped partway, only %lld%% received. The recording is still on the bean — nothing is lost."
+            "value": "Bluetooth dropped partway, only %lld%% received. The recording is still on Mi Box — nothing is lost."
           }
         }
       }
@@ -12890,12 +13280,12 @@
         }
       }
     },
-    "蓝牙比较慢，长录音要等几分钟。期间请让录音豆留在电脑旁边。": {
+    "蓝牙比较慢，长录音要等几分钟。期间请让密盒留在电脑旁边。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bluetooth is slow, so long recordings take a few minutes. Keep the bean near the computer in the meantime."
+            "value": "Bluetooth is slow, so long recordings take a few minutes. Keep Mi Box near the computer in the meantime."
           }
         }
       }
@@ -12990,12 +13380,12 @@
         }
       }
     },
-    "要做就在 Claude 对话里回复确认，它按这个报价加 10% 余量封顶。豆仓会自动跟进度。": {
+    "要做就在 Claude 对话里回复确认，它按这个报价加 10% 余量封顶。密盒助手会自动跟进度。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "To go ahead, confirm by replying in the Claude chat. It caps spending at this quote plus 10%. BeanPod will follow the progress automatically."
+            "value": "To go ahead, confirm by replying in the Claude chat. It caps spending at this quote plus 10%. Mi Box Assistant will follow the progress automatically."
           }
         }
       }
@@ -13120,12 +13510,12 @@
         }
       }
     },
-    "让录音豆开始录音（⌘R）": {
+    "让密盒开始录音（⌘R）": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Have the bean start recording (⌘R)"
+            "value": "Have Mi Box start recording (⌘R)"
           }
         }
       }
@@ -13200,12 +13590,12 @@
         }
       }
     },
-    "设备没有回传数据。把录音豆靠近电脑再试一次。": {
+    "设备没有回传数据。把密盒靠近电脑再试一次。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The device didn't send any data back. Move the bean closer to your Mac and try again."
+            "value": "The device didn't send any data back. Move Mi Box closer to your Mac and try again."
           }
         }
       }
@@ -13422,12 +13812,12 @@
         }
       }
     },
-    "请到 系统设置 → 隐私与安全性 → 蓝牙 里允许「豆仓」。": {
+    "请到 系统设置 → 隐私与安全性 → 蓝牙 里允许「密盒助手」。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Go to System Settings → Privacy & Security → Bluetooth and allow “BeanPod”."
+            "value": "Go to System Settings → Privacy & Security → Bluetooth and allow “Mi Box Assistant”."
           }
         }
       }
@@ -13472,152 +13862,142 @@
         }
       }
     },
-    "豆仓": {
+    "密盒助手不再跟进这条。Claude 里那个会话要在 Claude 里停": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod"
+            "value": "Mi Box Assistant will stop following this one. Stop the session itself in Claude"
           }
         }
       }
     },
-    "豆仓不再跟进这条。Claude 里那个会话要在 Claude 里停": {
+    "密盒助手录音库里的那份不受影响。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod will stop following this one. Stop the session itself in Claude"
+            "value": "The copy in your Mi Box Assistant library isn't affected."
           }
         }
       }
     },
-    "豆仓录音库里的那份不受影响。": {
+    "密盒助手用不了%@的麦克风": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The copy in your BeanPod library isn't affected."
+            "value": "Mi Box Assistant can't use the %@ microphone"
           }
         }
       }
     },
-    "豆仓用不了%@的麦克风": {
+    "密盒助手的命令行工具还没装好（应该在 ~/.local/bin/beanpod），下面的连接暂时都用不了。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod can't use the %@ microphone"
+            "value": "Mi Box Assistant's command-line tool isn't installed yet (it should be at ~/.local/bin/beanpod), so the connections below won't work for now."
           }
         }
       }
     },
-    "豆仓的命令行工具还没装好（应该在 ~/.local/bin/beanpod），下面的连接暂时都用不了。": {
+    "密盒助手的命令行工具还没装好，连不了。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod's command-line tool isn't installed yet (it should be at ~/.local/bin/beanpod), so the connections below won't work for now."
+            "value": "Mi Box Assistant's command-line tool isn't installed yet, so it can't connect."
           }
         }
       }
     },
-    "豆仓的命令行工具还没装好，连不了。": {
+    "密盒助手的网址入口是通的。Grok Bot 那边有没有填对，要在它里面问一句才知道。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod's command-line tool isn't installed yet, so it can't connect."
+            "value": "Mi Box Assistant's URL endpoint is working. Whether Grok Bot is set up right, you'll only know by asking it something."
           }
         }
       }
     },
-    "豆仓的网址入口是通的。Grok Bot 那边有没有填对，要在它里面问一句才知道。": {
+    "密盒助手的网址入口没应答，重开一次密盒助手再试。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod's URL endpoint is working. Whether Grok Bot is set up right, you'll only know by asking it something."
+            "value": "Mi Box Assistant's URL endpoint isn't responding. Reopen Mi Box Assistant and try again."
           }
         }
       }
     },
-    "豆仓的网址入口没应答，重开一次豆仓再试。": {
+    "密盒助手要靠「辅助功能」权限来听到这个按键、把文字打进其他 App。没有权限时，文字只会放进剪贴板。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod's URL endpoint isn't responding. Reopen BeanPod and try again."
+            "value": "Mi Box Assistant needs Accessibility permission to detect this key and type text into other apps. Without it, the text only goes to the clipboard."
           }
         }
       }
     },
-    "豆仓要靠「辅助功能」权限来听到这个按键、把文字打进其他 App。没有权限时，文字只会放进剪贴板。": {
+    "密盒助手还不能录电脑里的声音": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod needs Accessibility permission to detect this key and type text into other apps. Without it, the text only goes to the clipboard."
+            "value": "Mi Box Assistant can't record computer audio yet"
           }
         }
       }
     },
-    "豆仓还不能录电脑里的声音": {
+    "密盒助手这边正常，但 Claude Code 说没连上：%@": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod can't record computer audio yet"
+            "value": "Mi Box Assistant is fine, but Claude Code says it isn't connected: %@"
           }
         }
       }
     },
-    "豆仓这边正常，但 Claude Code 说没连上：%@": {
+    "密盒助手这边的入口是通的。%@ 那边要新开一个会话问一句才算真的验证。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod is fine, but Claude Code says it isn't connected: %@"
+            "value": "Mi Box Assistant's endpoint is working. To truly verify, start a new session in %@ and ask it something."
           }
         }
       }
     },
-    "豆仓这边的入口是通的。%@ 那边要新开一个会话问一句才算真的验证。": {
+    "密盒助手这边的入口没有应答。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod's endpoint is working. To truly verify, start a new session in %@ and ask it something."
+            "value": "Mi Box Assistant's endpoint isn't responding."
           }
         }
       }
     },
-    "豆仓这边的入口没有应答。": {
+    "密盒助手里「改写」下面的「做成视频」靠它生成数字人口播。它是按积分收费的服务，每次生成前密盒助手都会先报价。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod's endpoint isn't responding."
+            "value": "“Make video” under “Rewrite” in Mi Box Assistant uses it to generate digital-human talking-head videos. It's a credit-based service; Mi Box Assistant shows a quote before each generation."
           }
         }
       }
     },
-    "豆仓里「改写」下面的「做成视频」靠它生成数字人口播。它是按积分收费的服务，每次生成前豆仓都会先报价。": {
+    "密盒助手需要的权限": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "“Make video” under “Rewrite” in BeanPod uses it to generate digital-human talking-head videos. It's a credit-based service; BeanPod shows a quote before each generation."
-          }
-        }
-      }
-    },
-    "豆仓需要的权限": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Permissions BeanPod Needs"
+            "value": "Permissions Mi Box Assistant Needs"
           }
         }
       }
@@ -13904,22 +14284,22 @@
         }
       }
     },
-    "还在录音豆里": {
+    "还在密盒里": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Still on the bean"
+            "value": "Still on Mi Box"
           }
         }
       }
     },
-    "还在录音豆里，没下载": {
+    "还在密盒里，没下载": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Still on the bean, not downloaded"
+            "value": "Still on Mi Box, not downloaded"
           }
         }
       }
@@ -14004,12 +14384,12 @@
         }
       }
     },
-    "还没授权豆仓读取你的飞书妙记。在终端里运行 lark-cli auth login --domain minutes，在浏览器里确认后回来点「现在检查」。": {
+    "还没授权密盒助手读取你的飞书妙记。在终端里运行 lark-cli auth login --domain minutes，在浏览器里确认后回来点「现在检查」。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "BeanPod isn't authorized to read your Feishu Minutes yet. In Terminal, run lark-cli auth login --domain minutes, confirm in the browser, then come back and click “Check Now”."
+            "value": "Mi Box Assistant isn't authorized to read your Feishu Minutes yet. In Terminal, run lark-cli auth login --domain minutes, confirm in the browser, then come back and click “Check Now”."
           }
         }
       }
@@ -14064,12 +14444,12 @@
         }
       }
     },
-    "还没有打过重点标记的录音。录音时按 ⌘D，或者按录音豆上的标记键。": {
+    "还没有打过重点标记的录音。录音时按 ⌘D，或者按密盒上的标记键。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No recordings with highlights yet. Press ⌘D while recording, or press the mark button on the bean."
+            "value": "No recordings with highlights yet. Press ⌘D while recording, or press the mark button on Mi Box."
           }
         }
       }
@@ -14324,12 +14704,12 @@
         }
       }
     },
-    "这个地址只在这台电脑上能访问，而且只有豆仓开着的时候才通。": {
+    "这个地址只在这台电脑上能访问，而且只有密盒助手开着的时候才通。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This address is only reachable from this Mac, and only while BeanPod is open."
+            "value": "This address is only reachable from this Mac, and only while Mi Box Assistant is open."
           }
         }
       }
@@ -14404,12 +14784,12 @@
         }
       }
     },
-    "这句话很重要：打个标记，回听时一点就到（⌘D）。在录音豆上按标记键也一样": {
+    "这句话很重要：打个标记，回听时一点就到（⌘D）。在密盒上按标记键也一样": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This is important: mark it and jump right back here when you listen again (⌘D). Pressing the mark button on the bean does the same"
+            "value": "This is important: mark it and jump right back here when you listen again (⌘D). Pressing the mark button on Mi Box does the same"
           }
         }
       }
@@ -14474,12 +14854,12 @@
         }
       }
     },
-    "这台 Mac 上的音频文件可能坏了。如果录音豆里还有这一条，删掉本地副本再重新下载就好。": {
+    "这台 Mac 上的音频文件可能坏了。如果密盒里还有这一条，删掉本地副本再重新下载就好。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The audio file on this Mac may be damaged. If it's still on the bean, delete the local copy and download it again."
+            "value": "The audio file on this Mac may be damaged. If it's still on Mi Box, delete the local copy and download it again."
           }
         }
       }
@@ -14504,12 +14884,12 @@
         }
       }
     },
-    "这台 Mac 没能连上录音豆的 Wi‑Fi": {
+    "这台 Mac 没能连上密盒的 Wi‑Fi": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This Mac couldn't join the bean's Wi‑Fi"
+            "value": "This Mac couldn't join Mi Box's Wi‑Fi"
           }
         }
       }
@@ -14704,12 +15084,12 @@
         }
       }
     },
-    "这条录音还在录音豆里。下载后会自动转写并整理。": {
+    "这条录音还在密盒里。下载后会自动转写并整理。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This recording is still on the bean. Once downloaded, it's transcribed and summarized automatically."
+            "value": "This recording is still on Mi Box. Once downloaded, it's transcribed and summarized automatically."
           }
         }
       }
@@ -14794,12 +15174,12 @@
         }
       }
     },
-    "这条还在录。在录音豆上按一下停止，或者点「结束录音」；录完会自动下载、转成文字。": {
+    "这条还在录。在密盒上按一下停止，或者点「结束录音」；录完会自动下载、转成文字。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Still recording. Press stop on the bean, or click “Stop Recording”; when it's done, it's downloaded and transcribed automatically."
+            "value": "Still recording. Press stop on Mi Box, or click “Stop Recording”; when it's done, it's downloaded and transcribed automatically."
           }
         }
       }
@@ -14824,12 +15204,12 @@
         }
       }
     },
-    "这次改用蓝牙下载。可以把录音豆从充电盒里拿出来、放在电脑旁边再试。": {
+    "这次改用蓝牙下载。可以把密盒放在电脑旁边，确认连接后再试。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Switching to Bluetooth this time. You can take the bean out of its charging case, put it next to the computer, and try again."
+            "value": "Switching to Bluetooth this time. Put Mi Box next to the computer, check the connection, and try again."
           }
         }
       }
@@ -14904,22 +15284,22 @@
         }
       }
     },
-    "连上之后它会出现在列表里，到时候可以从录音豆删除。": {
+    "连上之后它会出现在列表里，到时候可以从密盒删除。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Once connected, it'll appear in the list and you can delete it from the bean then."
+            "value": "Once connected, it'll appear in the list and you can delete it from Mi Box then."
           }
         }
       }
     },
-    "连上之后，在它们那边就能直接查你的录音、纪要和待办，也能把文字和音频存进豆仓。": {
+    "连上之后，在它们那边就能直接查你的录音、纪要和待办，也能把文字和音频存进密盒助手。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Once connected, they can look up your recordings, notes and to-dos directly, and save text and audio into BeanPod."
+            "value": "Once connected, they can look up your recordings, notes and to-dos directly, and save text and audio into Mi Box Assistant."
           }
         }
       }
@@ -14944,12 +15324,12 @@
         }
       }
     },
-    "连上录音豆自动下载，在这台 Mac 上转成文字，整理出摘要、决定和待办。": {
+    "连上密盒自动下载，在这台 Mac 上转成文字，整理出摘要、决定和待办。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connect the bean and recordings download automatically, get transcribed on this Mac, and are summarized into a summary, decisions and to-dos."
+            "value": "Connect Mi Box and recordings download automatically, get transcribed on this Mac, and are summarized into a summary, decisions and to-dos."
           }
         }
       }
@@ -14974,12 +15354,12 @@
         }
       }
     },
-    "连不上录音豆（%@）": {
+    "连不上密盒（%@）": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Can't connect to the bean (%@)"
+            "value": "Can't connect to Mi Box (%@)"
           }
         }
       }
@@ -15044,22 +15424,12 @@
         }
       }
     },
-    "连接录音豆": {
+    "连接密盒和录音卡": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Connect the Bean"
-          }
-        }
-      }
-    },
-    "连接录音豆和录音卡": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connect the bean and the recording card"
+            "value": "Connect Mi Box and the recording card"
           }
         }
       }
@@ -15104,12 +15474,12 @@
         }
       }
     },
-    "退出豆仓": {
+    "退出密盒助手": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quit BeanPod"
+            "value": "Quit Mi Box Assistant"
           }
         }
       }
@@ -15174,12 +15544,12 @@
         }
       }
     },
-    "选择录音文件（m4a、mp3、wav 等）或文字文件，豆仓会转写并整理。": {
+    "选择录音文件（m4a、mp3、wav 等）或文字文件，密盒助手会转写并整理。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose audio files (m4a, mp3, wav, etc.) or text files. BeanPod will transcribe and summarize them."
+            "value": "Choose audio files (m4a, mp3, wav, etc.) or text files. Mi Box Assistant will transcribe and summarize them."
           }
         }
       }
@@ -15204,12 +15574,12 @@
         }
       }
     },
-    "通了：Claude Code 报告已连接，豆仓给了它 %lld 个可用的动作。": {
+    "通了：Claude Code 报告已连接，密盒助手给了它 %lld 个可用的动作。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Working: Claude Code reports it's connected, and BeanPod offers it %lld actions."
+            "value": "Working: Claude Code reports it's connected, and Mi Box Assistant offers it %lld actions."
           }
         }
       }
@@ -15354,12 +15724,12 @@
         }
       }
     },
-    "重新打开豆仓后生效。": {
+    "重新打开密盒助手后生效。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Takes effect after you reopen BeanPod."
+            "value": "Takes effect after you reopen Mi Box Assistant."
           }
         }
       }
@@ -15404,12 +15774,12 @@
         }
       }
     },
-    "重新读取录音豆": {
+    "重新读取密盒": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reload the Bean"
+            "value": "Reload Mi Box"
           }
         }
       }
@@ -15464,12 +15834,12 @@
         }
       }
     },
-    "重连不上录音豆（%@）": {
+    "重连不上密盒（%@）": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Can't reconnect to the bean (%@)"
+            "value": "Can't reconnect to Mi Box (%@)"
           }
         }
       }
@@ -15764,22 +16134,22 @@
         }
       }
     },
-    "飞书没给音频：你的飞书应用还没开通「导出妙记音视频」权限，先拉回的是飞书的文字稿。开通后再拉，就能拿到音频、由豆仓自己转写。": {
+    "飞书没给音频：你的飞书应用还没开通「导出妙记音视频」权限，先拉回的是飞书的文字稿。开通后再拉，就能拿到音频、由密盒助手自己转写。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Feishu didn't provide audio: your Feishu app doesn't have the “Export Minutes audio/video” permission yet, so Feishu's transcript was pulled for now. Once it's enabled, pull again to get the audio and BeanPod will transcribe it itself."
+            "value": "Feishu didn't provide audio: your Feishu app doesn't have the “Export Minutes audio/video” permission yet, so Feishu's transcript was pulled for now. Once it's enabled, pull again to get the audio and Mi Box Assistant will transcribe it itself."
           }
         }
       }
     },
-    "马上从录音豆里删掉，删了找不回来。": {
+    "马上从密盒里删掉，删了找不回来。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Delete it from the bean right away. This can't be undone."
+            "value": "Delete it from Mi Box right away. This can't be undone."
           }
         }
       }
@@ -15954,12 +16324,12 @@
         }
       }
     },
-    "，豆仓会接着导入": {
+    "，密盒助手会接着导入": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": ", and BeanPod will continue importing"
+            "value": ", and Mi Box Assistant will continue importing"
           }
         }
       }
@@ -15970,6 +16340,696 @@
           "stringUnit": {
             "state": "translated",
             "value": ", all downloaded"
+          }
+        }
+      }
+    },
+    "在 TeleAgent 里说：「查一下密盒里昨天的会议，把待办列出来」": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In TeleAgent, say: “Find yesterday’s meetings in Mi Box and list the to-dos.”"
+          }
+        }
+      }
+    },
+    "改 ~/.config/TeleAgent/users/当前账号/TeleAgent.jsonc，先备份，只改密盒助手这一项。连接或断开前请完全退出 TeleAgent。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updates only Mi Box Assistant in ~/.config/TeleAgent/users/current-account/TeleAgent.jsonc, with a backup first. Quit TeleAgent completely before connecting or disconnecting."
+          }
+        }
+      }
+    },
+    "请先完全退出 TeleAgent，再回来连接或断开，避免它覆盖设置。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit TeleAgent completely before connecting or disconnecting so it cannot overwrite the settings."
+          }
+        }
+      }
+    },
+    "接上了。现在打开 TeleAgent，新开一个会话就能用。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected. Open TeleAgent and start a new session."
+          }
+        }
+      }
+    },
+    "已经断开。下次打开 TeleAgent 生效。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disconnected. Takes effect next time you open TeleAgent."
+          }
+        }
+      }
+    },
+    "找不到 TeleAgent 当前账号。请先打开 TeleAgent 登录，再完全退出后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot find the current TeleAgent account. Open TeleAgent, sign in, then quit it completely and try again."
+          }
+        }
+      }
+    },
+    "TeleAgent 配置含注释或格式不兼容，密盒助手没有改动它。请在 TeleAgent 的 MCP 设置中手动添加 beanpod，命令为 ~/.local/bin/beanpod，参数为 mcp。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The TeleAgent configuration contains comments or has an unsupported format. Mi Box Assistant left it unchanged. In TeleAgent’s MCP settings, add beanpod manually with command ~/.local/bin/beanpod and argument mcp."
+          }
+        }
+      }
+    },
+    "已安装 · 暂时无法确认连接状态": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installed · Connection status unavailable"
+          }
+        }
+      }
+    },
+    "约 1.27 GB": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About 1.27 GB"
+          }
+        }
+      }
+    },
+    "使用本机 CPU 转写。录音不会上传。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription runs on this Mac’s CPU. Recordings stay on this Mac."
+          }
+        }
+      }
+    },
+    "本机转写在这台 Mac 上完成，录音不会上传。选择 Paraformer 或 Fun-ASR-Nano 会自动下载缺少的模型文件。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcription runs on this Mac. Selecting Paraformer or Fun-ASR-Nano downloads missing model files."
+          }
+        }
+      }
+    },
+    "应用中缺少 FunASR 转写程序，请重新安装完整版本。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The FunASR runtime is missing. Reinstall the app to restore it."
+          }
+        }
+      }
+    },
+    "FunASR 转写程序启动失败：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t start FunASR: %@"
+          }
+        }
+      }
+    },
+    "FunASR 转写超过五分钟，请稍后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FunASR timed out after five minutes. Try again."
+          }
+        }
+      }
+    },
+    "FunASR 转写失败（%d）：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FunASR transcription failed (%d): %@"
+          }
+        }
+      }
+    },
+    "本机转写程序还没准备好。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local transcription runtime is not ready."
+          }
+        }
+      }
+    },
+    "修改这段文字": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit this passage"
+          }
+        }
+      }
+    },
+    "修改原文": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit original transcript"
+          }
+        }
+      }
+    },
+    "修改润色版本": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit polished transcript"
+          }
+        }
+      }
+    },
+    "只修改这一段，不会加入词库。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changes apply to this passage only."
+          }
+        }
+      }
+    },
+    "保存修改": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save changes"
+          }
+        }
+      }
+    },
+    "转写中，请等它完成后修改": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wait for transcription to finish before editing"
+          }
+        }
+      }
+    },
+    "MiniMax 文本接口可以用于整理，但没有录音转写接口。请选择本机转写，或配置小米 MiMo 等支持转写的服务。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The MiniMax text API supports summaries. For audio transcription, choose a local model or a transcription provider such as Xiaomi MiMo."
+          }
+        }
+      }
+    },
+    "Renoise MCP 地址已复制。请在 TeleAgent 的 MCP 设置中添加并登录授权。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renoise MCP address copied. Add it in TeleAgent’s MCP settings and sign in."
+          }
+        }
+      }
+    },
+    "TeleAgent 打开失败：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not open TeleAgent: %@"
+          }
+        }
+      }
+    },
+    "交出去 %@ 分钟了还没有报价。请在 TeleAgent 新建会话、粘贴任务指令并发送。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No quote after %@ minutes. Start a new TeleAgent session, paste the task instructions, and send them."
+          }
+        }
+      }
+    },
+    "交给 TeleAgent 做": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hand off to TeleAgent"
+          }
+        }
+      }
+    },
+    "交给 TeleAgent，用 Renoise 的数字人和口播剪辑 skill 一条龙做：写稿、生成出镜、在 Renoise 云端剪辑包装（字幕花字、信息卡、B-roll、音乐），成片自动回到这里。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use TeleAgent with Renoise to draft, generate an avatar, and edit the video with captions, title graphics, info cards, B-roll, and music. The finished video returns here."
+          }
+        }
+      }
+    },
+    "任务指令已复制。在 TeleAgent 新建会话，选择工程目录，粘贴后发送。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task instructions copied. Start a new TeleAgent session, select the project folder, then paste and send them."
+          }
+        }
+      }
+    },
+    "回到 TeleAgent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to TeleAgent"
+          }
+        }
+      }
+    },
+    "复制 MCP 地址": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy MCP address"
+          }
+        }
+      }
+    },
+    "复制任务指令": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy task instructions"
+          }
+        }
+      }
+    },
+    "密盒助手不再跟进这条。TeleAgent 里那个会话要在 TeleAgent 里停": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop tracking this project. To end the TeleAgent session, stop it in TeleAgent."
+          }
+        }
+      }
+    },
+    "工程已准备好，等待 TeleAgent 报价": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Project ready. Waiting for a quote from TeleAgent"
+          }
+        }
+      }
+    },
+    "已经 %@ 分钟没有新进度了，回 TeleAgent 看看是不是停下来在等你。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No new progress for %@ minutes. Check whether TeleAgent is waiting for your input."
+          }
+        }
+      }
+    },
+    "报价出来了，在 TeleAgent 里回复确认就开始": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The quote is ready. Reply in TeleAgent to confirm and start."
+          }
+        }
+      }
+    },
+    "未找到 TeleAgent，请先安装并登录。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install TeleAgent and sign in to continue."
+          }
+        }
+      }
+    },
+    "点击「复制任务指令」，在 TeleAgent 新建会话并选择工程目录。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copy the task instructions, start a new TeleAgent session, and select the project folder."
+          }
+        }
+      }
+    },
+    "示例主播已经传上去了，Renoise 正在审核人像，过一会儿再点「交给 TeleAgent 做」。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The sample host is under review in Renoise. Try handing off to TeleAgent again shortly."
+          }
+        }
+      }
+    },
+    "等待在 TeleAgent 发送任务并规划报价…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for you to send the task in TeleAgent and get a quote…"
+          }
+        }
+      }
+    },
+    "粘贴任务指令后发送；首次使用请在 TeleAgent 的 MCP 设置中连接 Renoise 并登录。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste and send the instructions. The first time, connect Renoise in TeleAgent’s MCP settings and sign in."
+          }
+        }
+      }
+    },
+    "要做就在 TeleAgent 对话里回复确认，它按这个报价加 10% 余量封顶。密盒助手会自动跟进度。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply in TeleAgent to confirm. The quoted amount plus 10% is the spending limit. Mi Box Assistant tracks progress."
+          }
+        }
+      }
+    },
+    "请在 TeleAgent 新建会话并粘贴任务，报价确认后才花积分": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start a new TeleAgent session and paste the task. Credits are spent after you approve the quote."
+          }
+        }
+      }
+    },
+    "请确认 TeleAgent 已连接 Renoise MCP。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make sure TeleAgent is connected to Renoise MCP."
+          }
+        }
+      }
+    },
+    "这台 Mac 上没装 TeleAgent，做视频要靠它。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install TeleAgent to make a video."
+          }
+        }
+      }
+    },
+    "高阶网关/密盒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advanced Gateway/Mi Box"
+          }
+        }
+      }
+    },
+    "Paraformer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paraformer"
+          }
+        }
+      }
+    },
+    "应用中缺少 Paraformer 转写程序，请重新安装完整版本。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Paraformer runtime is missing. Reinstall the app to restore it."
+          }
+        }
+      }
+    },
+    "Paraformer 转写程序启动失败：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn’t start Paraformer: %@"
+          }
+        }
+      }
+    },
+    "Paraformer 转写超过五分钟，请稍后重试。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paraformer timed out after five minutes. Try again."
+          }
+        }
+      }
+    },
+    "Paraformer 转写失败（%d）：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paraformer transcription failed (%d): %@"
+          }
+        }
+      }
+    },
+    "约 237 MB": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About 237 MB"
+          }
+        }
+      }
+    },
+    "%@ 正在下载，完成后才能转写。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is downloading. Transcription will be available when it finishes."
+          }
+        }
+      }
+    },
+    "%@ 正在校验，完成后才能转写。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is being verified. Transcription will be available when verification finishes."
+          }
+        }
+      }
+    },
+    "%@ 下载已暂停，请到设置中继续下载。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The %@ download is paused. Resume it in Settings."
+          }
+        }
+      }
+    },
+    "%@ 下载失败：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The %@ download failed: %@"
+          }
+        }
+      }
+    },
+    "%@ 还没下载，请到设置中下载模型。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is not downloaded yet. Download the model in Settings."
+          }
+        }
+      }
+    },
+    "Paraformer 运行程序缺失，请重新安装完整应用。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The Paraformer runtime is missing. Reinstall the complete app."
+          }
+        }
+      }
+    },
+    "本机转写运行程序还没准备好，请到设置中安装或指定 llama-server。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The local transcription runtime is not ready. Install or select llama-server in Settings."
+          }
+        }
+      }
+    },
+    "Paraformer 还没准备好。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paraformer is not ready yet."
+          }
+        }
+      }
+    },
+    "可选": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional"
+          }
+        }
+      }
+    },
+    "在这台 Mac 上运行，录音不会上传。Paraformer 使用应用内的转写程序，不需要 llama-server。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Runs on this Mac without uploading recordings. Paraformer uses the runtime included with the app and does not require llama-server."
+          }
+        }
+      }
+    },
+    "Qwen3-ASR、Gemma 4 E2B 和本机整理模型靠它运行；Paraformer 不需要它。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qwen3-ASR, Gemma 4 E2B and local summary models require this runtime. Paraformer does not."
+          }
+        }
+      }
+    },
+    "Qwen3-ASR、Gemma 4 E2B 和本机整理模型靠它运行；Paraformer 不需要它。现在借用的是别的 App 里带的那份，那个 App 删掉就用不了了；建议点「高级」看看位置，或者用 Homebrew 装一份（brew install llama.cpp）。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qwen3-ASR, Gemma 4 E2B and local summary models require this runtime. Paraformer does not. The current copy belongs to another app and will stop working if that app is removed. Check its location under Advanced, or install a separate copy with Homebrew (brew install llama.cpp)."
+          }
+        }
+      }
+    },
+    "Qwen3-ASR、Gemma 4 E2B 和本机整理模型靠它运行；Paraformer 不需要它。点「安装」会用 Homebrew 装，大约 1 分钟。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qwen3-ASR, Gemma 4 E2B and local summary models require this runtime. Paraformer does not. Click Install to install it with Homebrew, which takes about a minute."
+          }
+        }
+      }
+    },
+    "Qwen3-ASR、Gemma 4 E2B 和本机整理模型靠它运行；Paraformer 不需要它。这台 Mac 上没有 Homebrew，先按链接里的说明装好 llama.cpp。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qwen3-ASR, Gemma 4 E2B and local summary models require this runtime. Paraformer does not. This Mac does not have Homebrew. Follow the linked instructions to install llama.cpp."
+          }
+        }
+      }
+    },
+    "选择 Qwen3-ASR、Gemma 4 E2B 或 Paraformer；转写在这台 Mac 上完成，录音不上传。选中 Paraformer 后会下载缺少的模型。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose Qwen3-ASR, Gemma 4 E2B or Paraformer. Transcription runs on this Mac without uploading recordings. Selecting Paraformer downloads its model if it is missing."
+          }
+        }
+      }
+    },
+    "检查运行程序": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check Runtime"
+          }
+        }
+      }
+    },
+    "重试": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retry"
           }
         }
       }

@@ -30,7 +30,7 @@ struct StageScreen: View {
                 .padding(.horizontal, 16).padding(.top, 8)
 
                 Spacer(minLength: 12)
-                MascotView(mood: paused ? .idle : .listening, power: store.mascotPower, level: store.liveLevels.last)
+                DevicePhotoView()
                     .frame(width: 230, height: 230)
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     Text(clock(store.elapsed(at: context.date)))

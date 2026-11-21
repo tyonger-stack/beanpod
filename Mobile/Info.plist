@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>zh-Hans</string>
 	<key>CFBundleDisplayName</key>
-	<string>豆仓</string>
+	<string>密盒助手</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -20,7 +20,7 @@
 		<string>en</string>
 	</array>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>密盒助手</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,9 +28,9 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>需要蓝牙来连接你的录音豆。</string>
+	<string>需要蓝牙来连接你的密盒。</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>录音豆没连上时，用这台 iPhone 的麦克风录音。</string>
+	<string>密盒没连上时，用这台 iPhone 的麦克风录音。</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>没有配置云端转写时，用系统的语音识别把录音转成文字。</string>
 	<key>UIBackgroundModes</key>

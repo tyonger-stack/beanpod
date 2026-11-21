@@ -1,4 +1,6 @@
-# BeanPod 豆仓
+# Mi Box Assistant (based on BeanPod)
+
+Mi Box Assistant is a derivative of upstream [BeanPod](https://github.com/andyhuo520/beanpod), retaining its acknowledgements and MIT license. This edition adds local model options and TeleAgent handoff. Build this edition from source below; upstream releases do not include these changes.
 
 [简体中文](README.md) | **English**
 
@@ -44,9 +46,10 @@ A native macOS app for managing the **Anker AI voice recorder "bean" (soundcore,
 - The protocol comes from [Shawn-TKD/getseed-ble-protocol](https://github.com/Shawn-TKD/getseed-ble-protocol); see [Acknowledgements](#acknowledgements) and [docs/GETSEED.md](docs/GETSEED.md)
 
 **Transcription**
-- By default [Qwen3‑ASR 0.6B](https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF) runs locally through llama.cpp, with timestamps — click any sentence to listen from there
+- Choose Qwen3-ASR 0.6B, Gemma 4 E2B BF16, FunASR Paraformer Q8, or Fun-ASR-Nano-2512 for local transcription. Click a timestamp to listen from the start of that audio segment
 - Live captions while recording on the "recording stage", which you can put on a screen for the room
-- Without the model it falls back to macOS speech recognition; neither uploads audio
+- Fun-ASR-Nano-2512 runs on CPU and downloads two model files totaling about 1.27 GB on first use. It works offline after download
+- Selecting Paraformer downloads the model if needed. Once downloaded, it works offline. System speech recognition is also available as a separate option
 - Cloud transcription is available too (any OpenAI `/audio/transcriptions`-compatible service such as SiliconFlow, OpenAI, Groq, or Xiaomi MiMo). Use local by default and send the odd hard recording to the cloud from the "⋯" menu
 - One-click model download in Settings: pinned version, SHA‑256 verified, resumable, automatically switches to mirrors (hf-mirror, ModelScope) when HuggingFace is slow; pause and cancel supported
 - Correction vocabulary: words you fix in a transcript are replaced automatically in future transcriptions
@@ -121,7 +124,7 @@ The first launch shows an onboarding guide: connect the bean, download the trans
 
 Each item in the guide has an "Open" button that jumps to the right place in System Settings. Two more things aren't system permissions — you prepare them yourself:
 
-- **Transcription model** (~1 GB): one-click download in Settings → Models or in the guide; or use a cloud transcription service with your own key
+- In **Settings → Models → Transcription → Local**, choose Paraformer Q8 (237 MB) to use the runtime bundled with the Apple Silicon app. Qwen3-ASR (about 1 GB) and Gemma 4 E2B BF16 (about 10.3 GB with its audio projector) use llama.cpp. Fun-ASR-Nano-2512 runs on CPU and downloads two files totaling about 1.27 GB on first use
 - **Feishu Minutes sync**: install Feishu's CLI and authorize, see [Before you start](#before-you-start)
 
 ## What to prepare first
@@ -142,29 +145,20 @@ Split into "required" and "only when you need it". If you download the app, only
 | What | When | How |
 |---|---|---|
 | A summarizing model | You want summaries, to-dos and knowledge-base answers (transcripts alone don't need one) | Either ① one-click download of the local model in BeanPod's settings (~2.5 GB, offline), or ② sign up with a cloud provider and get an API key: Xiaomi MiMo, DeepSeek, Qwen, Kimi, Doubao, Zhipu, MiniMax, SiliconFlow, OpenRouter, Gemini, Claude and OpenAI are built in — register on the provider's platform → create an API key → paste it into Settings → Models. Keys live in the Keychain |
-| Cloud transcription (optional) | You don't want the 1 GB local model, or want a better pass on a hard recording | Any OpenAI `/audio/transcriptions`-compatible service (SiliconFlow, OpenAI, Groq) or Xiaomi MiMo; get a key from their platform |
+| Cloud transcription (optional) | You don't want a local model, or want a better pass on a hard recording | Any OpenAI `/audio/transcriptions`-compatible service (SiliconFlow, OpenAI, Groq) or Xiaomi MiMo; get a key from their platform |
 | **Claude Code** | Looking up recordings, notes and to-dos from Claude (MCP) | Install per the [Claude Code docs](https://docs.claude.com/en/docs/claude-code/overview) and sign in once with a Claude account (Pro / Max) or an Anthropic API key; then click "Connect" for Claude Code in BeanPod's Help → Connect AI assistants |
-| **Claude desktop** | "Make a video" (hand a script to Claude to produce a digital-human video), or asking BeanPod from the desktop app | Download from [claude.ai/download](https://claude.ai/download) and sign in with the same Claude account. "Make a video" opens a new session in its Code tab, so the desktop app needs Claude Code available |
-| **Renoise account** | "Make a video" uses it to generate the talking avatar and edit the video | Sign up at **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** (browser sign-in, no API key to paste), then connect Renoise to Claude — see [Turn recordings into videos with Renoise](#turn-recordings-into-videos-with-renoise-optional). You get a quote first; credits are spent only after you confirm |
+| **Claude desktop** | Querying recordings, notes and to-dos through MCP | Install and sign in, then use "Connect AI assistants". Digital-human video creation does not require Claude |
+| **TeleAgent** | "Make a digital-human video" | Install and sign in, connect Renoise in MCP settings, then copy the task instructions into a new session with the project folder selected |
+| **Renoise account** | "Make a video" uses it to generate the talking avatar and edit the video | Sign up at **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** (browser sign-in, no API key to paste), then connect Renoise to TeleAgent — see [Turn recordings into videos with Renoise](#turn-recordings-into-videos-with-renoise-optional). You get a quote first; credits are spent only after you confirm |
 | `yt-dlp` | Importing video / podcast links | `brew install yt-dlp`. The Xiaohongshu, Douyin and WeChat Channels downloaders are installed into a separate Python environment automatically on first use |
 | Node.js + Feishu CLI | Pulling recordings back from Feishu Minutes | `brew install node`, then the four steps in [Before you start](#before-you-start) |
 | Codex / OpenClaw | Asking BeanPod from those tools | Install them, then connect in one click from "Connect AI assistants"; OpenClaw can also bridge to WeChat |
 
 ## Install
 
-### Option 1: download the app (recommended)
+No release download URL is provided for this derivative yet. Build from the current repository source.
 
-1. Download the latest `BeanPod-x.y.z.dmg` from [Releases](https://github.com/andyhuo520/beanpod/releases/latest) (universal: Apple silicon and Intel; requires macOS 26)
-2. Open the DMG and drag BeanPod into Applications
-3. On first launch macOS says the developer can't be verified: the project isn't signed with a paid Apple Developer ID or notarized; it's not malware. Go to System Settings → Privacy & Security, scroll down, click "Open Anyway" and confirm. Or run in Terminal:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/BeanPod.app
-```
-
-4. Local transcription uses llama.cpp: after the first launch, click "Install" in Settings → Models (needs [Homebrew](https://brew.sh)). Link import needs `brew install yt-dlp ffmpeg`
-
-### Option 2: build from source
+### Build from source
 
 **1. Tools**
 
@@ -245,6 +239,7 @@ Menu Help → Connect AI assistants, or Settings → Connect: one card per assis
 | Codex | Runs `codex mcp add beanpod -- ~/.local/bin/beanpod mcp` |
 | OpenClaw | Runs `openclaw mcp add beanpod --command ~/.local/bin/beanpod --arg mcp` |
 | Claude desktop | Adds an entry to `claude_desktop_config.json` (backs it up first as `claude_desktop_config.backup-by-beanpod.json`); quit Claude desktop first, or it will write its own copy back |
+| TeleAgent | After you quit TeleAgent, adds `mcp.beanpod` to the current account’s `~/.config/TeleAgent/users/<account>/TeleAgent.jsonc` using the local command. Each edit saves a `TeleAgent.backup-by-beanpod-*.jsonc` backup. The account comes from `~/.local/share/TeleAgent/current-owner.json`. Files with comments or an unsupported format are left unchanged; add BeanPod in TeleAgent’s MCP settings instead. |
 | Grok Bot and other URL-only tools | Copy `http://127.0.0.1:8791/mcp` into them |
 
 The URL endpoint only exists while BeanPod is open, and only listens on this Mac.
@@ -292,26 +287,18 @@ With [OpenClaw](https://github.com/openclaw/openclaw) and its WeChat plugin you 
 
 ### Turn recordings into videos with Renoise (optional)
 
-On a recording's "Rewrite" tab, a talking-head script can be turned into a video in one click: BeanPod opens a new Claude Code session in Claude desktop and hands the job to **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** — an AI video platform Claude can drive through MCP — which generates the digital-human presenter, then edits it with captions, graphics and packaging. The finished video, cover and script come back under that recording in BeanPod.
+On a recording's "Rewrite" tab, "Make a digital-human video" prepares a project and opens TeleAgent. Click "Copy task instructions", create a new TeleAgent session, select the project folder, paste and send. TeleAgent uses **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** to generate and edit the presenter video. Once it writes the agreed result files, the video, cover and script appear under the recording.
 
 **One-time setup**
 
-1. Create an account at **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** (browser sign-in, no API key to paste)
-2. Install and sign in to [Claude desktop](https://claude.ai/download)
-3. Connect Renoise to Claude, whichever way you use it:
-
-| Where | How |
-|---|---|
-| Claude desktop / claude.ai | Settings → Connectors → **Add custom connector** → name `Renoise`, URL `https://renoise.ai/api/public/mcp`, then sign in in the browser |
-| Claude Code | In Claude Code run `/plugin marketplace add ArcoCodes/renoise-plugins-official`, then `/plugin install renoise@renoise-plugins-official` |
-| Codex | `codex mcp add renoise --url https://renoise.ai/api/public/mcp`, then `codex mcp login renoise` |
-
-Then ask Claude "check my Renoise balance" — if it answers, you're connected. The latest setup steps are at [renoise.ai/plugin](https://renoise.ai/plugin).
+1. Create a Renoise account, then install and sign in to TeleAgent
+2. Add Renoise in TeleAgent's MCP settings using `https://renoise.ai/api/public/mcp` and complete authorization. The video window provides a "Copy MCP URL" button
+3. Ask TeleAgent to check your Renoise balance to confirm the connection works
 
 **When you use it**
 
-- Opening "Make a video", BeanPod first checks that Claude desktop and Renoise are available
-- Claude gives you a quote (how many credits) before generating anything; nothing is spent until you confirm in Claude
+- Mi Box Assistant checks whether TeleAgent is installed and prepares the task files. Opening the app does not create a session or send a task; paste and send it yourself
+- TeleAgent plans and quotes first. Generation and spending begin only after you confirm in that session. Mi Box Assistant reads the quote, progress and result from the project folder
 - A presenter: BeanPod includes two sample presenters (AI-generated fictional people, "Sample · Business" and "Sample · Casual"). The first time you use one, its photo is uploaded to your own Renoise account (no credits). To present it yourself, click "Add presenter" and upload a front-facing half-body photo of yourself, or enter the ID of a portrait already in your Renoise account; you must confirm "this is me, or I have the person's permission". Renoise reviews portraits at generation time; "under review" or "rejected" is shown on the card and that presenter can't be used yet
 
 Presenter records and thumbnails live in `~/Library/Application Support/BeanPod/Hosts/`. Removing a presenter from BeanPod doesn't delete the asset from your Renoise account.
@@ -366,7 +353,7 @@ The bean protocol work builds on the notes by **[tacshi](https://github.com/tacs
 
 The DeDao AI recording card protocol comes entirely from **[Shawn-TKD](https://github.com/Shawn-TKD)**'s [Shawn-TKD/getseed-ble-protocol](https://github.com/Shawn-TKD/getseed-ble-protocol) (MIT, Copyright (c) 2026 Shawn-TKD), whose author compiled and verified it through packet captures and firmware analysis. BeanPod implements it from scratch in Swift from that document without using its code; see [NOTICE](NOTICE).
 
-Transcription uses Qwen3‑ASR (GGUF from [ggml-org/Qwen3-ASR-0.6B-GGUF](https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF)) with [llama.cpp](https://github.com/ggml-org/llama.cpp) for local inference. Video generation via [Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official).
+Select the local summarization model independently of transcription. Paraformer uses FunASR's Apple Silicon runtime and Q8 weights. [FunASR GitHub release](https://github.com/modelscope/FunASR/releases/tag/runtime-llamacpp-v0.2.6) · [Paraformer GGUF](https://huggingface.co/FunAudioLLM/Paraformer-GGUF/blob/main/paraformer-q8.gguf). Qwen and Gemma use llama.cpp. [Qwen3-ASR GGUF](https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF) · [Gemma GGUF](https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF) · [llama.cpp](https://github.com/ggml-org/llama.cpp). Video generation via [Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official).
 
 ## License
 

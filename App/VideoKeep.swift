@@ -162,7 +162,7 @@ extension BeanStore {
         guard hasVideo(id), let r = recordings.first(where: { $0.id == id }) else { return }
         let downloads = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
         let safe = String(r.displayTitle.prefix(60).map { "/:\\?%*|\"<>\n".contains($0) ? "-" : $0 }).trimmingCharacters(in: .whitespaces)
-        let base = safe.isEmpty ? "豆仓视频-\(id)" : safe
+        let base = safe.isEmpty ? "密盒助手视频-\(id)" : safe
         var target = downloads.appendingPathComponent(base + ".mp4")
         var n = 2
         while FileManager.default.fileExists(atPath: target.path) {

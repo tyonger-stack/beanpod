@@ -7,7 +7,7 @@ nonisolated enum ASRError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noServer: String(localized: "没找到 llama-server。请安装 llama.cpp（brew install llama.cpp），或在设置里指定它的位置。")
-        case .noModel: String(localized: "没找到 Qwen3‑ASR 模型文件。请在设置里下载。")
+        case .noModel: String(localized: "没找到所选本机转写模型文件。请在设置里下载。")
         case .startFailed(let why): String(localized: "本机转写服务没启动起来：\(why)")
         case .http(let code, let body): String(localized: "转写服务返回错误 \(code)：\(String(body.prefix(160)))")
         case .badAudio: String(localized: "这条录音读不出来")

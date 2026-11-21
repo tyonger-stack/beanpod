@@ -49,10 +49,10 @@ struct KnowledgeScreen: View {
                 }
 
                 if store.asking {
-                    HStack(spacing: 10) { ProgressView(); Text("小豆在翻你的录音…").foregroundStyle(.secondary) }.card()
+                    HStack(spacing: 10) { ProgressView(); Text("正在查询你的录音…").foregroundStyle(.secondary) }.card()
                 } else if let answer = store.answer {
                     VStack(alignment: .leading, spacing: 12) {
-                        Label("小豆帮你整理好了", systemImage: "sparkles").font(.headline).foregroundStyle(Theme.accent)
+                        Label("已整理好", systemImage: "sparkles").font(.headline).foregroundStyle(Theme.accent)
                         MarkdownView(text: answer)
                         if !store.answerSources.isEmpty {
                             Divider()

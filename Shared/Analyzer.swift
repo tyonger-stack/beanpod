@@ -30,6 +30,8 @@ nonisolated struct LLMConfig: Sendable {
     var key: String
     /// 豆仓自己起的本机模型。
     var builtIn = false
+    enum Source: Sendable { case standard, miBox }
+    var source: Source = .standard
 }
 
 /// 把文字稿整理成：场景、标题、摘要、分栏要点、待办、标签、人物。
@@ -131,7 +133,7 @@ nonisolated enum Analyzer {
         """
         let user = "录音时长：\(promptDuration(duration))\n\n文字稿：\n\(material)"
         let reply = try await chat(config, system: system, user: user, json: true)
-        return try parse(reply, fixedScene: fixedScene, source: config.model)
+        return try parse(reply, fixedScene: fixedScene, source: config.source == .miBox ? String(localized: "密盒") + " · " + config.model : config.model)
     }
 
     static func parse(_ reply: String, fixedScene: Scene?, source: String) throws -> Analysis {

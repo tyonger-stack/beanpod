@@ -22,7 +22,11 @@ targets:
   BeanPod:
     type: application
     platform: macOS
-    sources: [App, Shared]
+    sources:
+      - path: App
+        excludes: [MascotAssets]
+      - path: Shared
+        excludes: [MascotArt]
     dependencies:
       - package: BeanKit
       - target: beanpod-cli
@@ -36,10 +40,21 @@ targets:
         script: |
           mkdir -p "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers"
           cp -f "$BUILT_PRODUCTS_DIR/beanpod" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers/beanpod"
+      - name: Embed verified FunASR Paraformer helper
+        basedOnDependencyAnalysis: false
+        script: |
+          "$SRCROOT/ThirdParty/FunASR/scripts/package-paraformer-helper.sh" \
+            "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers/llama-funasr-paraformer"
+      - name: Embed verified Fun-ASR-Nano helper
+        basedOnDependencyAnalysis: false
+        script: |
+          "$SRCROOT/ThirdParty/FunASR/scripts/package-nano-helper.sh" \
+            "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/Helpers/llama-funasr-cli"
     info:
       path: App/Info.plist
       properties:
-        CFBundleDisplayName: 豆仓
+        CFBundleDisplayName: 密盒助手
+        CFBundleName: 密盒助手
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleIconName: AppIcon
@@ -47,12 +62,17 @@ targets:
         CFBundleLocalizations: [zh-Hans, en]
         CFBundleAllowMixedLocalizations: true
         LSApplicationCategoryType: public.app-category.productivity
-        NSBluetoothAlwaysUsageDescription: 需要蓝牙来连接你的录音豆。
-        NSMicrophoneUsageDescription: 录音豆没连上时，用这台 Mac 的麦克风录音。
+        NSBluetoothAlwaysUsageDescription: 需要蓝牙来连接你的密盒。
+        NSMicrophoneUsageDescription: 密盒没连上时，用这台 Mac 的麦克风录音。
+        NSLocalNetworkUsageDescription: 连接你设置的局域网密盒，发送录音进行转写，或发送文字进行整理。
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         NSSpeechRecognitionUsageDescription: 需要语音识别来把录音转成文字，全部在本机完成。
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.andyhu.beanpod
+        MARKETING_VERSION: "0.1.8"
+        CURRENT_PROJECT_VERSION: "9"
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
         ENABLE_HARDENED_RUNTIME: NO
@@ -76,21 +96,25 @@ targets:
   BeanPodMobile:
     type: application
     platform: iOS
-    sources: [Shared, Mobile]
+    sources:
+      - path: Shared
+        excludes: [MascotArt]
+      - path: Mobile
     dependencies:
       - package: BeanKit
     info:
       path: Mobile/Info.plist
       properties:
-        CFBundleDisplayName: 豆仓
+        CFBundleDisplayName: 密盒助手
+        CFBundleName: 密盒助手
         CFBundleDevelopmentRegion: zh-Hans
         CFBundleLocalizations: [zh-Hans, en]
         CFBundleAllowMixedLocalizations: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         UIBackgroundModes: [bluetooth-central, audio]
-        NSBluetoothAlwaysUsageDescription: 需要蓝牙来连接你的录音豆。
-        NSMicrophoneUsageDescription: 录音豆没连上时，用这台 iPhone 的麦克风录音。
+        NSBluetoothAlwaysUsageDescription: 需要蓝牙来连接你的密盒。
+        NSMicrophoneUsageDescription: 密盒没连上时，用这台 iPhone 的麦克风录音。
         NSSpeechRecognitionUsageDescription: 没有配置云端转写时，用系统的语音识别把录音转成文字。
     settings:
       base:
