@@ -12,7 +12,7 @@ nonisolated struct Analysis: Sendable {
 }
 
 nonisolated enum AnalyzerError: LocalizedError {
-    case notConfigured, http(Int, String), badReply(String), unreachable(String)
+    case notConfigured, http(Int, String), badReply(String), unreachable(String), outputLimit
 
     var errorDescription: String? {
         switch self {
@@ -20,6 +20,7 @@ nonisolated enum AnalyzerError: LocalizedError {
         case .http(let code, let body): String(localized: "分析模型返回错误 \(code)：\(String(body.prefix(200)))")
         case .badReply(let why): String(localized: "分析模型的回答看不懂：\(why)")
         case .unreachable(let why): String(localized: "连不上分析模型：\(why)")
+        case .outputLimit: String(localized: "分析模型输出超过长度限制，未生成完整结果。请重试或更换模型；改写时也可以缩短成品要求。")
         }
     }
 }
@@ -69,7 +70,7 @@ nonisolated enum Analyzer {
             throw AnalyzerError.badReply(String(localized: "没有 choices"))
         }
         if maxTokens != nil, choices.first?["finish_reason"] as? String == "length" {
-            throw AnalyzerError.badReply(String(localized: "本机模型输出超过长度限制，请缩短成品要求后重试。"))
+            throw AnalyzerError.outputLimit
         }
         return stripThinking(content)
     }
@@ -243,11 +244,25 @@ nonisolated enum Analyzer {
 
     private static func localMaterialChat(_ config: LLMConfig, system: String, material: String,
                                           prefix: String = "", json: Bool, extractionFocus: String = "") async throws -> String {
+        let finalSystem = json ? system + """
+
+        本机纪要长度要求：完整 JSON 的文字内容合计不超过 1400 个中文字或 800 个英文单词。
+        summary 最多 3 句；sections 最多 5 栏，每栏最多 3 条；todos 最多 8 条；people 最多 12 项。
+        通读全部材料后筛选重点，兼顾开头、中间和结尾，合并重复事项。保留关键数字、单位、人物、日期和约定。
+        不逐句复述，不添加解释，务必完整闭合 JSON 对象和数组。
+        """ : system
+        let retrySystem = finalSystem + """
+
+        上一次输出达到长度上限。本次重新生成更紧凑的完整 JSON，以下更严格的长度要求优先：
+        全部文字内容合计不超过 800 个中文字或 450 个英文单词；summary 最多 2 句；sections 最多 4 栏，每栏最多 2 条；todos 最多 5 条；tags 最多 3 项；people 最多 8 项。
+        仍须依据全部材料，优先保留决定、关键事实和待办及其准确数字，删除重复表达，不得只概括材料开头，也不要编造。
+        """
         // UTF-8 bytes conservatively budget the 16K local context, leaving 4K output tokens and template space.
         var promptBudget = 11_000
         for attempt in 0..<4 {
             try Task.checkCancellation()
-            let materialBudget = promptBudget - system.utf8.count - prefix.utf8.count
+            let materialBudget = promptBudget - (json ? max(finalSystem.utf8.count, retrySystem.utf8.count) : system.utf8.count)
+                - prefix.utf8.count
             guard materialBudget >= 256 else {
                 throw AnalyzerError.badReply(String(localized: "改写要求太长，本机模型无法容纳，请缩短要求后重试。"))
             }
@@ -262,9 +277,14 @@ nonisolated enum Analyzer {
                     \(extractionFocus.isEmpty ? "" : "下一步任务供筛选参考：\(extractionFocus)\n保留相关的原文短引句。")
                     只输出中间要点，控制在 600 字或 350 个英文单词以内。
                     """
+                    let extractionRetry = extraction + """
+
+                    上一次输出达到长度上限。本次只输出更紧凑的中间要点，最多 300 个中文字或 180 个英文单词。
+                    通读整个片段，覆盖开头、中间和结尾的重要事实；合并重复表述，保留关键数字及对应事实、决定和待办。不要解释，不要编造。
+                    """
                     let chunkPrefix = level == 0 ? "文字稿片段：\n" : "分段要点：\n"
                     let chunkSuffix = "\n\n请逐条列出片段中特有的数字及对应事实，再简记其他要点。"
-                    let chunkBudget = min(materialBudget, promptBudget - extraction.utf8.count
+                    let chunkBudget = min(materialBudget, promptBudget - max(extraction.utf8.count, extractionRetry.utf8.count)
                                           - chunkPrefix.utf8.count - chunkSuffix.utf8.count)
                     guard chunkBudget >= 256 else {
                         throw AnalyzerError.badReply(String(localized: "本机模型上下文不足，无法整理这段材料。"))
@@ -272,8 +292,14 @@ nonisolated enum Analyzer {
                     var notes: [String] = []
                     for chunk in splitUTF8(reduced, bytes: chunkBudget) {
                         try Task.checkCancellation()
-                        let note = try await chat(config, system: extraction, user: chunkPrefix + chunk + chunkSuffix,
+                        let note: String
+                        do {
+                            note = try await chat(config, system: extraction, user: chunkPrefix + chunk + chunkSuffix,
                                                   json: false, maxTokens: 2048)
+                        } catch AnalyzerError.outputLimit {
+                            note = try await chat(config, system: extractionRetry, user: chunkPrefix + chunk + chunkSuffix,
+                                                  json: false, maxTokens: 2048)
+                        }
                         guard !note.isEmpty else {
                             throw AnalyzerError.badReply(String(localized: "本机模型没有返回分段要点，请重试。"))
                         }
@@ -288,7 +314,11 @@ nonisolated enum Analyzer {
                 guard reduced.utf8.count <= materialBudget else {
                     throw AnalyzerError.badReply(String(localized: "材料过长，本机模型未能完成分层整理。"))
                 }
-                return try await chat(config, system: system, user: prefix + reduced, json: json, maxTokens: 4096)
+                do {
+                    return try await chat(config, system: finalSystem, user: prefix + reduced, json: json, maxTokens: 4096)
+                } catch AnalyzerError.outputLimit where json {
+                    return try await chat(config, system: retrySystem, user: prefix + reduced, json: true, maxTokens: 4096)
+                }
             } catch {
                 guard attempt < 3, isContextOverflow(error) else { throw error }
                 promptBudget /= 2

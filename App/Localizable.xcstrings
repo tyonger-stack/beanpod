@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "\n原因：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\nReason: %@"
+          }
+        }
+      }
+    },
     "预览": {
       "localizations": {
         "en": {
@@ -3850,12 +3860,12 @@
         }
       }
     },
-    "分析模型没接通，原来的纪要和待办都留着没动。检查一下设置里的分析模型，再点「重新整理纪要」。": {
+    "这次未能生成完整纪要，原来的纪要和待办都留着没动。可以点「重新整理纪要」重试，或在设置里更换分析模型。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't reach the analysis model. The existing notes and to-dos are untouched. Check the analysis model in Settings, then click “Re-summarize Notes”."
+            "value": "Could not generate complete notes this time. Your existing notes and to-dos are unchanged. Click “Re-summarize Notes” to retry, or choose another analysis model in Settings."
           }
         }
       }
@@ -3880,12 +3890,12 @@
         }
       }
     },
-    "分析模型这次没接通，先按关键词粗略分了类。\n原因：%@\n检查一下设置里的分析模型，然后在这条录音上点「重新整理纪要」。": {
+    "这次未能生成完整纪要，先按关键词粗略分了类。\n原因：%@\n可以在这条录音上点「重新整理纪要」重试，或在设置里更换分析模型。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't reach the analysis model this time, so it was roughly categorized by keywords.\nReason: %@\nCheck the analysis model in Settings, then click “Re-summarize Notes” on this recording."
+            "value": "Could not generate complete notes this time, so the recording was roughly categorized by keywords.\nReason: %@\nClick “Re-summarize Notes” on this recording to retry, or choose another analysis model in Settings."
           }
         }
       }
@@ -16794,12 +16804,12 @@
         }
       }
     },
-    "本机模型输出超过长度限制，请缩短成品要求后重试。": {
+    "分析模型输出超过长度限制，未生成完整结果。请重试或更换模型；改写时也可以缩短成品要求。": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The local model reached its output limit. Ask for a shorter result and try again."
+            "value": "The analysis model reached its output limit before completing the result. Retry or choose another model. For rewrites, you can also ask for a shorter result."
           }
         }
       }

@@ -209,6 +209,7 @@ extension BeanStore {
         stages[id] = .analyzing
         await QwenASR.shared.stop()
         var result: Analysis
+        var analysisFailure: String?
         refreshASRAvailability()
         let useMiBoxAnalysis = settings.analysisMode == .miBox
         if analysisAvailable || useMiBoxAnalysis {
@@ -223,18 +224,20 @@ extension BeanStore {
                                       detail: error.localizedDescription, action: .settings)
                     return
                 }
-                problem = Problem(title: String(localized: "「\(rec.displayTitle)」没出完整纪要"), detail: String(localized: "分析模型这次没接通，先按关键词粗略分了类。\n原因：\(error.localizedDescription)\n检查一下设置里的分析模型，然后在这条录音上点「重新整理纪要」。"), action: .settings)
+                analysisFailure = error.localizedDescription
+                problem = Problem(title: String(localized: "「\(rec.displayTitle)」没出完整纪要"), detail: String(localized: "这次未能生成完整纪要，先按关键词粗略分了类。\n原因：\(error.localizedDescription)\n可以在这条录音上点「重新整理纪要」重试，或在设置里更换分析模型。"), action: .settings)
                 result = Analyzer.fallback(transcript: spoken, duration: rec.duration, fixedScene: fixed)
             }
         } else {
             result = Analyzer.fallback(transcript: spoken, duration: rec.duration, fixedScene: fixed)
         }
         guard let j = index(id) else { return }
-        // 已经有模型出的纪要，这次模型没接通只能按关键词粗分：别用粗分把好的纪要、待办盖掉
+        // 粗分结果不能覆盖已有模型纪要和待办。
         if result.source == "关键词规则", recordings[j].summary != nil,
            let before = recordings[j].analyzedBy, before != "关键词规则", before != "—" {
             problem = Problem(title: String(localized: "「\(rec.displayTitle)」这次没重新整理"),
-                              detail: String(localized: "分析模型没接通，原来的纪要和待办都留着没动。检查一下设置里的分析模型，再点「重新整理纪要」。"),
+                              detail: String(localized: "这次未能生成完整纪要，原来的纪要和待办都留着没动。可以点「重新整理纪要」重试，或在设置里更换分析模型。")
+                                + (analysisFailure.map { String(localized: "\n原因：\($0)") } ?? ""),
                               action: .settings)
             return
         }
