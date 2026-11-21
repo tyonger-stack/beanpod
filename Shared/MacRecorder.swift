@@ -63,6 +63,17 @@ extension BeanStore {
             defer { macStarting = false }
             var recorder: AVAudioRecorder?
             var tap: SystemAudioTap?
+            var captionNote: String?
+            #if os(macOS)
+            var microphone: MacMicrophoneCapture?
+            if source != .mic {
+                captionNote = String(localized: "实时字幕目前只支持麦克风。电脑声音和混合录音会在结束后完整转写。")
+            } else if !settings.liveTranscribe {
+                captionNote = String(localized: "未开启「边录边出字」。录音结束后会完整转写。")
+            } else if !asrAvailable {
+                captionNote = localASRReadinessHint
+            }
+            #endif
             if source.usesMic {
                 guard await AVCaptureDevice.requestAccess(for: .audio) else {
                     problem = Problem(title: String(localized: "密盒助手用不了\(Self.thisDevice)的麦克风"),
@@ -87,18 +98,32 @@ extension BeanStore {
                 try? session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
                 try? session.setActive(true)
                 #endif
-                let url = FileManager.default.temporaryDirectory.appendingPathComponent("beanpod-mac-\(UUID().uuidString).wav")
-                let format: [String: Any] = [
-                    AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1,
-                    AVLinearPCMBitDepthKey: 16, AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: false,
-                ]
-                guard let r = try? AVAudioRecorder(url: url, settings: format), r.record() else {
-                    await tap?.stop()
-                    problem = Problem(title: String(localized: "\(Self.thisDevice)的麦克风没有开始录音"), detail: String(localized: "可能有别的软件正占着麦克风，或者没有接入任何麦克风。"))
-                    return
+                #if os(macOS)
+                if source == .mic, settings.liveTranscribe, asrAvailable {
+                    do { microphone = try MacMicrophoneCapture() }
+                    catch {
+                        captionNote = String(localized: "实时字幕未能启动，录音继续，结束后会完整转写。")
+                        addLog("麦克风字幕启动失败：\(error.localizedDescription)")
+                    }
                 }
-                r.isMeteringEnabled = true
-                recorder = r
+                let needsRecorder = microphone == nil
+                #else
+                let needsRecorder = true
+                #endif
+                if needsRecorder {
+                    let url = FileManager.default.temporaryDirectory.appendingPathComponent("beanpod-mac-\(UUID().uuidString).wav")
+                    let format: [String: Any] = [
+                        AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: 44100, AVNumberOfChannelsKey: 1,
+                        AVLinearPCMBitDepthKey: 16, AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: false,
+                    ]
+                    guard let r = try? AVAudioRecorder(url: url, settings: format), r.record() else {
+                        await tap?.stop()
+                        problem = Problem(title: String(localized: "\(Self.thisDevice)的麦克风没有开始录音"), detail: String(localized: "可能有别的软件正占着麦克风，或者没有接入任何麦克风。"))
+                        return
+                    }
+                    r.isMeteringEnabled = true
+                    recorder = r
+                }
                 macMicStarted = .now
             }
             macRecorder = recorder
@@ -107,7 +132,11 @@ extension BeanStore {
             elapsedBase = 0
             recordingSince = .now
             liveMarks = []; liveSegments = []; liveLevels = []; liveLevelTotal = 0
-            liveNote = nil
+            liveNote = captionNote
+            #if os(macOS)
+            macMicrophone = microphone
+            if let microphone { beginMacCaptions(microphone.sink) }
+            #endif
             addLog("开始用\(Self.thisDevice)录音：\(source.name)")
             macMeter?.cancel()
             macMeter = Task { [weak self] in
@@ -120,6 +149,17 @@ extension BeanStore {
                         // 分贝换成 0…1：-50 dB 以下当作安静，-5 dB 算顶
                         level = max(level, min(1, (r.averagePower(forChannel: 0) + 50) / 45))
                     }
+                    #if os(macOS)
+                    if let microphone = self.macMicrophone {
+                        let status = microphone.sink.status()
+                        level = max(level, status.level)
+                        if status.error != nil {
+                            self.liveNote = String(localized: "麦克风采集出现错误，请结束录音并检查输入设备。")
+                        } else if status.dropped {
+                            self.liveNote = String(localized: "字幕处理较慢，已跳过部分实时字幕。完整录音仍会在结束后转写。")
+                        }
+                    }
+                    #endif
                     if let t = self.macTap { level = max(level, t.takeLevel()) }
                     self.liveLevels = Array((self.liveLevels + [level]).suffix(240))
                     self.liveLevelTotal += 1
@@ -128,8 +168,49 @@ extension BeanStore {
         }
     }
 
+    #if os(macOS)
+    func beginMacCaptions(_ sink: MacMicrophoneCapture.Sink) {
+        let session = UUID()
+        macCaptionSession = session
+        let server = settings.llamaServerPath, selection = settings.localASRModel
+        liveNote = String(localized: "正在准备本机字幕模型，录音已开始…")
+        macCaptionTask = Task { [weak self] in
+            await QwenASR.shared.warmUp(serverPath: server, selection: selection)
+            if let self, self.macCaptionSession == session, !Task.isCancelled {
+                self.liveNote = String(localized: "在听，停顿后会显示字幕…")
+            }
+            while !Task.isCancelled {
+                guard let self, self.macCaptionSession == session else { break }
+                guard let chunk = sink.takeChunk(final: self.macRec == .paused) else {
+                    do { try await Task.sleep(for: .milliseconds(350)) } catch { break }
+                    continue
+                }
+                guard Self.hasSpeech(chunk.samples) else { continue }
+                self.liveNote = String(localized: "正在本机识别这一句…")
+                do {
+                    let text = try await QwenASR.shared.transcribe(samples: chunk.samples, serverPath: server, selection: selection)
+                    guard !Task.isCancelled, self.macCaptionSession == session else { break }
+                    if !text.isEmpty, !Self.isFiller(text) {
+                        self.liveSegments.append(Segment(start: chunk.start, text: self.applyVocabulary(text)))
+                    }
+                    self.liveNote = String(localized: "在听，停顿后会显示字幕…")
+                } catch {
+                    guard !Task.isCancelled, self.macCaptionSession == session else { break }
+                    self.liveNote = String(localized: "实时字幕识别失败，录音继续，结束后会重新转写。")
+                    self.addLog("麦克风字幕识别失败：\(error.localizedDescription)")
+                    do { try await Task.sleep(for: .seconds(2)) } catch { break }
+                }
+            }
+            await QwenASR.shared.stopIfIdle()
+        }
+    }
+    #endif
+
     func pauseMacRecording() {
         guard macRec == .recording else { return }
+        #if os(macOS)
+        macMicrophone?.sink.setPaused(true)
+        #endif
         macRecorder?.pause()
         macTap?.setPaused(true)
         elapsedBase = elapsed(); recordingSince = nil
@@ -138,6 +219,9 @@ extension BeanStore {
 
     func resumeMacRecording() {
         guard macRec == .paused else { return }
+        #if os(macOS)
+        macMicrophone?.sink.setPaused(false)
+        #endif
         macRecorder?.record()
         macTap?.setPaused(false)
         recordingSince = .now
@@ -148,6 +232,17 @@ extension BeanStore {
         guard macRec != .off else { return }
         let marks = Self.mergeMarks(liveMarks)
         let recorder = macRecorder, tap = macTap, source = macSource, micStarted = macMicStarted
+        #if os(macOS)
+        let microphone = macMicrophone
+        microphone?.stop()
+        macMicrophone = nil
+        macCaptionSession = nil
+        macCaptionTask?.cancel()
+        macCaptionTask = nil
+        let capturedMicURL = microphone?.url ?? recorder?.url
+        #else
+        let capturedMicURL = recorder?.url
+        #endif
         recorder?.stop()
         macMeter?.cancel(); macMeter = nil
         macRecorder = nil; macTap = nil
@@ -157,7 +252,7 @@ extension BeanStore {
             await tap?.stop()
             if let reason = tap?.error { addLog("系统声音采集中途报错：\(reason)") }
             // 把两路声音合成一个文件：各自解成 16 kHz 单声道，按开始时间对齐后相加
-            let micURL = recorder?.url, systemURL = tap?.url, systemStarted = tap?.startedAt
+            let micURL = capturedMicURL, systemURL = tap?.url, systemStarted = tap?.startedAt
             let mixed: URL? = await Task.detached {
                 let mic = micURL.flatMap { Self.decodeAnyAudio($0) } ?? []
                 var system = systemURL.flatMap { Self.decodeAnyAudio($0) } ?? []

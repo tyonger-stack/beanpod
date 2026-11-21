@@ -455,6 +455,11 @@ final class BeanStore {
 
     /// 用这台 Mac 的麦克风录音时的状态。
     var macRec: MacRec = .off
+    #if os(macOS)
+    @ObservationIgnored var macMicrophone: MacMicrophoneCapture?
+    @ObservationIgnored var macCaptionTask: Task<Void, Never>?
+    @ObservationIgnored var macCaptionSession: UUID?
+    #endif
     @ObservationIgnored var macRecorder: AVAudioRecorder?
     @ObservationIgnored var macMeter: Task<Void, Never>?
     @ObservationIgnored var macTap: SystemAudioTap?

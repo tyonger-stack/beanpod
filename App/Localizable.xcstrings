@@ -17113,6 +17113,106 @@
           }
         }
       }
+    },
+    "实时字幕目前只支持麦克风。电脑声音和混合录音会在结束后完整转写。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live captions currently support microphone recording only. System audio and mixed recordings are transcribed after recording ends."
+          }
+        }
+      }
+    },
+    "未开启「边录边出字」。录音结束后会完整转写。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live transcription is turned off. The full recording will be transcribed afterward."
+          }
+        }
+      }
+    },
+    "实时字幕未能启动，录音继续，结束后会完整转写。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live captions could not start. Recording continues and will be transcribed afterward."
+          }
+        }
+      }
+    },
+    "麦克风采集出现错误，请结束录音并检查输入设备。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Microphone capture encountered an error. End the recording and check your input device."
+          }
+        }
+      }
+    },
+    "字幕处理较慢，已跳过部分实时字幕。完整录音仍会在结束后转写。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captions are falling behind, so some live audio was skipped. The full recording will still be transcribed afterward."
+          }
+        }
+      }
+    },
+    "正在准备本机字幕模型，录音已开始…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparing the local caption model. Recording has started…"
+          }
+        }
+      }
+    },
+    "在听，停顿后会显示字幕…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listening. Captions appear after a pause…"
+          }
+        }
+      }
+    },
+    "正在本机识别这一句…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transcribing this phrase locally…"
+          }
+        }
+      }
+    },
+    "实时字幕识别失败，录音继续，结束后会重新转写。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live transcription failed. Recording continues and will be transcribed afterward."
+          }
+        }
+      }
+    },
+    "录音结束后会完整转写、整理成纪要。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recording will be fully transcribed and summarized afterward."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

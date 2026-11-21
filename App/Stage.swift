@@ -98,13 +98,18 @@ struct RecordStage: View {
     @ViewBuilder private var caption: some View {
         Group {
             if let last = store.liveSegments.last {
-                Text(store.settings.liveTidy ? stripFillers(last.text) : last.text)
-                    .font(.system(size: 26, weight: .medium)).lineLimit(2).multilineTextAlignment(.center)
-                    .id(last.id).transition(.opacity.combined(with: .offset(y: 8)))
+                VStack(spacing: 8) {
+                    Text(store.settings.liveTidy ? stripFillers(last.text) : last.text)
+                        .font(.system(size: 26, weight: .medium)).lineLimit(2).multilineTextAlignment(.center)
+                        .id(last.id).transition(.opacity.combined(with: .offset(y: 8)))
+                    if store.recordingOnMac, let note = store.liveNote {
+                        Text(note).font(.callout).foregroundStyle(Theme.paper.opacity(0.55))
+                    }
+                }
             } else if let note = store.liveNote {
                 Text(note).font(.title3).foregroundStyle(Theme.amber)
             } else if store.recordingOnMac {
-                Text("用 Mac 录音时暂时不出实时字幕。录完会完整转写、整理成纪要。").font(.title3).foregroundStyle(Theme.paper.opacity(0.45))
+                Text("录音结束后会完整转写、整理成纪要。").font(.title3).foregroundStyle(Theme.paper.opacity(0.45))
             } else if !store.liveActive {
                 Text("没开实时转写，这里不出字，声音也画不出来。录音照常在录。").font(.title3).foregroundStyle(Theme.paper.opacity(0.45))
             } else {
@@ -134,7 +139,7 @@ struct RecordStage: View {
                         .id(seg.id)
                         .transition(.opacity.combined(with: .offset(y: 8)))
                     }
-                    Text(paused ? "已暂停" : "在听…").font(.title3).foregroundStyle(Theme.paper.opacity(0.4))
+                    Text(paused ? String(localized: "已暂停") : (store.liveNote ?? String(localized: "在听…"))).font(.title3).foregroundStyle(Theme.paper.opacity(0.4))
                         .padding(.leading, 64).id("tail")
                 }
                 .padding(.vertical, 22)

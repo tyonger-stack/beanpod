@@ -116,6 +116,11 @@ actor QwenASR {
         stopNow()
     }
 
+    func stopIfIdle() {
+        guard !busy else { return }
+        stopNow()
+    }
+
     private func stopNow() {
         stopWhenIdle = false
         ready = false
