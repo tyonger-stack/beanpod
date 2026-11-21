@@ -6,6 +6,18 @@
 
 Mi Box Assistant is a Mac app that keeps a local library of recordings, turns them into text and notes, and lets you query that library yourself or through MCP. Local models, Apple speech recognition, cloud services, and a user-supplied HTTP gateway are separate choices. Audio or text leaves the Mac only on the paths you enable.
 
+![Capability diagram: recordings, files, and links enter Mi Box Assistant, then transcription and notes produce a transcript, notes, to-dos, and local MCP access. Local models, cloud services, and a custom gateway are optional backends.](docs/assets/mibox-assistant-hero.jpg)
+
+This is a capability diagram, not a screenshot of the running app. The same Chinese artwork is used here; it is already labeled as a diagram rather than a runtime capture. Recordings, files, and links go into the local app, then through transcription and notes. The transcript, notes, and to-dos stay in the local library, and MCP serves this Mac only. The three backends under the diagram are options, not a default that turns all of them on.
+
+## Promo video
+
+This is the upstream BeanPod promo. The files were not replaced. Container metadata: **1280×720**, about **102 seconds**. The picture shows the BeanPod interface, not the current Mi Box Assistant UI. Open the preview or the link to play the original video.
+
+[![Upstream BeanPod promo, click to play the video](docs/media/beanpod-promo.gif)](docs/media/beanpod-promo.mp4)
+
+[Play the full video (MP4, 1280×720)](docs/media/beanpod-promo.mp4)
+
 This tree is a derivative of upstream [BeanPod](https://github.com/andyhuo520/beanpod). Acknowledgements and the [MIT](LICENSE) license stay. The extra code here selects among local transcription models (including FunASR), adds the HTTP gateway, and hands a talking-head project to TeleAgent. Upstream DMGs (v0.1.0 and v0.1.1) do not contain those changes. This fork has no GitHub Release.
 
 Three names:
@@ -25,79 +37,6 @@ Unofficial project, not affiliated with the device maker. It is for managing you
 People who want meeting, interview, podcast, and personal recordings organized on a Mac; people who already have a D3200; people who want Claude, Codex, OpenClaw, TeleAgent, or a URL-only assistant to read the local library. Without the recorder you can still record on the Mac, import files, or paste links.
 
 The iPhone app in `Mobile/` is experimental. It has no on-device large models and no gateway option.
-
-## Promo video
-
-This is the upstream BeanPod promo. The files were not replaced. Container metadata: **1280×720**, about **102 seconds**. The picture shows the BeanPod interface, not the current Mi Box Assistant UI. Open the preview or the link to play the original video.
-
-[![Upstream BeanPod promo, click to play the video](docs/media/beanpod-promo.gif)](docs/media/beanpod-promo.mp4)
-
-[Play the full video (MP4, 1280×720)](docs/media/beanpod-promo.mp4)
-
-## From a recording to notes you can query
-
-The home-page picture is the pipeline: capture into the local library, transcribe and summarize with the model you selected, then query from the app or from local MCP. Dashed lines are either untested on hardware or steps that wait for you to confirm.
-
-```mermaid
-flowchart LR
-  subgraph sources [Sources]
-    Bean["Anker D3200"]
-    Card["GetSeed card"]
-    Mac["Mac mic or system audio"]
-    Files["Files and links"]
-    Feishu["Feishu Minutes"]
-  end
-  subgraph app [Mi Box Assistant]
-    Store["Local library"]
-    ASR["Transcribe"]
-    Notes["Notes"]
-    Find["Overview, knowledge, to-dos"]
-  end
-  subgraph models [Models]
-    Local["Local model or Apple speech"]
-    Cloud["Cloud service"]
-    Gate["HTTP gateway"]
-  end
-  subgraph outputs [Outputs]
-    Disk["Application Support/BeanPod"]
-    MCP["Local MCP"]
-    Video["TeleAgent project"]
-  end
-  Bean --> Store
-  Card -.-> Store
-  Mac --> Store
-  Files --> Store
-  Feishu --> Store
-  Store --> ASR --> Notes --> Find
-  Local --> ASR
-  Cloud --> ASR
-  Gate --> ASR
-  Local --> Notes
-  Cloud --> Notes
-  Gate --> Notes
-  Find --> Disk
-  Find --> MCP
-  Notes -.-> Video
-```
-
-For one item already in the library, `process` / `run` in `Shared/Pipeline.swift` do this:
-
-```mermaid
-sequenceDiagram
-  participant Src as Source
-  participant Store as BeanStore
-  participant Pipe as Pipeline
-  participant Model as Selected model
-  participant CLI as beanpod
-  Src->>Store: Download, import, or Inbox
-  Store->>Pipe: process
-  Pipe->>Model: Transcribe, skip if a transcript exists
-  Model-->>Pipe: Transcript
-  Pipe->>Model: Summarize, or keyword fallback
-  Model-->>Store: Title, notes, to-dos, people, tags
-  CLI->>Store: Read library.json
-  CLI->>Store: add-note / add-audio write only to Inbox
-```
 
 ## Features
 
@@ -181,6 +120,69 @@ The script uses `say` and `ffmpeg` and writes `~/Library/Application Support/Bea
 
 ## Architecture
 
+The picture at the top is only a capability sketch. These two diagrams follow the modules in source: sources enter the local library, transcription and notes use the backend you selected, and MCP either reads that library or drops new items in the Inbox. Dashed lines are untested on hardware, or steps that wait for you to confirm.
+
+```mermaid
+flowchart LR
+  subgraph sources [Sources]
+    Bean["Anker D3200"]
+    Card["GetSeed card"]
+    Mac["Mac mic or system audio"]
+    Files["Files and links"]
+    Feishu["Feishu Minutes"]
+  end
+  subgraph app [Mi Box Assistant]
+    Store["Local library"]
+    ASR["Transcribe"]
+    Notes["Notes"]
+    Find["Overview, knowledge, to-dos"]
+  end
+  subgraph models [Models]
+    Local["Local model or Apple speech"]
+    Cloud["Cloud service"]
+    Gate["HTTP gateway"]
+  end
+  subgraph outputs [Outputs]
+    Disk["Application Support/BeanPod"]
+    MCP["Local MCP"]
+    Video["TeleAgent project"]
+  end
+  Bean --> Store
+  Card -.-> Store
+  Mac --> Store
+  Files --> Store
+  Feishu --> Store
+  Store --> ASR --> Notes --> Find
+  Local --> ASR
+  Cloud --> ASR
+  Gate --> ASR
+  Local --> Notes
+  Cloud --> Notes
+  Gate --> Notes
+  Find --> Disk
+  Find --> MCP
+  Notes -.-> Video
+```
+
+For one item already in the library, `process` / `run` in `Shared/Pipeline.swift` do this:
+
+```mermaid
+sequenceDiagram
+  participant Src as Source
+  participant Store as BeanStore
+  participant Pipe as Pipeline
+  participant Model as Selected model
+  participant CLI as beanpod
+  Src->>Store: Download, import, or Inbox
+  Store->>Pipe: process
+  Pipe->>Model: Transcribe, skip if a transcript exists
+  Model-->>Pipe: Transcript
+  Pipe->>Model: Summarize, or keyword fallback
+  Model-->>Store: Title, notes, to-dos, people, tags
+  CLI->>Store: Read library.json
+  CLI->>Store: add-note / add-audio write only to Inbox
+```
+
 | Path | Role |
 |---|---|
 | `Sources/BeanKit/` | Recorder and card frames, commands, decryption, Ogg. No UI |
@@ -196,7 +198,8 @@ The script uses `say` and `ffmpeg` and writes `~/Library/Application Support/Bea
 | `Mobile/` | Experimental iPhone UI |
 | `docs/PROTOCOL.md`, `docs/GETSEED.md` | Protocol notes and sources |
 | `docs/media/` | Upstream promo, original files kept |
-| `docs/screenshots/` | Upstream sample UI, below |
+| `docs/assets/` | Homepage capability diagram, plus photos of Mi Box Assistant on a Mac |
+| `docs/screenshots/` | Upstream sample UI, in the collapsed section below |
 
 Log file: `~/Library/Logs/BeanPod.log`.
 
@@ -302,9 +305,22 @@ The library is `~/Library/Application Support/BeanPod/`. The app has no server o
 
 Data leaves the Mac when you enable cloud transcription, cloud summary, or the gateway; when the default “cloud first” mode has a cloud endpoint filled in; when a link import downloads from a site; when Feishu Minutes are read with `lark-cli`; when you confirm a video job in TeleAgent / Renoise; or when an assistant you connected decides to send MCP results onward. Local transcription plus “local only” summary, with none of those paths, keeps audio and text in local processes.
 
-## Interface reference
+## Interface
 
-These seven images are the existing files in `docs/screenshots/`. They use fictional demo data. The title, mascot, and “recorder bean” copy are upstream BeanPod, **not screenshots of the current Mi Box Assistant**. Current-app screenshots are not in the repo yet, and this page does not invent placeholders.
+These two photos are of Mi Box Assistant running on the user’s Mac. Neither image shows an app version, so they do not identify the installed build.
+
+![Mi Box Assistant on a Mac: the notes page of one recording, with the sidebar hidden.](docs/assets/mibox-summary.jpg)
+
+Photo of the app on a Mac. The words on screen are the notes for that demo recording. Claims there about a third-party speech model are not performance results for this project.
+
+![Mi Box Assistant on a Mac: model settings as they were when the photo was taken. The translation section at the bottom is cropped.](docs/assets/mibox-models.jpg)
+
+Photo of the app on a Mac. The selected engine, transcription model, and cloud service are the configuration at the moment of the screenshot, not the factory defaults. The translation section at the bottom is cropped.
+
+<details>
+<summary>Upstream BeanPod sample UI (not Mi Box Assistant)</summary>
+
+These seven images are the existing files in `docs/screenshots/`. They use fictional demo data. The title, mascot, and “recorder bean” copy are upstream BeanPod.
 
 ![Upstream sample: overview](docs/screenshots/overview.jpg)
 
@@ -319,6 +335,8 @@ These seven images are the existing files in `docs/screenshots/`. They use ficti
 ![Upstream sample: recently deleted](docs/screenshots/trash.jpg)
 
 ![Upstream sample: dictation](docs/screenshots/dictation.jpg)
+
+</details>
 
 ## FAQ
 

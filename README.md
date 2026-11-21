@@ -6,6 +6,18 @@
 
 密盒助手是跑在 Mac 上的录音工作台：把录音收进本机库，转成文字和纪要，再用知识库或 MCP 查回来。本机模型、系统识别、云端和自填的「高阶网关」可以分开选；只有选了会外发的那一路，对应的音频或文字才会离开这台 Mac。
 
+![能力示意图：录音、文件和链接进入密盒助手，经语音转写和智能整理，得到文字稿、纪要、待办，并可通过 MCP 查询。本机模型、云端服务和自定义网关是可选后端。](docs/assets/mibox-assistant-hero.jpg)
+
+这是能力示意图，不是密盒助手的运行截图。图内已标注「能力示意图 · 非运行截图」。录音、文件、链接进入本机 App，再转写、整理；文字稿、纪要、待办留在本机库，MCP 只在本机提供查询。图下方的本机模型、云端服务、自定义网关是可选后端，不是默认同时打开。
+
+## 宣传片
+
+下面这条是上游豆仓的宣传片，资源文件没有替换。容器元数据为 **1280×720**、时长约 **102 秒**。点预览图或链接用原视频播放。画面里的产品名是「豆仓」，不是密盒助手现在的界面。
+
+[![上游豆仓宣传片，点开播放原视频](docs/media/beanpod-promo.gif)](docs/media/beanpod-promo.mp4)
+
+[播放完整视频（MP4，1280×720）](docs/media/beanpod-promo.mp4)
+
 它是上游 [豆仓 BeanPod](https://github.com/andyhuo520/beanpod) 的衍生版，保留原项目致谢和 [MIT](LICENSE) 许可。相对上游，这份源码增加了本机转写模型选择（含 FunASR）、高阶网关，以及把口播视频工程交给 TeleAgent。上游的 DMG（v0.1.0、v0.1.1）不包含这些改动。本 fork 目前没有 GitHub Release。
 
 三个名字不要混：
@@ -25,79 +37,6 @@
 给这些人用：想在 Mac 上整理会议、访谈、播客和自己录音的人；已经有 D3200 的人；希望 Claude、Codex、OpenClaw、TeleAgent 或只认网址的助手读取本机录音库的人。没有录音豆时，仍可用 Mac 录音、导入文件或粘贴链接。
 
 iPhone 工程在 `Mobile/`，仍是试验。手机上没有本机大模型，也没有高阶网关这一档。
-
-## 宣传片
-
-下面这条是上游豆仓的宣传片，资源文件没有替换。容器元数据为 **1280×720**、时长约 **102 秒**。点预览图或链接用原视频播放。画面里的产品名是「豆仓」，不是密盒助手现在的界面。
-
-[![上游豆仓宣传片，点开播放原视频](docs/media/beanpod-promo.gif)](docs/media/beanpod-promo.mp4)
-
-[播放完整视频（MP4，1280×720）](docs/media/beanpod-promo.mp4)
-
-## 从录音到可查询的纪要
-
-首页要看的是这条链路：录音进本机库，按你选的模型转写和整理，再从知识库或本机 MCP 查。虚线是未实机测试，或必须由你确认后才继续的步骤。
-
-```mermaid
-flowchart LR
-  subgraph sources [来源]
-    Bean["Anker D3200"]
-    Card["GetSeed 录音卡"]
-    Mac["Mac 麦克风或系统声音"]
-    Files["文件与链接"]
-    Feishu["飞书妙记"]
-  end
-  subgraph app [密盒助手]
-    Store["本机录音库"]
-    ASR["转写"]
-    Notes["整理纪要"]
-    Find["总览、知识库、待办"]
-  end
-  subgraph models [模型，按设置单选或回退]
-    Local["本机模型或系统识别"]
-    Cloud["云端服务"]
-    Gate["高阶网关 HTTP"]
-  end
-  subgraph outputs [出口]
-    Disk["Application Support/BeanPod"]
-    MCP["本机 MCP"]
-    Video["TeleAgent 视频工程"]
-  end
-  Bean --> Store
-  Card -.-> Store
-  Mac --> Store
-  Files --> Store
-  Feishu --> Store
-  Store --> ASR --> Notes --> Find
-  Local --> ASR
-  Cloud --> ASR
-  Gate --> ASR
-  Local --> Notes
-  Cloud --> Notes
-  Gate --> Notes
-  Find --> Disk
-  Find --> MCP
-  Notes -.-> Video
-```
-
-处理一条已入库录音时，顺序在 `Shared/Pipeline.swift` 的 `process` / `run`：
-
-```mermaid
-sequenceDiagram
-  participant Src as 来源
-  participant Store as BeanStore
-  participant Pipe as Pipeline
-  participant Model as 所选模型
-  participant CLI as beanpod
-  Src->>Store: 下载、导入或写入 Inbox
-  Store->>Pipe: process
-  Pipe->>Model: 转写，已有文字稿可跳过
-  Model-->>Pipe: 文字稿
-  Pipe->>Model: 整理；没有可用模型则按关键词粗分
-  Model-->>Store: 标题、纪要、待办、人物、标签
-  CLI->>Store: 直接读 library.json
-  CLI->>Store: add-note / add-audio 只放进 Inbox
-```
 
 ## 功能
 
@@ -181,6 +120,69 @@ open -a BeanPod --args -demo
 
 ## 架构与实现
 
+上面的首页图只表示能力关系。下面两张图按源码里的模块来画：来源进本机库，转写和整理走你选中的后端，MCP 只读本机库或把新内容放进 Inbox。虚线是未实机测试，或必须由你确认后才继续的步骤。
+
+```mermaid
+flowchart LR
+  subgraph sources [来源]
+    Bean["Anker D3200"]
+    Card["GetSeed 录音卡"]
+    Mac["Mac 麦克风或系统声音"]
+    Files["文件与链接"]
+    Feishu["飞书妙记"]
+  end
+  subgraph app [密盒助手]
+    Store["本机录音库"]
+    ASR["转写"]
+    Notes["整理纪要"]
+    Find["总览、知识库、待办"]
+  end
+  subgraph models [模型，按设置单选或回退]
+    Local["本机模型或系统识别"]
+    Cloud["云端服务"]
+    Gate["高阶网关 HTTP"]
+  end
+  subgraph outputs [出口]
+    Disk["Application Support/BeanPod"]
+    MCP["本机 MCP"]
+    Video["TeleAgent 视频工程"]
+  end
+  Bean --> Store
+  Card -.-> Store
+  Mac --> Store
+  Files --> Store
+  Feishu --> Store
+  Store --> ASR --> Notes --> Find
+  Local --> ASR
+  Cloud --> ASR
+  Gate --> ASR
+  Local --> Notes
+  Cloud --> Notes
+  Gate --> Notes
+  Find --> Disk
+  Find --> MCP
+  Notes -.-> Video
+```
+
+处理一条已入库录音时，顺序在 `Shared/Pipeline.swift` 的 `process` / `run`：
+
+```mermaid
+sequenceDiagram
+  participant Src as 来源
+  participant Store as BeanStore
+  participant Pipe as Pipeline
+  participant Model as 所选模型
+  participant CLI as beanpod
+  Src->>Store: 下载、导入或写入 Inbox
+  Store->>Pipe: process
+  Pipe->>Model: 转写，已有文字稿可跳过
+  Model-->>Pipe: 文字稿
+  Pipe->>Model: 整理；没有可用模型则按关键词粗分
+  Model-->>Store: 标题、纪要、待办、人物、标签
+  CLI->>Store: 直接读 library.json
+  CLI->>Store: add-note / add-audio 只放进 Inbox
+```
+
 | 路径 | 作用 |
 |---|---|
 | `Sources/BeanKit/` | 录音豆与录音卡的帧、命令、解密、Ogg。不依赖界面 |
@@ -196,7 +198,8 @@ open -a BeanPod --args -demo
 | `Mobile/` | iPhone 试验界面 |
 | `docs/PROTOCOL.md`、`docs/GETSEED.md` | 协议笔记与出处 |
 | `docs/media/` | 上游宣传片，原文件保留 |
-| `docs/screenshots/` | 上游示例界面，见下文 |
+| `docs/assets/` | 首页能力示意图，以及密盒助手本机实拍 |
+| `docs/screenshots/` | 上游示例界面，见下文折叠区 |
 
 运行日志：`~/Library/Logs/BeanPod.log`。
 
@@ -302,9 +305,22 @@ Renoise 的 MCP 地址是 `https://renoise.ai/api/public/mcp`。本次只确认�
 
 会离开这台 Mac 的情况只有这些：你打开了云端转写、云端整理或高阶网关；整理模式是默认的「云端优先」并且已经填了云端；你导入链接时向网站下载；你用飞书命令行读取妙记；你在 TeleAgent / Renoise 里确认了视频任务；你把 MCP 结果交给一个自己会外发的助手。只选本机转写和「只用本机」整理、且不使用上面这些路径时，音频和文字稿发给的是本机进程。
 
-## 界面参考
+## 界面
 
-下面七张图是仓库里原有的 `docs/screenshots/`，用示例数据制作，人名和内容是虚构的。标题、吉祥物和「录音豆」文案属于上游豆仓，**不是密盒助手当前界面的实拍**。本版实拍还没有放进仓库，这里不使用占位图。
+下面两张是用户 Mac 上正在运行的密盒助手实拍。图里没有版本号，不能据此判断安装的构建。
+
+![密盒助手本机实拍：一条录音的纪要页，侧栏已隐藏。](docs/assets/mibox-summary.jpg)
+
+密盒助手本机实拍。画面里的文字是这条演示录音整理出来的内容，其中关于第三方语音模型的说法不代表本项目的性能测试。
+
+![密盒助手本机实拍：模型设置页在截图当时的选择，底部翻译区被裁切。](docs/assets/mibox-models.jpg)
+
+密盒助手本机实拍。图中选中的引擎、转写模型和云端服务是截图时的配置，不是出厂默认。底部翻译区被裁切。
+
+<details>
+<summary>上游豆仓示例界面（不是密盒助手实拍）</summary>
+
+下面七张图是仓库里原有的 `docs/screenshots/`，用示例数据制作，人名和内容是虚构的。标题、吉祥物和「录音豆」文案属于上游豆仓。
 
 ![上游示例：总览](docs/screenshots/overview.jpg)
 
@@ -319,6 +335,8 @@ Renoise 的 MCP 地址是 `https://renoise.ai/api/public/mcp`。本次只确认�
 ![上游示例：最近删除](docs/screenshots/trash.jpg)
 
 ![上游示例：语音输入](docs/screenshots/dictation.jpg)
+
+</details>
 
 ## 常见问题
 
