@@ -12,11 +12,11 @@ This is an AI-generated capability diagram stacked in layers, not a screenshot o
 
 ## Promo video
 
-This is the upstream BeanPod promo. The files were not replaced. Container metadata: **1280×720**, about **102 seconds**. The picture shows the BeanPod interface, not the current Mi Box Assistant UI. Open the preview or the link to play the original video.
+Preview build: some transition shots are still to be updated. The motion image is only about the first 2.5 seconds of the new file. Click it, or the link below, to open the full MP4. This page does not autoplay.
 
-[![Upstream BeanPod promo, click to play the video](docs/media/beanpod-promo.gif)](docs/media/beanpod-promo.mp4)
+[![Preview build; some transitions are still to be updated. Click to open the full video](docs/media/mibox-assistant-promo-preview.gif)](docs/media/mibox-assistant-promo.mp4)
 
-[Play the full video (MP4, 1280×720)](docs/media/beanpod-promo.mp4)
+[Play the full video (MP4, 1280×720, about 102 seconds)](docs/media/mibox-assistant-promo.mp4)
 
 This tree is a derivative of upstream [BeanPod](https://github.com/andyhuo520/beanpod). Acknowledgements and the [MIT](LICENSE) license stay. The extra code here selects among local transcription models (including FunASR), adds the HTTP gateway, and hands a talking-head project to TeleAgent. Upstream DMGs (v0.1.0 and v0.1.1) do not contain those changes. This fork has no GitHub Release.
 

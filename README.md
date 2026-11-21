@@ -12,11 +12,11 @@
 
 ## 宣传片
 
-下面这条是上游豆仓的宣传片，资源文件没有替换。容器元数据为 **1280×720**、时长约 **102 秒**。点预览图或链接用原视频播放。画面里的产品名是「豆仓」，不是密盒助手现在的界面。
+预览版，部分过渡画面仍待更新。下面的动图只是新片开头约 2.5 秒的缩略，点它或下面的链接才会打开完整 MP4。页面不会自动播放。
 
-[![上游豆仓宣传片，点开播放原视频](docs/media/beanpod-promo.gif)](docs/media/beanpod-promo.mp4)
+[![预览版，部分过渡画面仍待更新。点此打开完整视频](docs/media/mibox-assistant-promo-preview.gif)](docs/media/mibox-assistant-promo.mp4)
 
-[播放完整视频（MP4，1280×720）](docs/media/beanpod-promo.mp4)
+[播放完整视频（MP4，1280×720，约 102 秒）](docs/media/mibox-assistant-promo.mp4)
 
 它是上游 [豆仓 BeanPod](https://github.com/andyhuo520/beanpod) 的衍生版，保留原项目致谢和 [MIT](LICENSE) 许可。相对上游，这份源码增加了本机转写模型选择（含 FunASR）、高阶网关，以及把口播视频工程交给 TeleAgent。上游的 DMG（v0.1.0、v0.1.1）不包含这些改动。本 fork 目前没有 GitHub Release。
 
