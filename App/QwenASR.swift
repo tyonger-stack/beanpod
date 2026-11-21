@@ -217,7 +217,7 @@ actor QwenASR {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         var content: [[String: Any]] = [["type": "input_audio", "input_audio": ["data": wav.base64EncodedString(), "format": "wav"]]]
         if selection == .gemma {
-            content.insert(["type": "text", "text": "Transcribe the audio verbatim in its original language. Output only the transcription, without explanations, labels, timestamps, or translations."], at: 0)
+            content.insert(["type": "text", "text": "Transcribe the audio verbatim in its original language. For Chinese speech, use Simplified Chinese characters. Output only the transcription, without explanations, labels, timestamps, or translations."], at: 0)
         }
         let body: [String: Any] = [
             "temperature": 0, "max_tokens": 512,
@@ -231,7 +231,9 @@ actor QwenASR {
               let choices = root["choices"] as? [[String: Any]],
               let message = choices.first?["message"] as? [String: Any],
               let content = message["content"] as? String else { return "" }
-        return selection == .qwen ? Self.clean(content) : content.trimmingCharacters(in: .whitespacesAndNewlines)
+        if selection == .qwen { return Self.clean(content) }
+        let text = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        return selection == .gemma ? ChineseScript.simplified(text) : text
     }
 
     nonisolated static func clean(_ raw: String) -> String {

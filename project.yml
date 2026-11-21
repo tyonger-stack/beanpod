@@ -71,8 +71,8 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.andyhu.beanpod
-        MARKETING_VERSION: "0.1.12"
-        CURRENT_PROJECT_VERSION: "13"
+        MARKETING_VERSION: "0.1.13"
+        CURRENT_PROJECT_VERSION: "14"
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
         ENABLE_HARDENED_RUNTIME: NO

@@ -45,6 +45,19 @@ nonisolated enum CloudASR {
 
     static let batchSeconds = 300
 
+    static func isSiliconFlowEnglishModel(baseURL: String, model: String) -> Bool {
+        URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines))?.host?.lowercased() == "api.siliconflow.cn"
+            && model == "XingChenAGI/Xing-Audio4.0-ASR-Preview"
+    }
+
+    static func effectiveModel(baseURL: String, model: String, language: String) -> String {
+        let primaryLanguage = language.trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased().split(whereSeparator: { $0 == "-" || $0 == "_" }).first
+        guard isSiliconFlowEnglishModel(baseURL: baseURL, model: model),
+              primaryLanguage == "zh" || primaryLanguage == "yue" else { return model }
+        return "XingChenAGI/XingChenASR-V3.2-Ultra"
+    }
+
     static func transcribe(_ url: URL, config: ASRConfig, language: String,
                            progress: @Sendable @escaping (Double) -> Void) async throws -> [Segment] {
         try validateProvider(config)

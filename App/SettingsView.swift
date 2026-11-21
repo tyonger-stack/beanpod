@@ -782,9 +782,9 @@ private struct ModelsPane: View {
 
     private var asrSummary: String {
         let s = store.settings
-        guard s.asrConfig != nil else { return String(localized: "未设置") }
+        guard let config = s.asrConfig else { return String(localized: "未设置") }
         let name = CloudASR.presets.first { $0.url == s.asrBaseURL }?.name ?? String(localized: "自定义服务")
-        return "\(name) · \(s.asrModel)"
+        return "\(name) · \(config.model)"
     }
 }
 
@@ -1152,6 +1152,19 @@ private struct CloudASRSheet: View {
                             Text("「\(settings.asrModel)」是对话模型，不能转写。转写会用 \(CloudASR.mimoModel(settings.asrModel))。")
                                 .font(.caption).foregroundStyle(Theme.amber).fixedSize(horizontal: false, vertical: true)
                         }
+                        if CloudASR.isSiliconFlowEnglishModel(baseURL: settings.asrBaseURL, model: settings.asrModel) {
+                            Text("这个模型专用于英文。中文或粤语转写会使用同一服务的 XingChenASR-V3.2-Ultra。")
+                                .font(.caption).foregroundStyle(Theme.amber).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                if CloudASR.isSiliconFlowEnglishModel(baseURL: settings.asrBaseURL, model: settings.asrModel) {
+                    GridRow {
+                        Text("语言")
+                        Picker("语言", selection: $settings.language) {
+                            ForEach(Transcriber.languages, id: \.id) { Text($0.name).tag($0.id) }
+                        }
+                        .labelsHidden()
                     }
                 }
                 GridRow {
@@ -1173,6 +1186,7 @@ private struct CloudASRSheet: View {
         }
         .padding(24)
         .frame(width: 560)
+        .onChange(of: store.settings.asrConfig) { result = nil }
     }
 
     private func test() {

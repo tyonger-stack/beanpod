@@ -1,6 +1,16 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "这个模型专用于英文。中文或粤语转写会使用同一服务的 XingChenASR-V3.2-Ultra。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This model is for English. Mandarin and Cantonese transcription use XingChenASR-V3.2-Ultra from the same provider."
+          }
+        }
+      }
+    },
     "\n原因：%@": {
       "localizations": {
         "en": {

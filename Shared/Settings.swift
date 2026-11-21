@@ -160,7 +160,10 @@ final class AppSettings {
     var asrModel: String { didSet { save("asrModel", asrModel) } }
     var asrKey: String { didSet { Keychain.set(asrKey, for: "asrKey") } }
     var asrConfig: ASRConfig? {
-        asrBaseURL.isEmpty || asrModel.isEmpty ? nil : ASRConfig(baseURL: asrBaseURL, model: asrModel, key: asrKey)
+        guard !asrBaseURL.isEmpty, !asrModel.isEmpty else { return nil }
+        return ASRConfig(baseURL: asrBaseURL,
+                         model: CloudASR.effectiveModel(baseURL: asrBaseURL, model: asrModel, language: language),
+                         key: asrKey)
     }
 
     var miBoxASRBaseURL: String { didSet { save("miBoxASRBaseURL", miBoxASRBaseURL) } }

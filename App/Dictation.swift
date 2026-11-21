@@ -207,6 +207,7 @@ final class Dictation {
                         user: raw, json: false)
                 }), !polished.isEmpty { text = polished }
             }
+            if selection == .gemma { text = ChineseScript.simplified(text) }
             lastText = text
             store.addLog("语音输入结果：\(text)")
             // 打进了哪个软件：豆仓的提示框不抢前台，这时最前面的就是要打字的那个

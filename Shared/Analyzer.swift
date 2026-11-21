@@ -9,6 +9,17 @@ nonisolated struct Analysis: Sendable {
     var tags: [String]
     var people: [String]
     var source: String
+
+    mutating func simplifyChinese() {
+        title = ChineseScript.simplified(title)
+        summary = ChineseScript.simplified(summary)
+        sections = sections.map {
+            NoteSection(heading: ChineseScript.simplified($0.heading), items: $0.items.map(ChineseScript.simplified))
+        }
+        todos = todos.map(ChineseScript.simplified)
+        tags = tags.map(ChineseScript.simplified)
+        people = people.map(ChineseScript.simplified)
+    }
 }
 
 nonisolated enum AnalyzerError: LocalizedError {
@@ -98,6 +109,7 @@ nonisolated enum Analyzer {
 
     static func analyze(transcript: String, duration: TimeInterval, profession: Profession, fixedScene: Scene?,
                         config: LLMConfig) async throws -> Analysis {
+        let simplifyChinese = config.builtIn && !NotesLanguage.isEnglish
         // 长录音先分块压成要点，再整体整理，避免超出模型的上下文
         var material = transcript
         if !config.builtIn, transcript.count > 9000 {
@@ -143,7 +155,9 @@ nonisolated enum Analyzer {
         } else {
             try await chat(config, system: system, user: prefix + material, json: true)
         }
-        return try parse(reply, fixedScene: fixedScene, source: config.source == .miBox ? String(localized: "密盒") + " · " + config.model : config.model)
+        var analysis = try parse(reply, fixedScene: fixedScene, source: config.source == .miBox ? String(localized: "密盒") + " · " + config.model : config.model)
+        if simplifyChinese { analysis.simplifyChinese() }
+        return analysis
     }
 
     static func parse(_ reply: String, fixedScene: Scene?, source: String) throws -> Analysis {
