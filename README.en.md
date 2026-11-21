@@ -200,8 +200,8 @@ sequenceDiagram
 | `Mobile/` | Experimental iPhone UI |
 | `docs/PROTOCOL.md`, `docs/GETSEED.md` | Protocol notes and sources |
 | `docs/media/` | Upstream promo, original files kept |
-| `docs/assets/` | Homepage capability diagram, plus photos of Mi Box Assistant on a Mac |
-| `docs/screenshots/` | Upstream sample UI, in the collapsed section below |
+| `docs/assets/` | Homepage diagram; `docs/assets/screenshots/` holds photos from the app on a Mac |
+| `docs/screenshots/` | Upstream sample images remain on disk. This README no longer uses them as the feature gallery |
 
 Log file: `~/Library/Logs/BeanPod.log`.
 
@@ -309,36 +309,68 @@ Data leaves the Mac when you enable cloud transcription, cloud summary, or the g
 
 ## Interface
 
-These two photos are of Mi Box Assistant running on the user’s Mac. Neither image shows an app version, so they do not identify the installed build.
+Photos of Mi Box Assistant on the user’s Mac. The interface in the pictures is Chinese. None shows an app version. The overview strip, connect card, model settings, MCP page, empty link field, and knowledge-base entry include some earlier shots that were already cropped for privacy. Not all 11 were taken in this round. There is no full overview and no Feishu sync list.
 
-![Mi Box Assistant on a Mac: the notes page of one recording, with the sidebar hidden.](docs/assets/mibox-summary.jpg)
+### Recordings and notes
 
-Photo of the app on a Mac. The words on screen are the notes for that demo recording. Claims there about a third-party speech model are not performance results for this project.
+![Recording list and notes. Dialogue and performance figures on screen are demo content, not results for this project.](docs/assets/screenshots/01-notes-list-and-summary.jpg)
 
-![Mi Box Assistant on a Mac: model settings as they were when the photo was taken. The translation section at the bottom is cropped.](docs/assets/mibox-models.jpg)
+List and notes under a demo tag. The Duplex Jeff lines and the performance figures are content from that demo recording, not measurements of this project.
 
-Photo of the app on a Mac. The selected engine, transcription model, and cloud service are the configuration at the moment of the screenshot, not the factory defaults. The translation section at the bottom is cropped.
+![Top of a transcript only. Later lines with personal names and the bottom player were cropped out.](docs/assets/screenshots/04-transcript-demo-cropped.jpg)
 
-<details>
-<summary>Upstream BeanPod sample UI (not Mi Box Assistant)</summary>
+A crop of the top of the transcript, not the whole window. The lines and figures here are also demo-recording content, not project metrics.
 
-These seven images are the existing files in `docs/screenshots/`. They use fictional demo data. The title, mascot, and “recorder bean” copy are upstream BeanPod.
+![Safe crop of the top of the overview, not the full overview.](docs/assets/screenshots/00-overview-mibox-hero-partial.jpg)
 
-![Upstream sample: overview](docs/screenshots/overview.jpg)
+Safe crop of the overview header, not the full overview.
 
-![Upstream sample: notes](docs/screenshots/notes.jpg)
+### Input and search
 
-![Upstream sample: transcript](docs/screenshots/transcript.jpg)
+![Empty dictation page, with no history.](docs/assets/screenshots/02-dictation-empty.jpg)
 
-![Upstream sample: permission step](docs/screenshots/onboarding.jpg)
+Dictation is empty. This shot does not show typed results.
 
-![Upstream sample: Feishu Minutes](docs/screenshots/feishu.jpg)
+![Empty knowledge-base search entry, not an answer.](docs/assets/screenshots/10-knowledge-search-entry.jpg)
 
-![Upstream sample: recently deleted](docs/screenshots/trash.jpg)
+The knowledge-base search box is empty. This is not a question-and-answer result.
 
-![Upstream sample: dictation](docs/screenshots/dictation.jpg)
+![Empty link field. Nothing has been imported.](docs/assets/screenshots/09-import-link-field.jpg)
 
-</details>
+The link field is empty. This does not mean an import succeeded.
+
+### Settings and restore
+
+![Recently deleted, showing date headings and a restore entry.](docs/assets/screenshots/03-trash-recently-deleted.jpg)
+
+Recently deleted shows date headings and a way to restore.
+
+![Permissions card in onboarding.](docs/assets/screenshots/05-onboarding-permissions.jpg)
+
+The permissions card in onboarding. The switches are the system state when the photo was taken.
+
+![Connect-device steps. The device is not shown as connected.](docs/assets/screenshots/06-device-connect-mibox-card.jpg)
+
+Steps to connect the recorder, and a search button. This is only the entry. The photo does not show a connected device or a Feishu list.
+
+<table>
+<tr>
+<td width="50%">
+
+![Model settings as they were when the photo was taken, not the defaults.](docs/assets/screenshots/07-settings-models.jpg)
+
+Model settings are the choices at screenshot time, not the factory defaults.
+
+</td>
+<td width="50%">
+
+![MCP settings on the Connect page.](docs/assets/screenshots/08-settings-mcp-connect.jpg)
+
+MCP settings on the Connect page.
+
+</td>
+</tr>
+</table>
 
 ## FAQ
 

@@ -200,8 +200,8 @@ sequenceDiagram
 | `Mobile/` | iPhone 试验界面 |
 | `docs/PROTOCOL.md`、`docs/GETSEED.md` | 协议笔记与出处 |
 | `docs/media/` | 上游宣传片，原文件保留 |
-| `docs/assets/` | 首页能力示意图，以及密盒助手本机实拍 |
-| `docs/screenshots/` | 上游示例界面，见下文折叠区 |
+| `docs/assets/` | 首页能力示意图；`docs/assets/screenshots/` 是本机功能实拍 |
+| `docs/screenshots/` | 上游示例图仍在目录里，README 不再用它们做功能展示 |
 
 运行日志：`~/Library/Logs/BeanPod.log`。
 
@@ -309,36 +309,68 @@ Renoise 的 MCP 地址是 `https://renoise.ai/api/public/mcp`。本次只确认�
 
 ## 界面
 
-下面两张是用户 Mac 上正在运行的密盒助手实拍。图里没有版本号，不能据此判断安装的构建。
+下面是用户 Mac 上密盒助手的实拍，界面为中文，图里没有版本号。总览顶条、连接卡片、模型设置、MCP、空链接框和知识库入口里，有一部分是此前已经拍过并做过安全裁切的素材，不是这 11 张都在同一轮新拍。没有完整总览，也没有飞书同步列表。
 
-![密盒助手本机实拍：一条录音的纪要页，侧栏已隐藏。](docs/assets/mibox-summary.jpg)
+### 录音整理
 
-密盒助手本机实拍。画面里的文字是这条演示录音整理出来的内容，其中关于第三方语音模型的说法不代表本项目的性能测试。
+![录音列表和纪要。画面中的演示台词与性能数字不是本项目指标。](docs/assets/screenshots/01-notes-list-and-summary.jpg)
 
-![密盒助手本机实拍：模型设置页在截图当时的选择，底部翻译区被裁切。](docs/assets/mibox-models.jpg)
+演示标签下的录音列表和纪要。Duplex Jeff 的台词和性能数字是演示录音内容，不是本项目的测试结果。
 
-密盒助手本机实拍。图中选中的引擎、转写模型和云端服务是截图时的配置，不是出厂默认。底部翻译区被裁切。
+![文字稿顶部局部。后续私人姓名行和底部播放条已裁掉。](docs/assets/screenshots/04-transcript-demo-cropped.jpg)
 
-<details>
-<summary>上游豆仓示例界面（不是密盒助手实拍）</summary>
+文字稿顶部的局部裁切，不是整窗。图中的台词和性能数字同样是演示录音内容，不是本项目指标。
 
-下面七张图是仓库里原有的 `docs/screenshots/`，用示例数据制作，人名和内容是虚构的。标题、吉祥物和「录音豆」文案属于上游豆仓。
+![总览顶部的安全裁切，不是完整总览。](docs/assets/screenshots/00-overview-mibox-hero-partial.jpg)
 
-![上游示例：总览](docs/screenshots/overview.jpg)
+总览安全顶区，不是完整总览。
 
-![上游示例：纪要](docs/screenshots/notes.jpg)
+### 输入与知识检索
 
-![上游示例：文字稿](docs/screenshots/transcript.jpg)
+![语音输入空状态，没有历史记录。](docs/assets/screenshots/02-dictation-empty.jpg)
 
-![上游示例：上手引导里的权限](docs/screenshots/onboarding.jpg)
+语音输入是空的，没有历史。这张图不展示打字结果。
 
-![上游示例：飞书妙记](docs/screenshots/feishu.jpg)
+![知识库空搜索入口，不是问答结果。](docs/assets/screenshots/10-knowledge-search-entry.jpg)
 
-![上游示例：最近删除](docs/screenshots/trash.jpg)
+知识库的空搜索入口，不是一次问答的结果。
 
-![上游示例：语音输入](docs/screenshots/dictation.jpg)
+![空的链接输入框，不表示导入成功。](docs/assets/screenshots/09-import-link-field.jpg)
 
-</details>
+链接框是空的，不表示已经导入。
+
+### 设置与恢复
+
+![最近删除里只有日期标题，可见恢复入口。](docs/assets/screenshots/03-trash-recently-deleted.jpg)
+
+最近删除里只见日期标题，页面上有恢复入口。
+
+![上手引导中的权限卡片。](docs/assets/screenshots/05-onboarding-permissions.jpg)
+
+上手引导里的权限卡片。图中开关是拍摄时的系统状态。
+
+![连接密盒的步骤卡片，尚未表示已连接。](docs/assets/screenshots/06-device-connect-mibox-card.jpg)
+
+连接密盒的步骤和「开始搜索」。这是入口，图里没有已连接状态，也没有飞书列表。
+
+<table>
+<tr>
+<td width="50%">
+
+![模型设置，为截图当时的选择，不是默认配置。](docs/assets/screenshots/07-settings-models.jpg)
+
+模型设置是截图当时的选择，不是出厂默认。
+
+</td>
+<td width="50%">
+
+![连接页中的 MCP 设置。](docs/assets/screenshots/08-settings-mcp-connect.jpg)
+
+连接页里的 MCP 设置。
+
+</td>
+</tr>
+</table>
 
 ## 常见问题
 
