@@ -1,362 +1,404 @@
-# 密盒助手（基于 BeanPod）
-
-密盒助手是基于上游 [豆仓 BeanPod](https://github.com/andyhuo520/beanpod) 的衍生版，保留原项目鸣谢和 MIT 许可。本版增加本机模型选择与 TeleAgent 交接；目前请按下文从源码构建，上游发行包不包含本版改动。
+# 密盒助手
 
 **简体中文** | [English](README.en.md)
 
-[![macOS 26](https://img.shields.io/badge/macOS-26-black)](#开始前要准备的东西) [![MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE) [![Renoise MCP](https://img.shields.io/badge/video-Renoise%20MCP-ff7a1a)](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)
+[![macOS 26](https://img.shields.io/badge/macOS-26-black)](#快速开始) [![MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-一个原生 macOS App，用来在电脑上管理 **Anker 录音豆（soundcore，型号 D3200）**。它能把录音拉到本地并转成文字，再整理成纪要和待办，之后可以直接提问。转写在本机完成，录音不上传。
+密盒助手把录音、转写和纪要串在一起：录音进本机库，整理之后可以用知识库或 MCP 查回来。本机模型、系统识别、云端和自填的「高阶网关」可以分开选；只有选了会外发的那一路，对应的音频或文字才会离开这台电脑。
 
-**没有录音豆也能用**：它本身就是一个免费、开源的录音和学习软件。用 Mac 自己录音、导入音频文件、贴播客和视频链接（小宇宙、Apple 播客、喜马拉雅、B 站、YouTube……），在本机转成文字、整理成纪要；听外语播客时点一句就回到那句、单句循环、跟着高亮，还能勾上「英语学习模式」整理出单词分级、短语和难句解析。
+![能力示意图，上下分层：上方是输入和输出，中间是转写与整理，下方是云端或本地算力。电信 TeleAgent 通过 MCP 读取转写内容，不提供转写算力。](docs/assets/mibox-assistant-hero.jpg)
 
-> 本项目是个人出于**学习、研究和测试**目的做的开源项目，免费使用，不做任何商业用途。觉得有用的话，欢迎点个 ⭐ **Star** 支持一下，也欢迎提 Issue 和 PR。
+这是 AI 生成的能力示意图，采用上下分层，不是运行截图，图内已标注。副标题是「录音、转写、纪要，一站式串联」，没有写哪个系统已经支持。上层是录音、文件、链接，以及文字稿、纪要、待办；中层是转写和整理；下层把转写算力画成电子政务外网云端，或本地的高阶网关与约电视盒子大小的密盒。这些连线是可选配置示意，不是已验证的网络部署，也不含带宽或认证数据。软件里对应的是自填的 OpenAI 兼容地址，不绑定机型，也不是录音豆 D3200。电信 TeleAgent 单独画在一旁，通过 MCP 读取转写内容；它不提供转写算力，MCP 也不是 TeleAgent 的品牌名。
 
-[![豆仓宣传片（点开看完整视频）](docs/media/beanpod-promo.gif)](docs/media/beanpod-promo.mp4)
+## 宣传片
 
-▶ [看完整宣传片（1 分 42 秒，720p）](docs/media/beanpod-promo.mp4)
+预览版，部分过渡画面仍待更新。下面的动图只是新片开头约 2.5 秒的缩略，点它或下面的链接才会打开完整 MP4。页面不会自动播放。
 
-![总览](docs/screenshots/overview.jpg)
+[![预览版，部分过渡画面仍待更新。点此打开完整视频](docs/media/mibox-assistant-promo-preview.gif)](docs/media/mibox-assistant-promo.mp4)
 
-> **特别感谢两位原作者**：录音豆（Anker soundcore 录音豆）的通信协议最早由 **[tacshi](https://github.com/tacshi)** 在 [tacshi/Soundcore](https://github.com/tacshi/Soundcore) 里整理出来；得到 AI 录音卡的协议由 **[Shawn-TKD](https://github.com/Shawn-TKD)** 在 [Shawn-TKD/getseed-ble-protocol](https://github.com/Shawn-TKD/getseed-ble-protocol) 里抓包、分析并验证。没有他们的工作就没有豆仓，详见[致谢](#致谢)。
+[播放完整视频（MP4，1280×720，约 102 秒）](docs/media/mibox-assistant-promo.mp4)
 
-> 非官方项目，与设备厂商及其合作方没有任何关系，仅用于管理你自己设备上的你自己的录音。产品名和商标归各自的所有者。
->
-> 如果本项目的任何内容侵犯了你的权益（代码、协议资料、图片、商标或其它），请在 [Issues](../../issues) 里告诉我们，确认后会第一时间删除或下架。
->
-> README 里的截图都是用[示例数据](#示例数据模式)拍的，人名和内容是虚构的。
+它是上游 [豆仓 BeanPod](https://github.com/andyhuo520/beanpod) 的衍生版，保留原项目致谢和 [MIT](LICENSE) 许可。相对上游，这份源码增加了本机转写模型选择（含 FunASR）、高阶网关，以及把口播视频工程交给 TeleAgent。上游的 DMG（v0.1.0、v0.1.1）不包含这些改动。本 fork 目前没有 GitHub Release。
 
-## 能做什么
+三个名字不要混：
 
-**录音豆**
-- 搜索并连接录音豆，之后自动回连；查看电量、存储、固件
-- 在电脑上开始、暂停、继续、结束录音；在录音豆上按键开始录音，豆仓也能跟上
-- 下载录音并自动解密成通用的 `.ogg`。连上就自动同步还没下载的录音，并在窗口顶部说一句（豆仓不在前台时也发系统通知）：有几条新录音在同步、录音都同步过了，或者上次在录音豆里的录音不见了（录音豆同一时间只连一台设备，多半是手机上的录音豆 App 或飞书连过、同步走了）
-- 蓝牙下载较慢，长录音可以走 **Wi‑Fi 快传**（约 500 KB/s，过程中电脑会暂时断网约 40 秒）
-- 录音时可以打重点标记，回听时能跳到标记的地方
+| 说法 | 指什么 |
+|---|---|
+| 密盒助手 | 这个 Mac App。英文界面对应 *Mi Box Assistant* |
+| 录音来源里的「密盒」 | 界面把 Anker soundcore 录音豆（型号 D3200）显示为「密盒」。通信仍是录音豆协议 |
+| 图中的本地「密盒」 | 首页示意图里的方形小盒，表示一种本地推理硬件。软件没有为某一机型写专用驱动 |
+| 图中的「高阶网关」 | 首页示意图里的机架设备，同样是本地算力的一种示意，不是已验证的部署 |
+| 设置里的「高阶网关/密盒」 | 自填的 OpenAI 兼容 HTTP 地址，用来转写或整理。它不限定机型，也不是 D3200 本身 |
 
-![录音和纪要：左边按天列出所有录音，前面的小标识写着来源；右边是自动整理的纪要和待办](docs/screenshots/notes.jpg)
+`project.yml` 里 Mac 目标的营销版本是 **0.1.9（build 10）**。这是仓库源码上的版本号，不是你电脑里已经安装的那个 App。已安装的密盒助手以 App 内显示的版本为准。
 
-**得到 AI 录音卡（试验，还没在实机上测过）**
-- 也能连得到 AI 录音卡（GetSeed，型号 GSC10）：设备页列出卡里的录音，下载下来进同一个录音库，照常转写、整理、提问
-- 连上就自动同步还没下载过的（和录音豆共用「自动下载」开关）；也能从卡上删掉某一条（会先问你，删了不能恢复）
-- 不能在电脑上让录音卡开始录音，要在卡上按键录。不做 Wi‑Fi 快传
-- 协议来自 [Shawn-TKD/getseed-ble-protocol](https://github.com/Shawn-TKD/getseed-ble-protocol)，见下面的[致谢](#致谢)和 [docs/GETSEED.md](docs/GETSEED.md)
+非官方项目，与设备厂商及其合作方无关，只用于管理你自己设备上的录音。产品名和商标归各自所有者。若内容侵犯权益，请到上游 [Issues](https://github.com/andyhuo520/beanpod/issues) 说明；本 fork 的 Issues 是关闭的。
 
-**转写**
-- 本机转写可选 Qwen3-ASR 0.6B、Gemma 4 E2B BF16、FunASR Paraformer Q8 或 Fun-ASR-Nano-2512。时间戳是音频分段的起点，可以点击收听
-- 边录边出字：录音舞台里显示实时字幕，可以投屏给现场看
-- Fun-ASR-Nano-2512 使用 CPU，首次下载两个模型文件，共约 1.27 GB，下载后可离线转写
-- 首次选择 Paraformer 会下载缺少的模型，下载完成后可离线转写。也可以手动选择系统语音识别
-- 也可以用云端转写（兼容 OpenAI `/audio/transcriptions` 的服务，比如硅基流动、OpenAI、Groq）；平时用本机，个别转得不准的录音可以在「⋯」菜单里「交给云端重转」
-- 模型在设置里一键下载：固定版本、按 SHA‑256 校验，断了从断点接着下，HuggingFace 慢或连不上时自动换国内镜像（hf-mirror、魔搭社区），可以暂停、取消
-- 纠错词库：在文字稿里改过的词，以后转写会自动替换
+## 定位
 
-![文字稿：每句带时间和说话人，打过重点标记的那句标红](docs/screenshots/transcript.jpg)
+给这些人用：想在 Mac 上整理会议、访谈、播客和自己录音的人；已经有 D3200 的人；希望 Claude、Codex、OpenClaw、TeleAgent 或只认网址的助手读取本机录音库的人。没有录音豆时，仍可用 Mac 录音、导入文件或粘贴链接。
 
-**整理**
-- 自动判断场景：会议、访谈、销售、沟通、电话、自媒体、大会、课程、灵感等，每种场景有自己的纪要栏目
-- 生成标题、摘要、分栏要点、待办、人物；可以设定你的职业，整理的侧重点会跟着变
-- 改写成口播稿、短视频脚本、社媒长帖、公众号、会后邮件；外语内容可以翻译成双语对照
-- 分析模型可以自己选：豆仓自带的本机模型（Qwen3‑4B，约 2.5 GB）、本机的 Ollama / LM Studio，或云端服务。内置了小米 MiMo、DeepSeek、通义千问、Kimi、豆包、智谱 GLM、MiniMax、硅基流动、OpenRouter、Gemini、Claude、OpenAI 的地址，选一家、填你自己的密钥就能用；别的兼容 OpenAI 接口的服务选「自定义」。可以设成「云端优先，连不上时用本机」。用本机模型时，文字稿也不出这台电脑
-- 云端服务的密钥存在系统钥匙串里
-- 处理进度：总览里每条录音在哪一步（转写、整理、排队）、进度条、还要多久，整批预计几点做完；速度按这台 Mac 实际跑出来的自动学习，越用越准
+iPhone 工程在 `Mobile/`，仍是试验。手机上没有本机大模型，也没有高阶网关这一档。
 
-**找回来**
-- 总览：待处理、待办、最近的录音
-- 知识库：直接提问，回答会标出依据的录音；也可以按时间、场景、人物筛选
-- 项目：把多条录音归到一个项目里
-- 标签：整理时自动打标签，也可以自己加、删、改名、合并；侧栏列出所有标签，点一下就看带这个标签的录音和素材。自己改过的标签，重新整理时不会被换掉
-- 导出 Markdown（带 frontmatter，可以直接放进 Obsidian）和 M4A / WAV 音频
-- 从飞书妙记同步：手机上的录音豆 App 先连上录音豆的话，录音会被同步进飞书妙记、录音豆上就没有了。设备页的「飞书妙记」卡片借飞书官方命令行工具 lark-cli 把它们拉回来（已在豆仓的自动认出来，不重复），开着「自动同步」时每 30 分钟查一次。需要先授权，见下面「使用前要知道」
-- 逐句回听（听播客学外语）：文字稿里单击一句就从那里播；正在读的那句整行高亮，读过的字跟着进度变深；「单句循环」一直重复这句并记第几遍，「这句再听」播完这句自己停；⌥↑ ⌥↓ 换句、⌥R 再听、⌥L 循环，倍速最低 0.5x。小宇宙、Apple 播客、喜马拉雅的单集链接都实测能导入、转写
-- 英语学习模式：英文为主的录音（播客、访谈、课程）在纪要页勾上「英语学习模式」，就按学英语的需要整理：整体难度（CEFR）和词汇分级占比、语速，20～30 个重点单词（音标、词性、等级、释义、原句），短语搭配，难句的译文、结构拆解和语法要点；每个原句都能「听原句」跳回音频。不勾就是普通纪要
-- 来源标识：每条录音前面一个小标识，看得出是录音豆、Mac、iPhone、录音卡录的，还是导入的音频或文字；列表上方「来源」下拉可以只看某一种
-- 最近删除：从这台 Mac 删掉的录音先放 7 天，文字稿、纪要、标签都留着，可以原样恢复；删完顶上有「撤销」，到期自动彻底删除。从录音豆、录音卡上删除不经过这里
+## 功能
 
-![设备页里的飞书妙记同步：新的默认勾选，已在豆仓的自动认出来](docs/screenshots/feishu.jpg)
+「源码状态」只说明仓库里有没有这条路径。除宣传片文件元数据、链接可访问性和脚本语法外，下表各项都没有在本次文档改写里重新跑过设备或界面。
 
-![最近删除：放 7 天，能原样恢复](docs/screenshots/trash.jpg)
-
-**别的来源**
-- 没连录音豆时用 Mac 录：麦克风、电脑里的声音，或者两路一起
-- 导入音频文件，或贴视频、播客链接（YouTube、B 站、抖音、小红书、视频号、微博、喜马拉雅、Apple 播客等）。只用于你有权使用的公开内容
-- 视频素材可以连画面一起留着（最高 720p）：默认 5 分钟以内的留，更长的只留声音，导入时也能单独勾选；素材详情里看画面，画面跟着播放条走。设置里能看到画面占了多少空间、一键清理（只删画面，声音和文字稿都留着），只有声音的素材也能事后补下画面
-- 语音输入：按住一个键对着录音豆说话，松开后文字打进当前正在用的软件。说过的话记在侧栏单独的「语音输入」里（像输入法的历史：能回听、拷贝、搜索，记着打进了哪个软件），不混进录音列表、不做 AI 整理，重要的可以「转成录音」。原声默认留 30 天、文字一直留着；知识库默认不搜它们，都能在设置里改
-
-![语音输入：像输入法的历史，记着每句打进了哪个软件](docs/screenshots/dictation.jpg)
-
-**多语言**
-- 界面支持简体中文（默认）和英文：默认跟随系统，系统不是中文时显示英文；也可以在「设置 → 通用 → 语言」里固定。纪要、标题、待办这些模型写的内容，语言单独设（「纪要语言」，默认跟随界面）
-- 界面文字都在 `App/Localizable.xcstrings`（苹果的 String Catalog）。想加一种语言：编译一次，运行 `python3 scripts/i18n-sync.py --lang ja --missing ja.json` 拿到待翻译清单，翻好后 `--apply` 合进去，再在 `App/Language.swift` 里加一个选项。欢迎提 PR
-
-**接上 AI 助手**
-- 豆仓自带 MCP 服务和命令行工具，Claude Code、Codex、Claude 桌面版、OpenClaw 可以一键连接。连上后在助手里就能查录音、纪要和待办，也能让助手把内容存进豆仓。详见下面的[接入 AI 助手](#接入-ai-助手)
-
-## 使用前要知道
-
-- 需要 **macOS 26** 和一颗录音豆。iPhone 版在 `Mobile/`，还在试验阶段。
-- 录音豆同一时间只能连一台设备。手机连着时电脑搜不到，先关掉手机蓝牙。
-- 手机上的录音豆 App 同步过的录音会从录音豆上消失（转进了飞书妙记）。想让豆仓拿回来，开「飞书妙记」同步，一次性准备：
-  1. 装飞书命令行工具：`npm install -g @larksuite/cli`
-  2. `lark-cli config init --new`，在浏览器里确认，会给你建一个飞书自建应用
-  3. `lark-cli auth login --domain minutes`，在浏览器里授权读取妙记
-  4. 想拉回**音频**（不只是文字稿）：到飞书开发者后台给这个应用开通权限 `minutes:minutes.media:export`（导出妙记音视频文件），创建版本并发布，再运行 `lark-cli auth login --scope "minutes:minutes.media:export"`。没开的话只拉飞书的文字稿，豆仓照样整理成纪要，但没有音频
-- 只在固件 04.92 上测过。只用已经在官方 App 里开通过的设备测过；全新、从没开通过的设备能不能直接连，还不知道。
-- 蓝牙下载：26 秒的录音约 7 秒传完，一小时的录音要十几分钟。长录音用 Wi‑Fi 快传。
-- 得到录音卡的支持是按公开的协议文档写的，**还没在实机上测过**。它同样只能连一台设备，手机上的得到 App 连着时先关掉手机蓝牙。注意：得到 App 每次连上都会清掉卡里已经同步过的录音，豆仓不会这样做。
-
-## 需要开的权限
-
-第一次打开豆仓会出现上手引导：连接录音豆、下载转写模型、选整理纪要的模型、检查权限、可选功能，一步一页，每一步都能跳过。以后在菜单栏「帮助 → 上手引导」里能再打开。
-
-![上手引导的权限一步：每项写了用途，实时显示开没开，没开的点一下直接跳到系统设置](docs/screenshots/onboarding.jpg)
-
-| 权限 | 用来做什么 | 不开会怎样 | 在哪开 |
-|---|---|---|---|
-| 蓝牙 | 连接录音豆和得到录音卡 | 搜不到设备，只能用 Mac 自己录或导入 | 第一次打开时系统会问；之后在 系统设置 → 隐私与安全性 → 蓝牙 |
-| 麦克风 | 用 Mac 自己录音、语音输入时用 Mac 的麦克风 | 不能用 Mac 录音；录音豆不受影响 | 第一次用 Mac 录音时系统会问；系统设置 → 隐私与安全性 → 麦克风 |
-| 屏幕与系统录音 | 录电脑里的声音（会议软件、视频） | 只能录麦克风 | 系统设置 → 隐私与安全性 → 屏幕与系统录音；系统提示要重开时重开一下豆仓 |
-| 辅助功能 | 语音输入时把文字打进别的软件、监听按住的快捷键 | 语音输入用不了，其它照常 | 系统设置 → 隐私与安全性 → 辅助功能 |
-| 通知 | 录音整理好了、录音豆连上并开始同步时告诉你（豆仓不在前台时） | 只在豆仓窗口顶上提示 | 系统设置 → 通知 → 豆仓 |
-
-引导里每一项都有「去打开」，会直接跳到系统设置里对应的地方。另外两项不是系统权限、要你自己准备：
-
-- **转写模型**在「设置 → 模型 → 转写 → 本机」里选择。Paraformer Q8 约 237 MB，Apple 芯片版安装包已包含运行程序。Qwen3-ASR 约 1 GB，Gemma 4 E2B BF16 连同音频投影文件约 10.3 GB，这两种模型需安装 llama.cpp。Fun-ASR-Nano-2512 使用 CPU，首次下载两个文件约 1.27 GB
-- **飞书妙记同步**要装飞书命令行工具并授权，见上面「使用前要知道」
-
-## 开始前要准备的东西
-
-按用途分成「必需」和「用到才准备」。直接下载安装包的话，必需的只有 macOS 26 和 Homebrew；从源码编译还要 Xcode 和 Apple ID。其它的用到再说。
-
-**必需**
-
-| 准备什么 | 做什么用 | 怎么准备 |
+| 能力 | 源码状态 | 数据去向 |
 |---|---|---|
-| 一台 Mac，**macOS 26** | 运行豆仓 | 推荐 Apple 芯片（M 系列）：本机转写和本机整理模型在 Apple 芯片上快得多 |
-| **Xcode 26**（只在从源码编译时需要） | 从源码编译豆仓 | Mac App Store 免费下载；装好后打开一次，同意许可、装完附加组件 |
-| **Homebrew** | 装编译和运行要用的工具 | 按 [brew.sh](https://brew.sh) 首页那一行命令安装 |
-| **Apple ID**（免费的就行，只在从源码编译时需要） | 给豆仓签名，蓝牙授权才不会每次编译后失效 | Xcode → Settings → Accounts → 点「+」登录 Apple ID；下面的「团队号」（Team ID，10 位字母数字）在这里能看到 |
+| 连接 D3200：电量、存储、固件、电脑上开始/暂停/结束、按键录音跟随、重点标记 | 已实现。协议笔记的设备核对写的是固件 04.92 | 录音下载到本机后解密为 `.ogg` |
+| 连上后自动下载未同步录音 | 已实现，可关 | 本机库 |
+| Wi‑Fi 快传 | 已实现。笔记里有一次约 500 KB/s、电脑离开原 Wi‑Fi 约 40 秒的记录，不是稳定指标 | 经录音豆热点传到本机，期间这台 Mac 会离开原来的网络 |
+| 得到 AI 录音卡 GSC10 | 按公开协议实现，仓库写明未实机测试。不能从电脑开录，无 Wi‑Fi 快传 | 下载进同一录音库 |
+| Mac 录音 | 已实现：麦克风、系统声音，或两路一起 | 本机 |
+| 导入音频、视频、文字；粘贴播客/视频链接 | 已实现。链接导入会向对应网站下载 | 下载结果留在本机。只应用于你有权使用的公开内容 |
+| 视频画面 | 已实现。默认约 5 分钟以内保留最高 720p，更长的默认只留声音 | 画面文件在本机 |
+| 本机转写 | 可选 Qwen3-ASR 0.6B、Gemma 4 E2B BF16、FunASR Paraformer Q8、Fun-ASR-Nano-2512 | 计算在本机。见下面的回退说明 |
+| 系统语音识别 | 已实现。用途文案写的是在本机完成 | 本次未单独验证 Apple 语音识别是否联网 |
+| 云端转写 | 可选。预设含小米 MiMo、硅基流动、OpenAI、Groq，也可填兼容 `/audio/transcriptions` 的地址 | **音频会发到你填写的服务** |
+| 高阶网关转写 | 可选。自填 http(s) 地址、模型名和可选密钥 | **音频会发到该地址**，地址可以在局域网，也可以在公网 |
+| 实时字幕 | 录音舞台已实现，且要求本机转写模型已经就绪 | 走当前本机转写 |
+| 整理纪要 | 十种场景，生成标题、摘要、分栏、待办、人物、标签。职业是固定列表 | 取决于整理模式，见下一节 |
+| 改写 | 口播稿、短视频脚本、长帖、公众号、会后邮件、拆解写法、仿写、自定义 | 使用当前整理模型，长稿可能被分段后送入该模型 |
+| 英语学习模式 | 英文为主的录音可勾选。产出 CEFR、词汇、短语和难句；不勾则是普通纪要 | 使用整理模型 |
+| 知识库、项目、标签、导出 Markdown / M4A / WAV | 已实现 | 问答会把摘录发给当前整理模型。导出写到你选的位置 |
+| 最近删除 | 本机删除保留 7 天。从设备上删除不经过这里 | 本机 |
+| 语音输入 | 已实现，默认关闭。必须连着设备，触发键是键盘修饰键 | 识别走本机转写模型。原声默认留 30 天 |
+| 飞书妙记 | 已实现。自动同步时间隔 30 分钟 | 用你授权的 `lark-cli` 从飞书拉回 |
+| MCP / 命令行 | 六个工具，stdio，以及只监听 `127.0.0.1:8791` 的 HTTP | 本机。助手拿到文字之后如何处理，由那个助手决定 |
+| 数字人口播 | 已实现为 TeleAgent 交接，不在密盒助手里直接生成 | 确认后的生成发生在 Renoise。示例主播首次使用会把照片上传到你的 Renoise 账号 |
+| iPhone | `Mobile/` 试验，不在 Mac 安装包路径里 | 转写只有云端和系统识别 |
 
-有录音豆（D3200，并且已经在官方 App 里开通过）就能用全部设备功能；没有也能用：Mac 自己录、导入音频、贴链接导入，转写整理都一样。
+本机转写的回退：默认引擎是「本机模型」。Qwen 或 Gemma 还没下载好时，转写这一步会改用系统语音识别。Paraformer 和 Fun-ASR-Nano 缺权重或随包运行程序时会报错，不会悄悄改道。设置里对「本机且已就绪」写了录音不上传；这句话只描述这一档转写，不包括云端、网关和整理。
 
-**用到才准备**
+## 快速开始
 
-| 准备什么 | 什么时候需要 | 怎么准备 |
-|---|---|---|
-| 整理纪要用的模型 | 想要摘要、待办、知识库问答（只要文字稿可以不配） | 二选一：① 豆仓设置里一键下载本机模型（约 2.5 GB，不联网）；② 注册一家云端服务拿密钥：小米 MiMo、DeepSeek、通义千问、Kimi、豆包、智谱、MiniMax、硅基流动、OpenRouter、Gemini、Claude、OpenAI 都内置了地址，到对应开放平台注册 → 创建 API Key → 粘进「设置 → 模型」。密钥存在系统钥匙串里 |
-| 云端转写（可选） | 不想下载本机转写模型，或个别录音想转得更准 | 兼容 OpenAI `/audio/transcriptions` 的服务（硅基流动、OpenAI、Groq）或小米 MiMo，同样在开放平台拿密钥 |
-| **Claude Code** | 想在 Claude 里直接查录音、纪要和待办（MCP） | 按 [Claude Code 官方文档](https://docs.claude.com/en/docs/claude-code/overview) 安装，用 Claude 账号（Pro / Max）或 Anthropic API 登录一次；然后在豆仓「帮助 → 连接 AI 助手」里点 Claude Code 的「连接」 |
-| **Claude 桌面版** | 在桌面版里通过 MCP 查询录音、纪要和待办 | 安装并登录 Claude 桌面版，再使用「连接 AI 助手」；数字人口播不需要 Claude |
-| **TeleAgent** | 「做成数字人口播」 | 安装并登录 TeleAgent，在 MCP 设置中连接 Renoise；复制任务指令后，在新会话选择工程目录并粘贴发送 |
-| **Renoise 账号** | 「做成视频」要用它生成数字人口播、剪辑包装 | 在 **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** 注册（浏览器登录，不用粘 API Key），再把 Renoise 接进 TeleAgent，见下面[用 Renoise 把录音做成视频](#用-renoise-把录音做成视频可选)。生成前会先报价，你确认了才花积分 |
-| `yt-dlp` | 贴视频、播客链接导入 | `brew install yt-dlp`；小红书、抖音、视频号的下载器第一次用时豆仓会自动装进独立的 Python 环境 |
-| Node.js + 飞书命令行工具 | 手机 App 把录音同步进飞书妙记后，想拉回豆仓 | `brew install node`，再按[使用前要知道](#使用前要知道)里的四步授权 |
-| Codex / OpenClaw | 想在它们里面查豆仓 | 装好后在「连接 AI 助手」里一键连接；OpenClaw 还能接微信 |
+需要一台 **macOS 26** 的 Mac。`project.yml` 的部署目标是 macOS 26.0。Apple 芯片更适合本机模型。随 App 打包的 FunASR 运行程序是 **macOS arm64**（见 `ThirdParty/FunASR/PROVENANCE.md`），Intel 上不能把这个文件当成可用的转写程序。
 
-## 安装
+本 fork 没有可下载的安装包。请用当前仓库源码构建。不要用上游 `BeanPod-0.1.x.dmg` 代替本版。
 
-本衍生版暂未提供发行包下载地址，请使用当前仓库源码构建。
+写这一节时，命令只对照了仓库文件：Homebrew 配方 `xcodegen`、`llama.cpp`、`ffmpeg`、`yt-dlp` 在 formulae.brew.sh 上可查；两个 Python 脚本通过了语法检查。当时的环境是 Linux，没有 Swift、Xcode 或 XcodeGen，**没有编译，没有执行 `swift test`，没有打开 App，也没有连接设备。** 因此下面不是实测通过的安装记录。
 
-### 从源码编译
+### 从源码构建
 
-**1. 准备**
+准备带 macOS 26 SDK 的 Xcode，以及 [Homebrew](https://brew.sh)。部署目标需要该 SDK；本次没有在 Mac 上核对具体的 Xcode 版本号。
 
 ```bash
 brew install xcodegen llama.cpp ffmpeg
 ```
 
-还需要 Xcode 26。导入链接要用到 `yt-dlp`（`brew install yt-dlp`），小红书、抖音、视频号的下载器第一次用时会自动装进一个独立的 Python 环境。
-
-**2. 编译**
+导入链接时另需 `brew install yt-dlp`。小红书、抖音、视频号的下载器在第一次使用时由 App 装进独立 Python 环境，本次未跑这条路径。
 
 ```bash
 xcodegen generate
-```
-
-```bash
-xcodebuild -project BeanPod.xcodeproj -scheme BeanPod -derivedDataPath build build CODE_SIGN_IDENTITY="Apple Development" CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=<你的团队号>
-```
-
-建议用自己的 Apple 开发证书签名（免费的 Apple ID 也可以，团队号在 Xcode → Settings → Accounts 里找）。不签名也能编译，但每次重新编译后系统都会重新要蓝牙授权，授权前搜不到设备。
-
-```bash
+xcodebuild -project BeanPod.xcodeproj -scheme BeanPod -derivedDataPath build build \
+  CODE_SIGN_IDENTITY="Apple Development" CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=<你的团队号>
 cp -R build/Build/Products/Debug/BeanPod.app /Applications/
-```
-
-```bash
 open /Applications/BeanPod.app
 ```
 
-请从「应用程序」文件夹或访达打开，不要在终端里直接运行 App 里的可执行文件，否则会因为没有权限而崩溃。
+产物名是 `BeanPod.app`，显示名是「密盒助手」。建议用自己的 Apple 开发证书签名，免费 Apple ID 也可以，团队号在 Xcode → Settings → Accounts。不签名时，每次重新编译后系统都可能重新询问蓝牙权限。请从「应用程序」或访达打开，不要在终端里直接运行包内的可执行文件。
 
-**3. 第一次打开**
+第一次打开会走上手引导。App 会把命令行工具装到 `~/.local/bin/beanpod`。没有 `llama-server` 时，可在「设置 → 模型」里安装，App 查找的路径包括 `/opt/homebrew/bin/llama-server`。
 
-- 会出现上手引导：允许蓝牙权限、连接录音豆、下载转写模型、选整理纪要的模型、检查其它权限（见[需要开的权限](#需要开的权限)）
-- 没有 llama.cpp 时，在「设置 → 模型」里点「安装」（用 Homebrew）
-- 豆仓会把自带的命令行工具装到 `~/.local/bin/beanpod`，「连接 AI 助手」就是用它
-
-核心逻辑的测试：
+核心协议库测试（需要本机有 Swift 工具链；本次未运行）：
 
 ```bash
 swift test
 ```
 
-### 示例数据模式
+`Tests/BeanKitTests/BeanKitTests.swift` 有 22 个测试，覆盖帧、加解密、Ogg、链接和字幕。没有 App 界面、流水线或 MCP 的测试。
 
-想先看看豆仓长什么样，或者给文档截图、做演示，不想露出自己的录音：
+### 示例数据
+
+想看库的形状又不想动自己的录音时，在 macOS 上：
 
 ```bash
 python3 scripts/make-demo-library.py
-```
-
-```bash
 open -a BeanPod --args -demo
 ```
 
-脚本会在 `~/Library/Application Support/BeanPod/Demo/Recordings/` 生成一套虚构的录音库（一家咖啡店团队的周会、访谈、电话、语音输入、最近删除等），声音用 macOS 自带的语音合成，需要 `ffmpeg`。带 `-demo` 启动时豆仓只读这套示例库：不连蓝牙、不开 MCP 服务、不同步飞书，你自己的录音库完全不动。退出后正常打开就回到你自己的录音。
+脚本用系统 `say` 和 `ffmpeg` 在 `~/Library/Application Support/BeanPod/Demo/Recordings/` 生成虚构内容。`-demo` 只读这套库：不连蓝牙、不开 MCP、不同步飞书。本次没有生成示例库。退出后正常打开，回到自己的录音库。
 
-## 接入 AI 助手
+## 架构与实现
 
-豆仓把录音库开放给支持 [MCP](https://modelcontextprotocol.io) 的 AI 助手。助手能做的事：
+上面的首页图只表示能力关系。下面两张图按源码里的模块来画：来源进本机库，转写和整理走你选中的后端，MCP 只读本机库或把新内容放进 Inbox。虚线是未实机测试，或必须由你确认后才继续的步骤。
+
+```mermaid
+flowchart LR
+  subgraph sources [来源]
+    Bean["Anker D3200"]
+    Card["GetSeed 录音卡"]
+    Mac["Mac 麦克风或系统声音"]
+    Files["文件与链接"]
+    Feishu["飞书妙记"]
+  end
+  subgraph app [密盒助手]
+    Store["本机录音库"]
+    ASR["转写"]
+    Notes["整理纪要"]
+    Find["总览、知识库、待办"]
+  end
+  subgraph models [模型，按设置单选或回退]
+    Local["本机模型或系统识别"]
+    Cloud["云端服务"]
+    Gate["高阶网关 HTTP"]
+  end
+  subgraph outputs [出口]
+    Disk["Application Support/BeanPod"]
+    MCP["本机 MCP"]
+    Video["TeleAgent 视频工程"]
+  end
+  Bean --> Store
+  Card -.-> Store
+  Mac --> Store
+  Files --> Store
+  Feishu --> Store
+  Store --> ASR --> Notes --> Find
+  Local --> ASR
+  Cloud --> ASR
+  Gate --> ASR
+  Local --> Notes
+  Cloud --> Notes
+  Gate --> Notes
+  Find --> Disk
+  Find --> MCP
+  Notes -.-> Video
+```
+
+处理一条已入库录音时，顺序在 `Shared/Pipeline.swift` 的 `process` / `run`：
+
+```mermaid
+sequenceDiagram
+  participant Src as 来源
+  participant Store as BeanStore
+  participant Pipe as Pipeline
+  participant Model as 所选模型
+  participant CLI as beanpod
+  Src->>Store: 下载、导入或写入 Inbox
+  Store->>Pipe: process
+  Pipe->>Model: 转写，已有文字稿可跳过
+  Model-->>Pipe: 文字稿
+  Pipe->>Model: 整理；没有可用模型则按关键词粗分
+  Model-->>Store: 标题、纪要、待办、人物、标签
+  CLI->>Store: 直接读 library.json
+  CLI->>Store: add-note / add-audio 只放进 Inbox
+```
+
+| 路径 | 作用 |
+|---|---|
+| `Sources/BeanKit/` | 录音豆与录音卡的帧、命令、解密、Ogg。不依赖界面 |
+| `Shared/BeanStore.swift` | 录音库。普通模式在 `~/Library/Application Support/BeanPod/Recordings/` |
+| `Shared/Pipeline.swift` | 转写、整理、收件箱、安装 CLI、拉起本机 MCP |
+| `Shared/Settings.swift` | 引擎、整理模式、高阶网关地址。云端密钥进系统钥匙串 |
+| `Shared/Analyzer.swift` | 纪要、改写、问答。本机长稿改写会先分段摘录 |
+| `App/QwenASR.swift`、`App/LocalLLM.swift` | 用本机 `llama-server` 跑 Qwen / Gemma |
+| `App/FunASR.swift`、`ThirdParty/FunASR/` | Paraformer 与 Fun-ASR-Nano 的 arm64 助手 |
+| `Sources/beanpod/main.swift` | CLI 与 MCP。MCP 自报版本是 `0.2.0`，和 App 的 0.1.9 不是同一个字段 |
+| `App/Connect.swift`、`App/TeleAgentConfig.swift` | 一键连接各助手 |
+| `App/VideoMaker.swift` | 写视频工程并打开 TeleAgent |
+| `Mobile/` | iPhone 试验界面 |
+| `docs/PROTOCOL.md`、`docs/GETSEED.md` | 协议笔记与出处 |
+| `docs/media/` | 上游宣传片，原文件保留 |
+| `docs/assets/` | 首页能力示意图；`docs/assets/screenshots/` 是本机功能实拍 |
+| `docs/screenshots/` | 上游示例图仍在目录里，README 不再用它们做功能展示 |
+
+运行日志：`~/Library/Logs/BeanPod.log`。
+
+协议笔记里的「实测」是上游作者在自己设备上的记录，本次文档改写没有复测。仓库不含厂商固件、密钥或反编译代码。
+
+## 配置与用法
+
+### 转写和整理
+
+转写在「设置 → 模型」选择，四选一：
+
+| 引擎 | 何时使用 | 是否把音频送出这台 Mac |
+|---|---|---|
+| 本机模型 | 默认。权重约：Qwen3-ASR 1 GB，Gemma 4 E2B 连投影约 10.3 GB，Paraformer Q8 237 MB，Fun-ASR-Nano 两个文件约 1.27 GB | 不送出。Qwen/Gemma 未就绪时会改用系统识别 |
+| 系统语音识别 | 可显式选择，也会在上面的回退里用到 | 工程文案写本机完成；本次未验证 Apple 的网络行为 |
+| 云端 | 填写兼容接口，或对单条使用「交给云端重转」 | 会送出 |
+| 高阶网关 | 填写无用户名、无 query 的 http(s) URL 和模型名 | 会送到该 URL |
+
+整理模式：
+
+| 模式 | 行为 |
+|---|---|
+| 云端优先，连不上时用本机 | 默认。已经填写云端时，**文字稿会先发给云端**，失败再试本机模型 |
+| 只用云端 | 只发到 `llmBaseURL` |
+| 只用本机 | 用已下载的 Qwen3-4B（约 2.5 GB）或 Gemma。不向云端预设发送 |
+| 高阶网关 | 只发到整理服务那一个 URL，不按上面的顺序回退 |
+
+云端整理预设写在 `AppSettings.presets`：小米 MiMo、DeepSeek、通义千问、Kimi、豆包、智谱 GLM、MiniMax、硅基流动、OpenRouter、Gemini、Claude、OpenAI，以及本机 Ollama（`127.0.0.1:11434`）和 LM Studio（`127.0.0.1:1234`）。Ollama / LM Studio 的地址在本机时，文字稿不出这台电脑；其余预设会出网。密钥存在钥匙串。
+
+没配好任何整理模型时，流水线按关键词做粗分类，不生成完整纪要。
+
+界面语言：跟随系统，或在「设置 → 通用」里固定简体中文 / English。纪要语言单独设置。字符串在 `App/Localizable.xcstrings`。添加语言可用 `python3 scripts/i18n-sync.py`，本次只检查了脚本语法。
+
+### 权限
+
+| 权限 | 作用 | 不开时 |
+|---|---|---|
+| 蓝牙 | 连接 D3200 和录音卡 | 只能 Mac 录音或导入 |
+| 麦克风 | Mac 录音；语音输入不用这台 Mac 的麦 | 不能用 Mac 麦录音 |
+| 屏幕与系统录音 | 录电脑里的声音 | 只能录麦克风 |
+| 辅助功能 | 听住快捷键，把语音输入打进其他 App | 语音输入不可用 |
+| 通知 | App 不在前台时提示同步和整理完成 | 只在窗口内提示 |
+| 本地网络 | 访问你填写的局域网地址 | 高阶网关若在局域网则连不上 |
+
+### 飞书妙记
+
+手机上的官方 App 若先连上设备，录音可能进入飞书妙记并从设备消失。拉回步骤以源码里的提示为准：安装 [@larksuite/cli](https://registry.npmjs.org/@larksuite/cli)（`npm install -g @larksuite/cli`），然后 `lark-cli config init --new` 和 `lark-cli auth login --domain minutes`。原说明还要求导出音频时开通 `minutes:minutes.media:export` 并重新登录该 scope；不开时只拉文字稿。本次没有重新做飞书授权。
+
+### MCP
+
+App 开着且不是 `-demo` 时，会启动 `beanpod serve --port 8791`，只接受本机连接。`GET /health` 返回 `{"ok":true}`。
 
 | 工具 | 作用 |
 |---|---|
-| `search_recordings` | 按关键词、时间、场景、人物、话题搜录音；不给条件时返回最近的录音 |
-| `get_recording` | 取一条录音的完整纪要：摘要、要点、待办、人物、话题，可选附带逐字稿 |
-| `list_todos` | 列出所有录音里的待办，默认只列没完成的 |
-| `list_topics` | 概览：录音总数和时长，各场景、话题、人物出现的次数 |
-| `add_note` | 把一段文字（聊天记录、想法、摘录）存进豆仓，豆仓会当成录音一样整理 |
-| `add_audio` | 把这台电脑上的一个音频文件交给豆仓转写、整理 |
+| `search_recordings` | 按关键词、时间、场景、人物、话题搜索 |
+| `get_recording` | 一条录音的纪要，可选文字稿 |
+| `list_todos` | 待办，默认未完成 |
+| `list_topics` | 场景、话题、人物计数 |
+| `add_note` | 把文字放进 Inbox，由开着的 App 导入 |
+| `add_audio` | 把本机音频文件放进 Inbox |
 
-前四个只读。后两个不直接改录音库：内容先放进收件箱（`~/Library/Application Support/BeanPod/Inbox/`），豆仓开着时会自动导入并整理。
+一键连接会改这些位置：Claude Code 的用户级 MCP、Codex、OpenClaw、Claude 桌面版的 `claude_desktop_config.json`（先备份）、当前账号的 `~/.config/TeleAgent/users/<账号>/TeleAgent.jsonc`（先备份；含注释或格式不兼容则不改）。Grok Bot 等只认网址的工具填写 `http://127.0.0.1:8791/mcp`，App 关掉后地址不通。
 
-### 一键连接
+```bash
+beanpod search 预算 --from 7d --scene 会议
+beanpod show <id> --transcript
+beanpod todos
+beanpod topics
+beanpod add-note 标题 < 文本
+beanpod add-audio <文件>
+beanpod mcp
+beanpod serve --port 8791
+```
 
-菜单「帮助 → 连接 AI 助手」，或者在「设置 → 连接」里，每个助手一张卡片，显示装没装、连没连，可以一键连接、断开、试一下。
+日期可以是 `YYYY-MM-DD`、`today`、`yesterday`、`7d`。场景名用中文，如「会议」。
 
-| 助手 | 豆仓做了什么 |
-|---|---|
-| Claude Code | 运行 `claude mcp add --scope user beanpod -- ~/.local/bin/beanpod mcp` |
-| Codex | 运行 `codex mcp add beanpod -- ~/.local/bin/beanpod mcp` |
-| OpenClaw | 运行 `openclaw mcp add beanpod --command ~/.local/bin/beanpod --arg mcp` |
-| Claude 桌面版 | 往 `claude_desktop_config.json` 加一项（改之前先备份成 `claude_desktop_config.backup-by-beanpod.json`）；要先退出 Claude 桌面版，否则它会把改动写回去 |
-| TeleAgent | 完全退出后，在当前账号的 `~/.config/TeleAgent/users/<账号>/TeleAgent.jsonc` 中添加 `mcp.beanpod`，使用本机命令连接；每次修改前留一份 `TeleAgent.backup-by-beanpod-*.jsonc`。账号由 `~/.local/share/TeleAgent/current-owner.json` 选择。含注释或格式不兼容的配置不会改写，请在 TeleAgent 的 MCP 设置里手动添加。 |
-| Grok Bot 等只认网址的 | 拷贝网址 `http://127.0.0.1:8791/mcp` 填进去 |
-
-网址入口只在豆仓开着时存在，而且只监听本机，别的电脑连不上。
-
-### 手动配置
-
-别的支持 MCP 的工具，按它的格式填：
+手动配置：
 
 ```json
 {
   "mcpServers": {
-    "beanpod": { "command": "/Users/<你的用户名>/.local/bin/beanpod", "args": ["mcp"] }
+    "beanpod": {
+      "command": "/Users/<你的用户名>/.local/bin/beanpod",
+      "args": ["mcp"]
+    }
   }
 }
 ```
 
-### 命令行
+通过 OpenClaw 的微信插件在微信里查询，是 OpenClaw 的能力。先在本 App 连上 OpenClaw，再按其文档配置，本次未连接。
 
-`beanpod` 本身也是个命令行工具，脚本里可以直接用：
+### 做成视频
 
-```bash
-beanpod search 预算 --from 7d --scene 会议
-```
+在改写结果上点「做成视频」后，`VideoMaker` 准备工程目录和 `TASK.md`，并打开 TeleAgent。需要你在 TeleAgent 新建会话、选中该目录、粘贴任务再发送。报价和扣积分发生在 TeleAgent / Renoise 会话里，密盒助手不代你确认。
 
-```bash
-beanpod todos
-```
+按钮的帮助文字仍写着交给 Claude 桌面版。当前实现打开的是 TeleAgent，以 `App/VideoMaker.swift` 为准。
 
-| 命令 | 作用 |
-|---|---|
-| `beanpod search [关键词] [--from 日期] [--to 日期] [--scene 场景] [--person 人物] [--tag 话题] [--limit N]` | 搜录音 |
-| `beanpod show <id> [--transcript]` | 一条录音的纪要 |
-| `beanpod todos [--all]` | 待办 |
-| `beanpod topics` | 场景、话题、人物一览 |
-| `beanpod add-note 标题 < 文本` | 把文字存进豆仓 |
-| `beanpod add-audio <文件>` | 把音频交给豆仓转写整理 |
-| `beanpod mcp` | 作为 MCP 服务运行（stdio） |
-| `beanpod serve [--port 8791]` | 作为 MCP 服务运行（HTTP） |
+Renoise 的 MCP 地址是 `https://renoise.ai/api/public/mcp`。本次只确认该网址可访问，没有登录，也没有提交任务。主播资料在 `~/Library/Application Support/BeanPod/Hosts/`。从本 App 移除主播不会删除 Renoise 账号里的素材。
 
-日期可以写 `2026-11-12`、`today`、`yesterday`、`7d`。
+### 数据放在哪，什么时候会离开 Mac
 
-### 在微信里问豆仓
+录音、文字稿和纪要的库在 `~/Library/Application Support/BeanPod/`。本应用没有自己的上传服务器。
 
-通过 [OpenClaw](https://github.com/openclaw/openclaw) 和它的微信插件，可以在微信里问豆仓里的录音和待办。先在豆仓里把 OpenClaw 连上，再按 OpenClaw 的说明装微信插件、扫码登录，并给它配一个模型。
+会离开这台 Mac 的情况只有这些：你打开了云端转写、云端整理或高阶网关；整理模式是默认的「云端优先」并且已经填了云端；你导入链接时向网站下载；你用飞书命令行读取妙记；你在 TeleAgent / Renoise 里确认了视频任务；你把 MCP 结果交给一个自己会外发的助手。只选本机转写和「只用本机」整理、且不使用上面这些路径时，音频和文字稿发给的是本机进程。
 
-### 用 Renoise 把录音做成视频（可选）
+## 界面
 
-录音的「改写」页里，点击「做成数字人口播」可准备视频工程并打开 TeleAgent。点击「复制任务指令」，在 TeleAgent 新建会话、选择工程目录、粘贴后发送。TeleAgent 使用 **[Renoise](https://renoise.ai/mcp?utm_medium=xcom&utm_source=official)** 生成数字人口播并剪辑包装；按任务约定写回结果后，成片、封面和口播稿会回到这条录音下面。
+下面是用户 Mac 上密盒助手的实拍，界面为中文，图里没有版本号。总览顶条、连接卡片、模型设置、MCP、空链接框和知识库入口里，有一部分是此前已经拍过并做过安全裁切的素材，不是这 11 张都在同一轮新拍。没有完整总览，也没有飞书同步列表。
 
-**一次性准备**
+### 录音整理
 
-1. 注册 Renoise 账号，安装并登录 TeleAgent
-2. 在 TeleAgent 的 MCP 设置中添加 Renoise，地址为 `https://renoise.ai/api/public/mcp`，按提示登录授权；视频窗口提供「复制 MCP 地址」
-3. 在 TeleAgent 中查询 Renoise 余额，确认连接可用
+![录音列表和纪要。画面中的演示台词与性能数字不是本项目指标。](docs/assets/screenshots/01-notes-list-and-summary.jpg)
 
-**用的时候**
+演示标签下的录音列表和纪要。Duplex Jeff 的台词和性能数字是演示录音内容，不是本项目的测试结果。
 
-- 密盒助手检查 TeleAgent 是否安装，并准备任务文件；打开应用不等于已新建会话或发送任务，需要你粘贴发送
-- TeleAgent 先规划并给出报价，你在该会话确认后才开始生成和花积分；密盒助手通过工程目录接回报价、进度和结果
-- 一个主播。豆仓内置两位示例主播（AI 生成的虚构人物，「示例 · 职业装」和「示例 · 居家」），第一次用某位示例主播做视频时，会先把它的照片传到你自己的 Renoise 账号（不花积分）。想让「你」来讲，就点「添加主播」，上传一张你自己的正面半身照，或者填一个你 Renoise 账号里已有的人像素材编号；添加时要确认「这是我本人，或者我已获得照片中本人的授权」。Renoise 会在生成时审核人像；如果审核状态是「审核中」或「没通过」，卡片上会标出来，这个主播暂时不能用
+![文字稿顶部局部。后续私人姓名行和底部播放条已裁掉。](docs/assets/screenshots/04-transcript-demo-cropped.jpg)
 
-主播记录和缩略图存在 `~/Library/Application Support/BeanPod/Hosts/`。从豆仓移除主播不会删除 Renoise 账号里的素材。
+文字稿顶部的局部裁切，不是整窗。图中的台词和性能数字同样是演示录音内容，不是本项目指标。
 
-连接页底部的「创作工具」卡片可以帮你安装、登录 Renoise 命令行。
+![总览顶部的安全裁切，不是完整总览。](docs/assets/screenshots/00-overview-mibox-hero-partial.jpg)
 
-助手拿到内容后怎么处理，取决于那个助手和它用的模型服务。
+总览安全顶区，不是完整总览。
 
-## 隐私
+### 输入与知识检索
 
-- 录音、文字稿、纪要都保存在这台 Mac 上：`~/Library/Application Support/BeanPod/`
-- 转写默认在本机进行。只有你选了云端转写（或对某条录音点了「交给云端重转」）时，录音才会发给你配置的那家服务；只有你配了云端整理模型时，文字稿才会发给那家服务
-- 豆仓不收集任何使用数据，也没有自己的服务器
+![语音输入空状态，没有历史记录。](docs/assets/screenshots/02-dictation-empty.jpg)
 
-## 代码结构
+语音输入是空的，没有历史。这张图不展示打字结果。
 
-```
-Sources/BeanKit/   协议与音频，不依赖界面，可单独测试
-  Frame.swift        帧的编码、校验、重组
-  Commands.swift     命令
-  Models.swift       设备信息、录音列表的解析
-  GetSeed.swift      得到录音卡的帧、命令、列表、下载拼接，以及从 Ogg 文件里取 Opus 包
-  Crypto.swift       密钥协商、文件解密、切片解析
-  OggOpus.swift      把裸 Opus 帧装进 Ogg 容器
-  OpusDecoder.swift  解码成 WAV
-Sources/beanpod/   命令行工具与 MCP 服务（随 App 打包在 Contents/Helpers）
-Shared/            Mac 和 iPhone 共用：蓝牙、录音库、转写与整理流程、知识库
-App/               Mac 界面与 Mac 专属功能（Wi‑Fi 快传、链接导入、刘海面板、连接 AI 助手等）
-  SocialDL/          小红书、抖音、视频号等平台的下载器（Python）
-Mobile/            iPhone 版界面（试验中）
-docs/PROTOCOL.md   录音豆的协议笔记，逐条标注了来源
-docs/GETSEED.md    得到录音卡的协议摘录与出处
-design/            界面设计稿与「小豆」形象素材
-docs/screenshots/  README 截图（示例数据）
-docs/media/        宣传片与预览动图
-scripts/           示例录音库生成脚本
-```
+![知识库空搜索入口，不是问答结果。](docs/assets/screenshots/10-knowledge-search-entry.jpg)
 
-运行日志在 `~/Library/Logs/BeanPod.log`。
+知识库的空搜索入口，不是一次问答的结果。
 
-## 协议
+![空的链接输入框，不表示导入成功。](docs/assets/screenshots/09-import-link-field.jpg)
 
-[docs/PROTOCOL.md](docs/PROTOCOL.md) 记录了豆仓与录音豆通信用到的全部协议：帧格式、命令、录音列表、下载与解密、Wi‑Fi 快传。每一条都标了来源：真机实测、对照官方客户端核对，或者取自前人的笔记、尚未独立核实。
+链接框是空的，不表示已经导入。
 
-得到录音卡用到的协议摘录在 [docs/GETSEED.md](docs/GETSEED.md)，那份协议是别人整理的，出处见下面的致谢。
+### 设置与恢复
 
-这些协议是为了让你能在自己的电脑上使用自己的设备而整理的。本仓库不包含任何厂商的代码、固件或密钥，也不包含反编译得到的代码。
+![最近删除里只有日期标题，可见恢复入口。](docs/assets/screenshots/03-trash-recently-deleted.jpg)
 
-## 致谢
+最近删除里只见日期标题，页面上有恢复入口。
 
-录音豆的协议方面参考了 **[tacshi](https://github.com/tacshi)** 的 [tacshi/Soundcore](https://github.com/tacshi/Soundcore) 协议笔记，它是第一个把这台 Anker soundcore 录音豆的协议整理出来的项目，豆仓的设备连接、下载和解密都是在它的基础上起步的。本项目的代码是用 Swift 独立编写的，没有使用该项目的代码；在真机上核对时发现并修正了其中几处字段含义，详见协议笔记。
+![上手引导中的权限卡片。](docs/assets/screenshots/05-onboarding-permissions.jpg)
 
-得到 AI 录音卡的协议全部来自 **[Shawn-TKD](https://github.com/Shawn-TKD)** 的 [Shawn-TKD/getseed-ble-protocol](https://github.com/Shawn-TKD/getseed-ble-protocol)（MIT 许可，Copyright (c) 2026 Shawn-TKD），原作者用实机抓包和固件分析整理并验证了这份协议。豆仓按那份文档用 Swift 从零实现，没有使用该项目的代码；许可声明见 [NOTICE](NOTICE)。
+上手引导里的权限卡片。图中开关是拍摄时的系统状态。
 
-本机转写与整理可以单独选择。Paraformer 使用 FunASR 官方 Apple 芯片运行程序和 Q8 GGUF 权重。[FunASR GitHub 发布页](https://github.com/modelscope/FunASR/releases/tag/runtime-llamacpp-v0.2.6) · [Paraformer 模型下载](https://huggingface.co/FunAudioLLM/Paraformer-GGUF/blob/main/paraformer-q8.gguf)。Qwen 和 Gemma 通过 llama.cpp 运行。[Qwen3-ASR 模型](https://huggingface.co/ggml-org/Qwen3-ASR-0.6B-GGUF) · [Gemma 模型](https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF) · [llama.cpp](https://github.com/ggml-org/llama.cpp)。
+![连接密盒的步骤卡片，尚未表示已连接。](docs/assets/screenshots/06-device-connect-mibox-card.jpg)
 
-## 许可证
+连接密盒的步骤和「开始搜索」。这是入口，图里没有已连接状态，也没有飞书列表。
 
-[MIT](LICENSE)
+<table>
+<tr>
+<td width="50%">
+
+![模型设置，为截图当时的选择，不是默认配置。](docs/assets/screenshots/07-settings-models.jpg)
+
+模型设置是截图当时的选择，不是出厂默认。
+
+</td>
+<td width="50%">
+
+![连接页中的 MCP 设置。](docs/assets/screenshots/08-settings-mcp-connect.jpg)
+
+连接页里的 MCP 设置。
+
+</td>
+</tr>
+</table>
+
+## 常见问题
+
+**电脑里已经装了密盒助手，是不是就是 0.1.9？**  
+不一定。0.1.9 只写在这份源码的工程设置里。请看 App 自己的版本。两套文件不要互相覆盖，除非你知道自己在替换哪一个构建。
+
+**是不是录音永远不离开本机？**  
+不是。库在本机，但云端、高阶网关、默认的「云端优先」整理、链接下载、飞书和视频交接都会发生网络访问。见上一节的表。
+
+**没有录音豆能用吗？**  
+可以。Mac 录音、导入和链接不依赖设备。语音输入不行：代码要求设备已连接，并且只监听键盘修饰键，没有鼠标按键，也不改用 Mac 麦克风。
+
+**为什么搜不到设备？**  
+录音豆同一时间只连一台主机。手机连着时，先关掉手机蓝牙。协议笔记写明只在固件 04.92 上核对过，全新、未在官方 App 开通的设备能否直接连接，笔记标为未知。
+
+**得到录音卡能用吗？**  
+源码有实现，文档写明还没有实机测试。
+
+**刘海快捷面板会挡住菜单栏吗？**  
+无刘海时，窗口顶边仍按屏幕 `frame` 的顶边放置，因此仍可能挡住菜单栏图标。本次没有在显示器上查看。上游 [issue #4](https://github.com/andyhuo520/beanpod/issues/4) 仍开放，那份避让修改不在本仓库。
+
+**还有哪些请求没有做成？**  
+自定义职业名称和整理提示词仍未做，职业是固定枚举。更多云端 ASR 品牌不会自动出现，除非它兼容现有接口并由你填入。阶跃星辰没有单独预设。
+
+## 贡献与许可
+
+协议起步于 [tacshi/Soundcore](https://github.com/tacshi/Soundcore)。得到录音卡的协议事实来自 [Shawn-TKD/getseed-ble-protocol](https://github.com/Shawn-TKD/getseed-ble-protocol)（MIT，Copyright (c) 2026 Shawn-TKD）。本仓库按文档用 Swift 另写，声明见 [NOTICE](NOTICE)。FunASR 运行程序的来源和校验写在 `ThirdParty/FunASR/PROVENANCE.md`。
+
+本仓库许可是 [MIT](LICENSE)，Copyright (c) 2026 berryxia。
+
+本 fork 没有打开 Issues。豆仓原项目的问题和讨论在 [andyhuo520/beanpod](https://github.com/andyhuo520/beanpod/issues)。针对密盒助手源码的修改，请向本仓库提交 Pull Request。欢迎的改动应和现有行为一致：不要把未实机测试写成已测试，也不要承诺录音在所有设置下都不出本机。
