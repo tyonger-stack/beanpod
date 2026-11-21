@@ -6,9 +6,9 @@
 
 Mi Box Assistant is a Mac app that keeps a local library of recordings, turns them into text and notes, and lets you query that library yourself or through MCP. Local models, Apple speech recognition, cloud services, and a user-supplied HTTP gateway are separate choices. Audio or text leaves the Mac only on the paths you enable.
 
-![Capability diagram: recordings, files, and links enter Mi Box Assistant, then transcription and notes produce a transcript, notes, to-dos, and local MCP access. Local models, cloud services, and a custom gateway are optional backends.](docs/assets/mibox-assistant-hero.jpg)
+![Capability diagram: recordings, files, and links enter Mi Box Assistant. Transcription compute is shown as either an e-government extranet cloud or local hardware: a rack-mounted advanced gateway and a small square Mi Box. China Telecom TeleAgent calls the local results through MCP.](docs/assets/mibox-assistant-hero.jpg)
 
-This is a capability diagram, not a screenshot of the running app. The same Chinese artwork is used here; it is already labeled as a diagram rather than a runtime capture. Recordings, files, and links go into the local app, then through transcription and notes. The transcript, notes, and to-dos stay in the local library, and MCP serves this Mac only. The three backends under the diagram are options, not a default that turns all of them on.
+This is an AI-generated capability diagram, not a screenshot of the running app. The same Chinese artwork is used here, and it is labeled as a diagram. Recordings, files, and links enter the Mac app, then go through transcription and notes. The e-government extranet cloud, the rack-mounted gateway, and the square Mi Box are optional deployment sketches specified for this picture: transcription compute may sit in that cloud or on either local device. This repository has not verified a particular government network or these devices in production, and it states no bandwidth or certification figures. In the app, the matching control is an OpenAI-compatible URL you fill in. It is not locked to one chassis, and it is not the D3200 recorder. China Telecom TeleAgent on the right is an MCP client, not another recording protocol.
 
 ## Promo video
 
@@ -25,8 +25,10 @@ Three names:
 | Name | Meaning |
 |---|---|
 | Mi Box Assistant | This Mac app. The Chinese product name is 密盒助手 |
-| 密盒 in the device UI | The Anker soundcore recorder, model D3200. The protocol is still the recorder protocol |
-| Advanced gateway / 密盒 in Settings | An OpenAI-compatible HTTP URL you enter for transcription or notes. Not a second hardware protocol |
+| 密盒 as a recording source | The UI label for the Anker soundcore recorder, model D3200. The link is still the recorder protocol |
+| 密盒 in the homepage diagram | The small square box: a sketch of local inference hardware. The app has no driver for one specific chassis |
+| 高阶网关 in the diagram | The rack: another sketch of local compute, not a verified deployment |
+| 高阶网关/密盒 in Settings | An OpenAI-compatible HTTP URL you enter for transcription or notes. It is not limited to one model of hardware, and it is not the D3200 |
 
 The Mac target in `project.yml` is marketing version **0.1.9 (build 10)**. That is the version in this source tree, not the build already installed on a Mac. Read the version inside the installed app.
 
