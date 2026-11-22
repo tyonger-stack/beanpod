@@ -55,6 +55,7 @@ extension BeanStore {
     }
 
     func startMacRecording(_ source: MacSource? = nil) {
+        guard dictationCaptureID == nil else { toast("waveform", String(localized: "语音输入正在进行，请稍后再录音")); return }
         guard macRec == .off, !macStarting else { return }
         let source = source ?? macSource
         macSource = source
@@ -254,20 +255,8 @@ extension BeanStore {
             // 把两路声音合成一个文件：各自解成 16 kHz 单声道，按开始时间对齐后相加
             let micURL = capturedMicURL, systemURL = tap?.url, systemStarted = tap?.startedAt
             let mixed: URL? = await Task.detached {
-                let mic = micURL.flatMap { Self.decodeAnyAudio($0) } ?? []
-                var system = systemURL.flatMap { Self.decodeAnyAudio($0) } ?? []
-                if let a = micStarted, let b = systemStarted, !mic.isEmpty, !system.isEmpty {
-                    // 系统那一路开始得晚就在前面补静音，开始得早就把多出来的头去掉
-                    let offset = Int(b.timeIntervalSince(a) * 16000)
-                    if offset > 0 { system = [Float](repeating: 0, count: offset) + system }
-                    else if offset < 0 { system = Array(system.dropFirst(min(-offset, system.count))) }
-                }
-                let count = max(mic.count, system.count)
-                guard count > 1600 else { return nil }
-                var out = [Float](repeating: 0, count: count)
-                for i in 0..<mic.count { out[i] += mic[i] }
-                for i in 0..<system.count { out[i] += system[i] }
-                if !mic.isEmpty, !system.isEmpty { for i in 0..<count { out[i] = max(-1, min(1, out[i])) } }
+                let out = Self.mixMacAudio(micURL: micURL, systemURL: systemURL, micStarted: micStarted, systemStarted: systemStarted)
+                guard out.count > 1600 else { return nil }
                 let url = FileManager.default.temporaryDirectory.appendingPathComponent("beanpod-mac-\(UUID().uuidString).wav")
                 return (try? QwenASR.wav(out).write(to: url, options: .atomic)) != nil ? url : nil
             }.value
@@ -291,4 +280,21 @@ extension BeanStore {
             }
         }
     }
+    nonisolated static func mixMacAudio(micURL: URL?, systemURL: URL?, micStarted: Date?, systemStarted: Date?) -> [Float] {
+        let mic = micURL.flatMap { decodeAnyAudio($0) } ?? []
+        var system = systemURL.flatMap { decodeAnyAudio($0) } ?? []
+        if let a = micStarted, let b = systemStarted, !mic.isEmpty, !system.isEmpty {
+            let offset = Int(b.timeIntervalSince(a) * 16000)
+            if offset > 0 { system = [Float](repeating: 0, count: offset) + system }
+            else if offset < 0 { system = Array(system.dropFirst(min(-offset, system.count))) }
+        }
+        var out = [Float](repeating: 0, count: max(mic.count, system.count))
+        for i in mic.indices { out[i] += mic[i] }
+        for i in system.indices { out[i] += system[i] }
+        if !mic.isEmpty, !system.isEmpty {
+            for i in out.indices { out[i] = max(-1, min(1, out[i])) }
+        }
+        return out
+    }
+
 }

@@ -33,7 +33,7 @@ struct DictationView: View {
                 HStack(alignment: .top, spacing: 16) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("语音输入").font(.system(size: 28, weight: .bold)).foregroundStyle(Theme.warm900)
-                        Text("按住\(Dictation.name(of: store.settings.dictationKey).components(separatedBy: " ").prefix(2).joined(separator: " "))说话，文字打进当前的软件，同时记在这里。不进录音列表，也不做 AI 整理。")
+                        Text("按住\(Dictation.name(of: store.settings.dictationKey).components(separatedBy: " ").prefix(2).joined(separator: " "))录下所选来源的声音，松开后文字打进当前的软件，同时记在这里。不进录音列表，也不做 AI 整理。")
                             .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 12)
@@ -51,11 +51,18 @@ struct DictationView: View {
                     .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).strokeBorder(Theme.warm200, lineWidth: 1))
                 }
 
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("声音来源：\(store.sourceName)", systemImage: store.sourceIcon)
+                        .font(.callout.weight(.medium))
+                    Text("在侧栏的「声音来源」中切换。使用这台 Mac 无需连接密盒；选「电脑里的声音」可转写正在播放的人声。")
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+
                 if items.isEmpty {
                     VStack(spacing: 10) {
                         Image(systemName: "keyboard").font(.system(size: 30)).foregroundStyle(Theme.warm400)
-                        Text(query.isEmpty ? "还没有说过话" : "没找到「\(query)」").font(.headline).foregroundStyle(Theme.warm700)
-                        Text(query.isEmpty ? (store.settings.dictationEnabled ? "按住快捷键对着密盒说话，松开后文字会打进当前的软件，也会记在这里。" : "语音输入还没打开，可以在 设置 → 语音输入 里打开。") : "换个词试试。")
+                        Text(query.isEmpty ? "还没有语音输入" : "没找到「\(query)」").font(.headline).foregroundStyle(Theme.warm700)
+                        Text(query.isEmpty ? (store.settings.dictationEnabled ? "按住快捷键录下所选来源的声音，松开后文字会打进当前的软件，也会记在这里。" : "语音输入还没打开，可以在 设置 → 语音输入 里打开。") : "换个词试试。")
                             .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity, minHeight: 260)

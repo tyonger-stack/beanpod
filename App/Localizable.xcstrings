@@ -1,6 +1,121 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "语音输入正在进行，请稍后再录音": {
+      "localizations": { "en": { "stringUnit": { "state": "translated", "value": "Dictation is in progress. Wait before starting a recording." } } }
+    },
+    "录音或下载正在进行，请结束后再用语音输入": {
+      "localizations": { "en": { "stringUnit": { "state": "translated", "value": "Finish the recording or download before starting dictation." } } }
+    },
+    "请在系统设置的「隐私与安全性 → 麦克风」中允许密盒助手使用麦克风": {
+      "localizations": { "en": { "stringUnit": { "state": "translated", "value": "Allow Mi Box Assistant to use the microphone in System Settings → Privacy & Security → Microphone." } } }
+    },
+    "电脑声音采集未能启动，请检查「屏幕与系统音频录制」权限后重试": {
+      "localizations": { "en": { "stringUnit": { "state": "translated", "value": "Computer audio could not start. Check the Screen & System Audio Recording permission and try again." } } }
+    },
+    "默认优先使用已连接的密盒。断开时使用所选的 Mac 音源。也可以在侧栏手动切换。": {
+      "localizations": { "en": { "stringUnit": { "state": "translated", "value": "By default, a connected Mi Box takes priority. When disconnected, the selected Mac audio source is used. You can switch sources in the sidebar." } } }
+    },
+    "在任何 App 里按住你选的那个键，录下所选来源的声音，松开后文字出现在光标处。使用这台 Mac 的声音来源，无需连接密盒。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold your chosen key in any app to record the selected audio source. Release it to insert the text at the cursor. Mac audio sources work without a Mi Box connection."
+          }
+        }
+      }
+    },
+    "按住按键录音，松开输入文字": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold to record, release to type"
+          }
+        }
+      }
+    },
+    "在主窗口侧栏的「声音来源」中切换，可选麦克风、电脑里的声音，或两者一起。连接密盒后也可以选择密盒。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change Audio Source in the main window sidebar. Choose Microphone, Computer audio, or both. You can also select Mi Box when it is connected."
+          }
+        }
+      }
+    },
+    "与侧栏的录音来源共用同一选择。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uses the same audio source selected in the sidebar."
+          }
+        }
+      }
+    },
+    "按当前声音来源录 5 秒，只显示识别结果，不会打进别的 App。选麦克风时说句话，选电脑里的声音时播放一段人声。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Record the current audio source for 5 seconds and preview the transcript without typing into another app. Speak when using the microphone, or play speech when using system audio."
+          }
+        }
+      }
+    },
+    "按住%@录下所选来源的声音，松开后文字打进当前的软件，同时记在这里。不进录音列表，也不做 AI 整理。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold %@ to record the selected audio source. Release it to type into the current app and save the text here. It stays out of your recordings and is not summarized by AI."
+          }
+        }
+      }
+    },
+    "声音来源：%@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Audio source: %@"
+          }
+        }
+      }
+    },
+    "在侧栏的「声音来源」中切换。使用这台 Mac 无需连接密盒；选「电脑里的声音」可转写正在播放的人声。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change Audio Source in the sidebar. Mac audio works without Mi Box. Choose Computer audio to transcribe speech playing on your computer."
+          }
+        }
+      }
+    },
+    "还没有语音输入": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No dictation yet"
+          }
+        }
+      }
+    },
+    "按住快捷键录下所选来源的声音，松开后文字会打进当前的软件，也会记在这里。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold the shortcut to record the selected audio source. Release it to type into the current app and save the text here."
+          }
+        }
+      }
+    },
     "这个模型专用于英文。中文或粤语转写会使用同一服务的 XingChenASR-V3.2-Ultra。": {
       "localizations": {
         "en": {

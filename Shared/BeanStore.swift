@@ -465,14 +465,20 @@ final class BeanStore {
     @ObservationIgnored var macTap: SystemAudioTap?
     @ObservationIgnored var macMicStarted: Date?
     @ObservationIgnored var macStarting = false
+    @ObservationIgnored var dictationCaptureID: UUID?
     /// 录音豆连着，但这次想用 Mac 录。录音豆断开后自然就是用 Mac，不用管这个。
     var preferMac = false
+    var usesMacSource: Bool { link != .ready || preferMac }
     /// 点「开始录音」时声音从哪来。
-    var sourceName: String { link == .ready && !preferMac ? displayDeviceName : macSource.name }
-    var sourceIcon: String { link == .ready && !preferMac ? "dot.radiowaves.left.and.right" : macSource.icon }
+    var sourceName: String { usesMacSource ? macSource.name : displayDeviceName }
+    var sourceIcon: String { usesMacSource ? macSource.icon : "dot.radiowaves.left.and.right" }
     /// 用 Mac 录音时录哪一路：麦克风、电脑里的声音，还是两路一起。会记住上次的选择。
     var macSource: MacSource = MacSource(rawValue: UserDefaults.standard.string(forKey: "macSource") ?? "") ?? .mic {
         didSet { UserDefaults.standard.set(macSource.rawValue, forKey: "macSource") }
+    }
+    func chooseMacSource(_ source: MacSource) {
+        macSource = source
+        preferMac = link == .ready
     }
     /// 现在这条是不是用 Mac 的麦克风在录。
     var recordingOnMac: Bool { macRec != .off }
@@ -493,9 +499,10 @@ final class BeanStore {
     }
 
     func startRecording() {
+        guard dictationCaptureID == nil else { toast("waveform", String(localized: "语音输入正在进行，请稍后再录音")); return }
         if justRecorded != nil { keepJustRecorded() }   // 上一条还没说留不留就又开始录了：当作留着
         // 录音豆没连上：直接用这台 Mac 的麦克风录
-        if link != .ready || preferMac, recState == .idle { startMacRecording(); return }
+        if usesMacSource, recState == .idle { startMacRecording(); return }
         guard link == .ready, recState == .idle else { return }
         ble.send(Command.startRecording())
         info?.recording = true          // 先把界面切过去，不等设备回话
@@ -520,6 +527,7 @@ final class BeanStore {
     }
 
     func resumeRecording() {
+        guard dictationCaptureID == nil else { toast("waveform", String(localized: "语音输入正在进行，请稍后再录音")); return }
         if macRec != .off { resumeMacRecording(); return }
         guard recState == .paused else { return }
         ble.send(Command.startRecording())

@@ -1,10 +1,10 @@
 import AppKit
+import AVFoundation
 import ApplicationServices
 import BeanKit
 import SwiftUI
 
-/// 语音输入：按住一个键（默认右 Option，可改），对着录音豆说话，松开后文字出现在当前光标处。
-/// 录音豆在这里当一支随身麦克风用：它边录边通过蓝牙把声音传过来，豆仓在本机转成文字。
+/// 按住快捷键采集当前选中的音源，松开后在本机识别并输入文字。
 @Observable
 final class Dictation {
     enum Phase: Equatable { case idle, preparing, listening, working, done(String), failed(String) }
@@ -15,11 +15,22 @@ final class Dictation {
     @ObservationIgnored private weak var store: BeanStore?
     @ObservationIgnored private var monitors: [Any] = []
     @ObservationIgnored private var holding = false
-    @ObservationIgnored private var recordingModel: AppSettings.LocalASRModel = .qwen
+    private struct Session {
+        enum Source { case bean, mac(BeanStore.MacSource) }
+        let id = UUID()
+        let source: Source
+        let key: Int
+        let model: AppSettings.LocalASRModel
+        let serverPath: String
+        let dryRun: Bool
+        let trialSeconds: Double?
+    }
+    @ObservationIgnored private var activeSession: Session?
+    @ObservationIgnored private var cancelled = false
+    @ObservationIgnored private var microphone: MacMicrophoneCapture?
+    @ObservationIgnored private var systemTap: SystemAudioTap?
+    @ObservationIgnored private var trialTask: Task<Void, Never>?
     @ObservationIgnored private var hud: NSPanel?
-    @ObservationIgnored private var task: Task<Void, Never>?
-    /// 试用模式：只显示识别结果，不往别的 App 里打字，也不动剪贴板。
-    @ObservationIgnored private var dryRun = false
 
     /// 能用来「按住说话」的键：都是修饰键，单独按住不会往输入框里打出字符。
     static let keys: [(code: Int, name: String)] = [
@@ -55,6 +66,10 @@ final class Dictation {
     func refresh() {
         monitors.forEach(NSEvent.removeMonitor)
         monitors = []
+        if store?.settings.dictationEnabled != true || recordingKey, activeSession != nil {
+            cancelled = true
+            release()
+        }
         guard store?.settings.dictationEnabled == true || recordingKey else { return }
         let handler: (NSEvent) -> Void = { [weak self] event in
             let code = Int(event.keyCode)
@@ -69,7 +84,9 @@ final class Dictation {
                     }
                     return
                 }
-                guard code == store.settings.dictationKey, let mine = Self.flag(for: code) else { return }
+                guard store.settings.dictationEnabled else { return }
+                let key = self.activeSession?.key ?? store.settings.dictationKey
+                guard self.activeSession?.dryRun != true, code == key, let mine = Self.flag(for: code) else { return }
                 // 同时按着别的修饰键就不算，避免和快捷键冲突
                 let others = flags.intersection([.command, .control, .shift, .option]).subtracting(mine)
                 if flags.contains(mine), others.isEmpty { self.press() } else { self.release() }
@@ -84,96 +101,179 @@ final class Dictation {
         _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
     }
 
-    /// 试一次：录几秒，只把识别结果显示出来。用来确认录音豆和转写都正常。
+    /// 试录从采集就绪后计时，只显示结果。
     func tryOnce(seconds: Double = 5) {
-        guard !holding else { return }
-        dryRun = true
-        press()
-        guard holding else { dryRun = false; return }
-        Task { [weak self] in
-            try? await Task.sleep(for: .seconds(seconds))
-            // 这次试录已经提前结束、又开始了一次真正的按键：别把那一次掐断
-            guard let self, self.dryRun else { return }
-            self.release()
-        }
+        press(dryRun: true, trialSeconds: max(0, seconds))
     }
 
-    // MARK: 按下 / 松开
+    private func isCurrent(_ session: Session) -> Bool { activeSession?.id == session.id }
 
-    private func press() {
-        guard !holding, let store else { return }
-        guard store.link == .ready else { flash(.failed(String(localized: "密盒没连上"))); return }
-        guard store.encryptionReady else { flash(.failed(String(localized: "密盒还没准备好，稍等一下"))); return }
-        guard store.recState == .idle || store.scratchFiles.contains(store.currentDeviceFile), store.info?.recording != true, store.pull == nil else { flash(.failed(String(localized: "密盒正忙，先停下当前的录音或下载"))); return }
-        guard store.asrAvailable else { flash(.failed(store.localASRReadinessHint ?? String(localized: "还没有转写模型，先到设置里下载"))); return }
-        // 录音豆的「暂停」不算结束：再开始会接着往同一条录音里录。
-        // 如果那条是你自己的正式录音，语音输入不能往里掺东西，更不能事后把它删掉。
-        let current = store.currentDeviceFile
-        if current != 0, !store.scratchFiles.contains(current) {
-            flash(.failed(String(localized: "密盒里有一条暂停中的录音，先把它下载或结束")))
-            return
+    private func press(dryRun: Bool = false, trialSeconds: Double? = nil) {
+        guard activeSession == nil, let store else { return }
+        guard store.dictationCaptureID == nil, store.macRec == .off, !store.macStarting,
+              store.live == nil, store.info?.recording != true, store.pull == nil else {
+            flash(.failed(String(localized: "录音或下载正在进行，请结束后再用语音输入"))); return
         }
-        recordingModel = store.settings.localASRModel
+        let source: Session.Source = store.usesMacSource ? .mac(store.macSource) : .bean
+        if case .bean = source {
+            guard store.encryptionReady else { flash(.failed(String(localized: "密盒还没准备好，稍等一下"))); return }
+            let current = store.currentDeviceFile
+            guard current == 0 || store.scratchFiles.contains(current) else {
+                flash(.failed(String(localized: "密盒里有一条暂停中的录音，先把它下载或结束"))); return
+            }
+        }
+        guard store.asrAvailable else { flash(.failed(store.localASRReadinessHint ?? String(localized: "还没有转写模型，先到设置里下载"))); return }
+        let session = Session(source: source, key: store.settings.dictationKey, model: store.settings.localASRModel,
+                              serverPath: store.settings.llamaServerPath, dryRun: dryRun, trialSeconds: trialSeconds)
+        activeSession = session
+        store.dictationCaptureID = session.id
         holding = true
-        task?.cancel()
-        var capture = BeanStore.LiveCapture()
-        if current != 0 { capture.fileID = current }     // 接着上一次语音输入的那条临时录音
-        store.live = capture
-        store.send(Command.startRecording())
-        // 新开的录音，设备会报编号，收到后再要求实时传输；接着录的那种不会报，这里直接要
-        if current != 0 { store.send(Command.pullFile(current, offset: 0, realtime: true)) }
-
-        // 录音豆从收到指令到真正开始传声音大约要半秒，这半秒里说的话收不到。
-        // 所以先显示「准备中」，等第一段声音到了再提示可以说话。
+        cancelled = false
         phase = .preparing
         showHUD()
-        Task { [weak self] in
-            for _ in 0..<60 {
-                try? await Task.sleep(for: .milliseconds(50))
-                guard let self, self.holding, self.phase == .preparing else { return }
-                if store.live?.frames.isEmpty == false { self.phase = .listening; NSSound(named: "Tink")?.play(); return }
-            }
-            // 三秒还没有声音传过来：别让人一直按着干等
-            guard let self, self.holding, self.phase == .preparing else { return }
-            self.holding = false
-            self.dryRun = false
-            store.send(Command.stopRecording())
-            store.addLog("语音输入：3 秒内没有收到实时声音（当前文件 \(store.live?.fileID ?? 0)）")
-            store.live = nil
-            self.flash(.failed(String(localized: "密盒没有开始传声音，松开再试一次")))
-        }
-        let server = store.settings.llamaServerPath
-        let selection = recordingModel
-        Task { await QwenASR.shared.warmUp(serverPath: server, selection: selection) }
+        Task { await prepare(store, session: session) }
     }
 
-    private func release() {
-        guard holding, let store else { return }
-        holding = false
-        // 「试一次」只管这一次按键：无论后面成功、失败还是提前收场，标志都在这里收回，不会带到下一次
-        let dry = dryRun
-        dryRun = false
-        // 还没等到「在听」就松手了：什么都没录到，直接收场
-        if phase == .preparing {
+    private func prepare(_ store: BeanStore, session: Session) async {
+        guard isCurrent(session), holding, !cancelled else { complete(store, session: session); return }
+        switch session.source {
+        case .bean:
+            var capture = BeanStore.LiveCapture()
+            let current = store.currentDeviceFile
+            if current != 0 { capture.fileID = current }
+            store.live = capture
+            store.send(Command.startRecording())
+            if current != 0 { store.send(Command.pullFile(current, offset: 0, realtime: true)) }
+            for _ in 0..<60 {
+                try? await Task.sleep(for: .milliseconds(50))
+                guard isCurrent(session), holding, !cancelled else {
+                    store.send(Command.stopRecording())
+                    let fid = store.live?.fileID
+                    store.live = nil
+                    cleanUp(store, fid)
+                    complete(store, session: session)
+                    return
+                }
+                if store.live?.frames.isEmpty == false { listening(session); return }
+            }
             store.send(Command.stopRecording())
             let fid = store.live?.fileID
             store.live = nil
             cleanUp(store, fid)
-            flash(.failed(String(localized: "按住，等出现「在听」再说话")))
-            return
+            flash(.failed(String(localized: "密盒没有开始传声音，松开再试一次")))
+            complete(store, session: session)
+        case .mac(let source):
+            do {
+                if source.usesMic {
+                    let allowed = await AVCaptureDevice.requestAccess(for: .audio)
+                    guard isCurrent(session), holding, !cancelled else { await abandonMac(store, session: session); return }
+                    guard allowed else {
+                        throw CaptureFailure.message(String(localized: "请在系统设置的「隐私与安全性 → 麦克风」中允许密盒助手使用麦克风"))
+                    }
+                }
+                if source.usesSystem {
+                    let tap = SystemAudioTap()
+                    systemTap = tap
+                    do { try await tap.start() } catch {
+                        throw CaptureFailure.message(String(localized: "电脑声音采集未能启动，请检查「屏幕与系统音频录制」权限后重试"))
+                    }
+                    // start() owns the stream until it returns, so release must wait before stopping it.
+                    guard isCurrent(session), holding, !cancelled else { await abandonMac(store, session: session); return }
+                }
+                if source.usesMic {
+                    microphone = try MacMicrophoneCapture()
+                }
+                guard isCurrent(session), holding, !cancelled else { await abandonMac(store, session: session); return }
+                listening(session)
+            } catch {
+                if holding, !cancelled { flash(.failed(error.localizedDescription)) }
+                await abandonMac(store, session: session)
+            }
         }
-        store.send(Command.stopRecording())      // 结束这条临时录音，下次按键是新的一条
-        phase = .working
-        task = Task { [weak self] in await self?.finish(store, dryRun: dry) }
     }
 
-    private func finish(_ store: BeanStore, dryRun: Bool) async {
+    private enum CaptureFailure: LocalizedError {
+        case message(String)
+        var errorDescription: String? {
+            switch self { case .message(let text): text }
+        }
+    }
+
+    private func listening(_ session: Session) {
+        phase = .listening
+        NSSound(named: "Tink")?.play()
+        Task { await QwenASR.shared.warmUp(serverPath: session.serverPath, selection: session.model) }
+        if let seconds = session.trialSeconds {
+            trialTask = Task {
+                do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
+                guard isCurrent(session), holding else { return }
+                release()
+            }
+        }
+    }
+
+    private func complete(_ store: BeanStore, session: Session) {
+        guard isCurrent(session) else { return }
+        trialTask?.cancel(); trialTask = nil
+        if store.dictationCaptureID == session.id { store.dictationCaptureID = nil }
+        activeSession = nil
+        holding = false
+        if cancelled { phase = .idle; hud?.orderOut(nil) }
+    }
+
+    private func stopMac() async -> (micURL: URL?, systemURL: URL?, micStarted: Date?, systemStarted: Date?, error: String?) {
+        let mic = microphone, tap = systemTap
+        microphone = nil; systemTap = nil
+        mic?.stop()
+        await tap?.stop()
+        return (mic?.url, tap?.url, mic?.sink.startedAt, tap?.startedAt, mic?.sink.status().error ?? tap?.error)
+    }
+
+    private func abandonMac(_ store: BeanStore, session: Session) async {
+        let capture = await stopMac()
+        for url in [capture.micURL, capture.systemURL].compactMap({ $0 }) { try? FileManager.default.removeItem(at: url) }
+        complete(store, session: session)
+    }
+
+    private func release() {
+        guard holding, let store, let session = activeSession else { return }
+        holding = false
+        trialTask?.cancel(); trialTask = nil
+        if phase == .preparing {
+            if !cancelled { flash(.failed(String(localized: "按住，等出现「在听」再说话"))) }
+            return
+        }
+        phase = .working
+        Task {
+            defer { complete(store, session: session) }
+            switch session.source {
+            case .bean:
+                store.send(Command.stopRecording())
+                await finishBean(store, session: session)
+            case .mac:
+                let capture = await stopMac()
+                defer { for url in [capture.micURL, capture.systemURL].compactMap({ $0 }) { try? FileManager.default.removeItem(at: url) } }
+                guard isCurrent(session), !cancelled else { return }
+                if let error = capture.error { flash(.failed(error)); return }
+                let samples = await Task.detached {
+                    BeanStore.mixMacAudio(micURL: capture.micURL, systemURL: capture.systemURL,
+                                         micStarted: capture.micStarted, systemStarted: capture.systemStarted)
+                }.value
+                guard isCurrent(session), !cancelled else { return }
+                guard samples.count > 1600 else { flash(.failed(String(localized: "没听到声音"))); return }
+                await transcribe(samples, store: store, session: session)
+            }
+        }
+    }
+
+    private func finishBean(_ store: BeanStore, session: Session) async {
         // 等最后一点声音传完：0.45 秒没有新数据就算完，最多等 3 秒
         await settle(store, quiet: 0.45, limit: 3)
 
         let capture = store.live
         store.live = nil
         defer { cleanUp(store, capture?.fileID) }
+        guard isCurrent(session), !cancelled else { return }
 
         // 实时传输从请求那一刻开始，所以帧号不从 0 起；取收到的连续那一段
         var audio = Data()
@@ -192,12 +292,21 @@ final class Dictation {
         }
         store.addLog("语音输入：收到 \(capture.packets) 个切片，实时从第 \(capture.firstSequence ?? 0) 帧起，可用 \(audio.count / OggOpus.frameSize) 帧")
         do {
-            let wav = FileManager.default.temporaryDirectory.appendingPathComponent("beanpod-dictation.wav")
+            let wav = FileManager.default.temporaryDirectory.appendingPathComponent("beanpod-dictation-\(session.id).wav")
             defer { try? FileManager.default.removeItem(at: wav) }
             try OpusDecoder.writeWAV(packets: OggOpus.frames(fromRaw: audio), to: wav)
             let samples = try QwenASR.loadMono16k(wav)
-            let selection = recordingModel
-            var text = try await QwenASR.shared.transcribe(samples: samples, serverPath: store.settings.llamaServerPath, selection: selection)
+            await transcribe(samples, store: store, session: session)
+        } catch {
+            if !cancelled { flash(.failed(error.localizedDescription)) }
+        }
+    }
+
+    private func transcribe(_ samples: [Float], store: BeanStore, session: Session) async {
+        do {
+            let selection = session.model
+            var text = try await QwenASR.shared.transcribe(samples: samples, serverPath: session.serverPath, selection: selection)
+            guard isCurrent(session), !cancelled, !Task.isCancelled else { return }
             guard !text.isEmpty else { store.addLog("语音输入：没识别出文字"); flash(.failed(String(localized: "没听清"))); return }
             if store.settings.dictationPolish, store.analysisAvailable {
                 let raw = text
@@ -207,16 +316,18 @@ final class Dictation {
                         user: raw, json: false)
                 }), !polished.isEmpty { text = polished }
             }
+            guard isCurrent(session), !cancelled, !Task.isCancelled else { return }
             if selection == .gemma { text = ChineseScript.simplified(text) }
             lastText = text
             store.addLog("语音输入结果：\(text)")
             // 打进了哪个软件：豆仓的提示框不抢前台，这时最前面的就是要打字的那个
             let target = NSWorkspace.shared.frontmostApplication.flatMap { $0.bundleIdentifier == Bundle.main.bundleIdentifier ? nil : $0.localizedName }
-            if !dryRun { insert(text) }
+            if !session.dryRun { insert(text) }
             // 打字之外，把这段话也记进侧栏的「语音输入」（设置里可关；「试一次」不记）
-            if !dryRun, store.settings.dictationSave { store.saveDictation(samples: samples, text: text, app: target, model: selection.asrName) }
+            if !session.dryRun, store.settings.dictationSave { store.saveDictation(samples: samples, text: text, app: target, model: selection.asrName) }
             flash(.done(text))
         } catch {
+            guard isCurrent(session), !cancelled else { return }
             store.addLog("语音输入失败：\(error.localizedDescription)")
             flash(.failed(error.localizedDescription))
         }
@@ -233,7 +344,7 @@ final class Dictation {
 
     /// 语音输入留在录音豆里的临时录音，用完删掉。
     private func cleanUp(_ store: BeanStore, _ fileID: UInt32?) {
-        guard let fileID else { return }
+        guard let fileID, store.scratchFiles.contains(fileID) else { return }
         Task {
             try? await Task.sleep(for: .seconds(1.5))   // 等设备把文件收尾
             store.deleteFromDevice(fileID)

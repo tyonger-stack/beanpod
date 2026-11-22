@@ -44,6 +44,9 @@ final class MacMicrophoneCapture {
         private var level: Float = 0.02
         private var failure: String?
         private var dropped = false
+        private var firstBuffer: Date?
+
+        var startedAt: Date? { lock.withLock { firstBuffer } }
 
         init(url: URL, format: AVAudioFormat) throws {
             guard format.sampleRate > 0, format.channelCount > 0,
@@ -62,6 +65,9 @@ final class MacMicrophoneCapture {
             do { try file.write(from: buffer) } catch {
                 failure = error.localizedDescription
                 return
+            }
+            if firstBuffer == nil, buffer.frameLength > 0 {
+                firstBuffer = Date().addingTimeInterval(-Double(buffer.frameLength) / buffer.format.sampleRate)
             }
             let capacity = AVAudioFrameCount(ceil(Double(buffer.frameLength) * 16000 / buffer.format.sampleRate)) + 32
             guard let output = AVAudioPCMBuffer(pcmFormat: outputFormat, frameCapacity: capacity) else { return }

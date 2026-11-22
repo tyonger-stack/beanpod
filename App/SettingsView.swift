@@ -373,14 +373,20 @@ private struct DictationPane: View {
         @Bindable var settings = store.settings
         let on = settings.dictationEnabled
         PaneFrame {
-            SettingsGroup(footer: String(localized: "把密盒当随身麦克风：在任何 App 里按住你选的那个键，对着密盒说话，松开后文字出现在光标处。")) {
-                SettingRow(icon: "mic.fill", title: String(localized: "按住按键说话，松开输入文字"), detail: on ? String(localized: "已打开。按住「\(Dictation.name(of: settings.dictationKey))」试试。") : String(localized: "关着的时候，密盒助手不会监听任何按键。")) {
+            SettingsGroup(footer: String(localized: "在任何 App 里按住你选的那个键，录下所选来源的声音，松开后文字出现在光标处。使用这台 Mac 的声音来源，无需连接密盒。")) {
+                SettingRow(icon: "mic.fill", title: String(localized: "按住按键录音，松开输入文字"), detail: on ? String(localized: "已打开。按住「\(Dictation.name(of: settings.dictationKey))」试试。") : String(localized: "关着的时候，密盒助手不会监听任何按键。")) {
                     Toggle("语音输入", isOn: Binding(get: { settings.dictationEnabled }, set: {
                         settings.dictationEnabled = $0
                         dictation.refresh()
                         if $0, !AXIsProcessTrusted() { dictation.requestAccessibility() }
                     }))
                     .labelsHidden().toggleStyle(.switch)
+                }
+            }
+
+            SettingsGroup(String(localized: "声音来源"), footer: String(localized: "默认优先使用已连接的密盒。断开时使用所选的 Mac 音源。也可以在侧栏手动切换。")) {
+                SettingRow(icon: store.sourceIcon, title: store.sourceName, detail: String(localized: "与侧栏的录音来源共用同一选择。")) {
+                    EmptyView()
                 }
             }
 
@@ -416,7 +422,7 @@ private struct DictationPane: View {
                     Toggle("知识库里也搜", isOn: $settings.dictationInKnowledge).labelsHidden().toggleStyle(.switch)
                 }
                 .disabled(!settings.dictationSave)
-                SettingRow(icon: "play.circle", title: String(localized: "先试一次"), detail: String(localized: "录 5 秒，只显示识别结果，不会打进别的 App。")) {
+                SettingRow(icon: "play.circle", title: String(localized: "先试一次"), detail: String(localized: "按当前声音来源录 5 秒，只显示识别结果，不会打进别的 App。选麦克风时说句话，选电脑里的声音时播放一段人声。")) {
                     Button("试一次") { dictation.tryOnce() }
                 }
             }

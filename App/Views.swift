@@ -281,7 +281,7 @@ struct SourceMenu: View {
             Section("用这台 Mac 录") {
                 ForEach(BeanStore.MacSource.allCases) { source in
                     let on = (store.link != .ready || store.preferMac) && store.macSource == source
-                    Button { store.macSource = source; store.preferMac = true } label: {
+                    Button { store.chooseMacSource(source) } label: {
                         Label(source.name + (on ? "　✓" : ""), systemImage: source.icon)
                     }
                     .help(source.hint)
@@ -534,7 +534,7 @@ struct SourceLine: View {
             Section("用这台 Mac 录") {
                 ForEach(BeanStore.MacSource.allCases) { source in
                     let on = (store.link != .ready || store.preferMac) && store.macSource == source
-                    Button { store.macSource = source; store.preferMac = true } label: {
+                    Button { store.chooseMacSource(source) } label: {
                         Label(source.name + (on ? "　✓" : ""), systemImage: source.icon)
                     }
                 }
