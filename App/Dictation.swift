@@ -110,7 +110,7 @@ final class Dictation {
 
     private func press(dryRun: Bool = false, trialSeconds: Double? = nil) {
         guard activeSession == nil, let store else { return }
-        guard store.dictationCaptureID == nil, store.macRec == .off, !store.macStarting,
+        guard store.dictationCaptureID == nil, store.macRec == .off, !store.macStarting, !store.xiaomiRecording,
               store.live == nil, store.info?.recording != true, store.pull == nil else {
             flash(.failed(String(localized: "录音或下载正在进行，请结束后再用语音输入"))); return
         }

@@ -580,6 +580,9 @@ extension BeanStore {
     /// 开始录音时调用：让录音豆边录边把声音传过来，攒够一句就转成字。
     /// 这只是给现场看的即时字幕；录音结束后仍会下载完整音频，再整体转写、整理一遍，以那一份为准。
     func beginLiveTranscript(reset: Bool = true) {
+        #if os(macOS)
+        guard !xiaomiRecording else { return }
+        #endif
         guard dictationCaptureID == nil else { return }
         refreshASRAvailability()
         guard settings.liveTranscribe, asrAvailable, encryptionReady, pull == nil, live == nil else {

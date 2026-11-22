@@ -249,12 +249,14 @@ struct RecordControls: View {
                 .font(size == .regular ? .callout.weight(.medium) : .title3.weight(.medium))
                 .padding(.horizontal, 8)
 
-                Button { paused ? store.resumeRecording() : store.pauseRecording() } label: {
-                    Label(paused ? "继续" : "暂停", systemImage: paused ? "play.fill" : "pause.fill")
-                        .labelStyle(size == .regular ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
+                if !store.xiaomiRecording {
+                    Button { paused ? store.resumeRecording() : store.pauseRecording() } label: {
+                        Label(paused ? "继续" : "暂停", systemImage: paused ? "play.fill" : "pause.fill")
+                            .labelStyle(size == .regular ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
+                    }
+                    .buttonStyle(size == .regular ? AnyButtonStyle(.borderless) : AnyButtonStyle(.glass)).controlSize(size)
+                    .help(paused ? "继续录（⌘R）" : "暂停，稍后可以接着录进同一条（⌘R）")
                 }
-                .buttonStyle(size == .regular ? AnyButtonStyle(.borderless) : AnyButtonStyle(.glass)).controlSize(size)
-                .help(paused ? "继续录（⌘R）" : "暂停，稍后可以接着录进同一条（⌘R）")
 
                 Button { store.finishRecording() } label: {
                     Label("结束", systemImage: "stop.fill")
@@ -262,7 +264,7 @@ struct RecordControls: View {
                 }
                 .buttonStyle(size == .regular ? AnyButtonStyle(.borderless) : AnyButtonStyle(.glassProminent))
                 .tint(Theme.rec).foregroundStyle(size == .regular ? AnyShapeStyle(Theme.rec) : AnyShapeStyle(.white)).controlSize(size)
-                    .help("结束这条录音（⌘.）。结束后会自动下载并整理成纪要。")
+                    .help(store.xiaomiRecording ? "结束遥控器录音并保存（⌘.），也可松开语音键结束" : "结束这条录音（⌘.）。结束后会自动下载并整理成纪要。")
             }
         }
     }
@@ -393,6 +395,9 @@ struct Sidebar: View {
                 .accessibilityLabel("最近删除，\(store.trash.count) 条")
             }
             Divider().overlay(Theme.warm200.opacity(0.6)).padding(.horizontal, -16).padding(.bottom, 14)
+            if store.xiaomiLink == .ready || store.xiaomiLink == .connecting {
+                XiaomiDeviceChip().padding(.bottom, 6)
+            }
             HStack(spacing: 6) {
                 DeviceChip()
                 SettingsChip()
@@ -516,6 +521,9 @@ struct SidebarRecord: View {
                     .contentShape(.rect(cornerRadius: Theme.Radius.card))
                 }
                 .buttonStyle(.plain).help("回到录音舞台（⌘L）")
+                if store.xiaomiRecording {
+                    Text(store.sourceName).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                }
             }
         }
     }
@@ -620,8 +628,10 @@ struct DeviceChip: View {
         if showCard { return store.card.progress != nil ? String(localized: "正在下载") : String(localized: "已连接") }
         switch store.link {
         case .ready:
-            if store.recState == .recording { return String(localized: "录音中") }
-            if store.recState == .paused { return String(localized: "录音已暂停") }
+            if !store.recordingOnMac, !store.xiaomiRecording {
+                if store.recState == .recording { return String(localized: "录音中") }
+                if store.recState == .paused { return String(localized: "录音已暂停") }
+            }
             return String(localized: "已连接")
         case .connecting: return String(localized: "正在连接…")
         case .scanning: return String(localized: "正在搜索…")
@@ -636,6 +646,36 @@ struct DeviceChip: View {
         if showCard { return Theme.ok }
         if store.link == .ready { return store.info?.recording == true ? Theme.rec : Theme.ok }
         return .secondary.opacity(0.5)
+    }
+}
+
+struct XiaomiDeviceChip: View {
+    @Environment(BeanStore.self) private var store
+    @Environment(Navigator.self) private var nav
+
+    var body: some View {
+        Button { nav.route = .device } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "appletvremote.gen4.fill")
+                    .font(.system(size: 18)).foregroundStyle(Theme.accent)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(store.xiaomiName ?? "小米语音遥控器")
+                        .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.warm900)
+                        .lineLimit(2)
+                    Text(store.xiaomiRecording ? "正在录音 · 松开语音键结束" : store.xiaomiLink == .ready ? "已连接 · 按住语音键说话" : "正在连接…")
+                        .font(.system(size: 10.5)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(9)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Theme.surface.opacity(0.7), in: .rect(cornerRadius: Theme.Radius.card))
+            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).strokeBorder(Theme.warm200.opacity(0.6), lineWidth: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("小米遥控器连接与语音转写")
     }
 }
 
@@ -1938,17 +1978,19 @@ struct RecordDock: View {
             .help("回到录音舞台")
             if paused { Text("已暂停").font(.callout).foregroundStyle(.secondary) }
 
-            Button { paused ? store.resumeRecording() : store.pauseRecording() } label: {
-                Image(systemName: paused ? "play.fill" : "pause.fill").frame(width: 18, height: 18)
+            if !store.xiaomiRecording {
+                Button { paused ? store.resumeRecording() : store.pauseRecording() } label: {
+                    Image(systemName: paused ? "play.fill" : "pause.fill").frame(width: 18, height: 18)
+                }
+                .buttonStyle(.glass).controlSize(.large)
+                .help(paused ? "继续录（⌘R）" : "暂停，稍后可以接着录进同一条（⌘R）")
             }
-            .buttonStyle(.glass).controlSize(.large)
-            .help(paused ? "继续录（⌘R）" : "暂停，稍后可以接着录进同一条（⌘R）")
 
             Button { store.finishRecording() } label: {
                 Label("结束", systemImage: "stop.fill")
             }
             .buttonStyle(.glassProminent).tint(Theme.rec).controlSize(.large)
-            .help("结束这条录音（⌘.）。结束后会自动下载并整理成纪要。")
+            .help(store.xiaomiRecording ? "结束遥控器录音并保存（⌘.），也可松开语音键结束" : "结束这条录音（⌘.）。结束后会自动下载并整理成纪要。")
         }
         .padding(.leading, 20).padding(.trailing, 10).padding(.vertical, 9)
         .glassEffect(.regular, in: .capsule)
@@ -2656,6 +2698,7 @@ struct DeviceView: View {
                 case .connecting: connecting
                 case .idle, .scanning: scanner
                 }
+                xiaomiPanel
                 // 得到 AI 录音卡：和录音豆各连各的（CardViews.swift）
                 CardPanel()
                 // 手机 App 把录音同步进飞书后，从飞书拉回来（FeishuPanel.swift）
@@ -2669,6 +2712,50 @@ struct DeviceView: View {
         }
         }
         .navigationTitle("设备")
+    }
+
+    private var xiaomiPanel: some View {
+        Card(title: "小米语音遥控器", icon: "appletvremote.gen4.fill") {
+            switch store.xiaomiLink {
+            case .ready:
+                Text(store.xiaomiName ?? "小米语音遥控器").font(.headline).textSelection(.enabled)
+                Label("已连接", systemImage: "checkmark.circle.fill").foregroundStyle(Theme.ok)
+                Text("按住遥控器语音键说话，松开结束。字幕会显示在录音舞台。")
+                    .font(.callout).foregroundStyle(.secondary)
+                Text(store.xiaomiLiveStatus).font(.callout).foregroundStyle(.secondary)
+                Button("断开遥控器") { store.disconnectXiaomi() }.buttonStyle(.glass)
+            case .connecting:
+                ProgressView("正在连接小米语音遥控器…").controlSize(.small)
+                Button("取消") { store.disconnectXiaomi() }
+            case .off:
+                Text("打开 Mac 蓝牙后可搜索遥控器。").font(.callout).foregroundStyle(.secondary)
+            case .unauthorized:
+                Text("请在系统设置的蓝牙权限中允许「密盒助手」。").font(.callout).foregroundStyle(.secondary)
+            case .idle, .scanning:
+                Text("将遥控器放在 Mac 旁边。同时按住主页键和菜单键进入配对，再搜索遥控器。")
+                    .font(.callout).foregroundStyle(.secondary)
+                ForEach(store.xiaomiFound) { device in
+                    Button { store.connectXiaomi(device) } label: {
+                        HStack {
+                            Image(systemName: "appletvremote.gen4.fill").foregroundStyle(Theme.accent)
+                            Text(device.name).fontWeight(.medium)
+                            Spacer()
+                            Text("连接").foregroundStyle(Theme.accent)
+                        }
+                        .padding(10)
+                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: Theme.Radius.card))
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+                if store.xiaomiLink == .scanning, store.xiaomiFound.isEmpty {
+                    ProgressView("正在搜索小米语音遥控器…").controlSize(.small)
+                }
+                Button(store.xiaomiLink == .scanning ? "停止搜索" : "搜索遥控器") {
+                    if store.xiaomiLink == .scanning { store.xiaomi.stopScan() } else { store.xiaomi.scan() }
+                }
+            }
+        }
     }
 
     private var connecting: some View {
@@ -2743,7 +2830,7 @@ struct DeviceView: View {
                         .help("点这里改名。名字只存在这台 Mac 上")
                     HStack(spacing: 7) {
                         Circle().fill(Theme.ok).frame(width: 9, height: 9)
-                        Text(store.recState == .recording ? "已连接 · 正在录音" : store.inCase ? "已连接 · 正在充电" : "已连接").font(.title3).foregroundStyle(.secondary)
+                        Text(store.recState == .recording && !store.recordingOnMac && !store.xiaomiRecording ? "已连接 · 正在录音" : store.inCase ? "已连接 · 正在充电" : "已连接").font(.title3).foregroundStyle(.secondary)
                     }
                     Button("断开连接") { store.disconnect() }.buttonStyle(.glass).controlSize(.large)
                         .padding(.top, 10)

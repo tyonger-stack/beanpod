@@ -40,6 +40,7 @@ struct BeanPodApp: App {
                     }
                 }
                 .keyboardShortcut("r", modifiers: .command)
+                .disabled(store.xiaomiRecording)
                 // 用这台 Mac 录：三种声音来源，点哪个就用哪个开始，并记住这次的选择
                 Menu("用这台 Mac 录") {
                     ForEach(BeanStore.MacSource.allCases) { source in
@@ -175,7 +176,10 @@ struct MenuBarContent: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        if store.link == .ready {
+        if store.xiaomiRecording {
+            Text(String(localized: "\(store.sourceName) 正在录音"))
+            Button("结束录音") { store.finishRecording() }
+        } else if store.link == .ready {
             Text(store.recState == .paused ? String(localized: "\(store.displayDeviceName) 录音已暂停") : store.isRecording ? String(localized: "\(store.displayDeviceName) 正在录音") : String(localized: "\(store.displayDeviceName) 已连接") + (store.info.map { " · \($0.micBattery)%" } ?? ""))
             switch store.recState {
             case .idle: Button("开始录音") { store.startRecording() }

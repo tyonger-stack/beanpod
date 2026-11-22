@@ -307,7 +307,9 @@ struct NotchView: View {
     private var header: some View {
         HStack(spacing: 8) {
             DevicePhotoView().frame(width: 30, height: 30).accessibilityHidden(true)
-            if store.link == .ready {
+            if store.xiaomiRecording {
+                Text(store.sourceName).font(.system(size: 12)).foregroundStyle(.white.opacity(0.6))
+            } else if store.link == .ready {
                 Text(store.displayDeviceName).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white).lineLimit(1)
                 Circle().fill(Theme.ok).frame(width: 6, height: 6).padding(.leading, 2)
                 Text(store.info.map { String(localized: "已连接 · 电量 \($0.micBattery)%") } ?? String(localized: "已连接"))
@@ -354,9 +356,11 @@ struct NotchView: View {
                         .foregroundStyle(.white.opacity(paused ? 0.6 : 1))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                pill(paused ? String(localized: "继续") : String(localized: "暂停"), primary: false) {
-                    Image(systemName: paused ? "play.fill" : "pause.fill").font(.system(size: 9, weight: .bold))
-                } action: { paused ? store.resumeRecording() : store.pauseRecording() }
+                if !store.xiaomiRecording {
+                    pill(paused ? String(localized: "继续") : String(localized: "暂停"), primary: false) {
+                        Image(systemName: paused ? "play.fill" : "pause.fill").font(.system(size: 9, weight: .bold))
+                    } action: { paused ? store.resumeRecording() : store.pauseRecording() }
+                }
                 pill(String(localized: "结束"), primary: true) {
                     RoundedRectangle(cornerRadius: 1.5).fill(.white).frame(width: 7, height: 7)
                 } action: { store.finishRecording() }

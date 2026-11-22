@@ -13,6 +13,13 @@ final class BeanStore {
     // 连接
     var link: BLEClient.Link = .idle
     var found: [FoundDevice] = []
+    #if os(macOS)
+    @ObservationIgnored let xiaomi = XiaomiRemoteClient()
+    var xiaomiLink: BLEClient.Link = .idle
+    var xiaomiFound: [FoundDevice] = []
+    var xiaomiName: String?
+    var xiaomiCapture: XiaomiCapture?
+    #endif
     var deviceName = String(localized: "密盒")
     /// 界面上显示的名字：用户起过名就用用户的。
     var displayDeviceName: String { settings.deviceAlias.isEmpty ? deviceName : settings.deviceAlias }
@@ -339,6 +346,9 @@ final class BeanStore {
         ble.onLog = { [weak self] in self?.addLog($0) }
         guard !Self.demo else { addLog("示例数据模式：\(recordings.count) 条示例录音，不连设备"); return }
         ble.start()
+        #if os(macOS)
+        attachXiaomi()
+        #endif
         card.attach(self)
         // 没有记住的设备时，一打开就开始找，不用先点进设备页
         Task { [weak self] in
@@ -351,7 +361,13 @@ final class BeanStore {
 
     // MARK: 连接
 
-    func scan() { ble.scan(); if card.link == .idle { card.scan() } }
+    func scan() {
+        ble.scan()
+        if card.link == .idle { card.scan() }
+        #if os(macOS)
+        if xiaomiLink != .scanning && xiaomiLink != .ready && xiaomiLink != .connecting { xiaomi.scan() }
+        #endif
+    }
 
     /// 附近只有一颗录音豆时，不用再点一下，直接连。用户主动断开过就不自动连，免得刚断开又连上。
     @ObservationIgnored var autoConnectAllowed = true
@@ -369,7 +385,13 @@ final class BeanStore {
             if self.link == .scanning, beans.count == 1, let only = beans.first { self.connect(only) }
         }
     }
-    func stopScan() { ble.stopScan(); card.stopScan() }
+    func stopScan() {
+        ble.stopScan()
+        card.stopScan()
+        #if os(macOS)
+        xiaomi.stopScan()
+        #endif
+    }
 
     // Wi‑Fi 快传要用到的几样（见 WiFiSync.swift）
     var sessionCrypto: CryptoSession { crypto }
@@ -451,7 +473,12 @@ final class BeanStore {
 
     // MARK: 设备操作
 
-    var isRecording: Bool { macRec == .recording || (link == .ready && info?.recording == true) }
+    var isRecording: Bool {
+        #if os(macOS)
+        if xiaomiRecording { return true }
+        #endif
+        return macRec == .recording || (link == .ready && info?.recording == true)
+    }
 
     /// 用这台 Mac 的麦克风录音时的状态。
     var macRec: MacRec = .off
@@ -470,8 +497,18 @@ final class BeanStore {
     var preferMac = false
     var usesMacSource: Bool { link != .ready || preferMac }
     /// 点「开始录音」时声音从哪来。
-    var sourceName: String { usesMacSource ? macSource.name : displayDeviceName }
-    var sourceIcon: String { usesMacSource ? macSource.icon : "dot.radiowaves.left.and.right" }
+    var sourceName: String {
+        #if os(macOS)
+        if let xiaomiCapture { return xiaomiCapture.name }
+        #endif
+        return usesMacSource ? macSource.name : displayDeviceName
+    }
+    var sourceIcon: String {
+        #if os(macOS)
+        if xiaomiRecording { return "appletvremote.gen4.fill" }
+        #endif
+        return usesMacSource ? macSource.icon : "dot.radiowaves.left.and.right"
+    }
     /// 用 Mac 录音时录哪一路：麦克风、电脑里的声音，还是两路一起。会记住上次的选择。
     var macSource: MacSource = MacSource(rawValue: UserDefaults.standard.string(forKey: "macSource") ?? "") ?? .mic {
         didSet { UserDefaults.standard.set(macSource.rawValue, forKey: "macSource") }
@@ -487,6 +524,9 @@ final class BeanStore {
 
     /// 录音豆现在的状态：没在录、正在录、录到一半暂停着。
     var recState: RecState {
+        #if os(macOS)
+        if xiaomiRecording { return .recording }
+        #endif
         if macRec != .off { return macRec == .recording ? .recording : .paused }
         guard link == .ready else { return .idle }
         if info?.recording == true { return .recording }
@@ -495,7 +535,10 @@ final class BeanStore {
 
     /// 已经录了多久（暂停的时间不算）。
     func elapsed(at now: Date = .now) -> TimeInterval {
-        elapsedBase + (recordingSince.map { max(0, now.timeIntervalSince($0)) } ?? 0)
+        #if os(macOS)
+        if let xiaomiCapture { return max(0, now.timeIntervalSince(xiaomiCapture.started)) }
+        #endif
+        return elapsedBase + (recordingSince.map { max(0, now.timeIntervalSince($0)) } ?? 0)
     }
 
     func startRecording() {
@@ -516,6 +559,9 @@ final class BeanStore {
     }
 
     func pauseRecording() {
+        #if os(macOS)
+        guard !xiaomiRecording else { return }
+        #endif
         if macRec != .off { pauseMacRecording(); return }
         guard recState == .recording else { return }
         ble.send(Command.pauseRecording())
@@ -541,6 +587,9 @@ final class BeanStore {
 
     /// 结束这条录音。结束后设备才把它当成一条完整的录音，才能下载；下次再录是新的一条。
     func finishRecording() {
+        #if os(macOS)
+        if xiaomiRecording { finishXiaomiRecording(); return }
+        #endif
         if macRec != .off { finishMacRecording(); return }
         guard link == .ready, recState != .idle else { return }
         let fid = currentDeviceFile, seconds = elapsed()
@@ -570,12 +619,19 @@ final class BeanStore {
     /// 现在：收掉实时出字，按设置问一句留不留，然后重新列一遍、把它下载下来转写整理。
     func deviceStopped(file: UInt32, finished: Bool, seconds: TimeInterval = 0) {
         addLog("密盒自己停止了录音（\(finished ? "结束" : "停下")）：\(file)")
-        liveFlush = true
-        if !liveMarks.isEmpty, let since = sessionStart {
-            pendingMarks.append((since, file, liveMarks))
-            liveMarks = []
+        #if os(macOS)
+        let ownsLiveView = !xiaomiRecording
+        #else
+        let ownsLiveView = true
+        #endif
+        if ownsLiveView {
+            liveFlush = true
+            if !liveMarks.isEmpty, let since = sessionStart {
+                pendingMarks.append((since, file, liveMarks))
+                liveMarks = []
+            }
+            Task { await endLiveTranscript() }
         }
-        Task { await endLiveTranscript() }
         let ask = finished && settings.askKeep && file != 0 && !scratchFiles.contains(file)
         if ask { offerKeep(id: file, seconds: seconds, from: displayDeviceName, onMac: false) }
         else { syncOnConnect = syncOnConnect || settings.autoDownload; pullWhenListed = settings.autoDownload }
@@ -757,7 +813,11 @@ final class BeanStore {
                     recordingSince = .now
                     if !resumed {
                         elapsedBase = 0
+                        #if os(macOS)
+                        if !xiaomiRecording { liveMarks = [] }
+                        #else
                         liveMarks = []
+                        #endif
                         sessionStart = .now
                     }
                     beginLiveTranscript(reset: !resumed)

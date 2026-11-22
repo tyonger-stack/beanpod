@@ -20,17 +20,30 @@ extension QwenASR {
     // MARK: 音频处理
 
     nonisolated static func loadMono16k(_ url: URL) throws -> [Float] {
-        guard let file = try? AVAudioFile(forReading: url),
-              let target = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false),
-              let input = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)) else {
+        guard let file = try? AVAudioFile(forReading: url) else { throw ASRError.badAudio }
+        let format = file.processingFormat
+        if format.sampleRate == 16000, format.channelCount == 1 {
+            let length = file.length
+            guard length > 0 else { return [] }
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(min(length, 65536))),
+                  let channel = buffer.floatChannelData?[0] else { throw ASRError.badAudio }
+            var samples: [Float] = []
+            samples.reserveCapacity(Int(length))
+            // A read can return fewer frames than requested, including for Float32 WAV.
+            while file.framePosition < length {
+                try file.read(into: buffer)
+                guard buffer.frameLength > 0 else { throw ASRError.badAudio }
+                samples.append(contentsOf: UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
+            }
+            return samples
+        }
+        guard let target = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16000, channels: 1, interleaved: false),
+              let input = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(file.length)) else {
             throw ASRError.badAudio
         }
         try file.read(into: input)
-        if file.processingFormat.sampleRate == 16000, file.processingFormat.channelCount == 1, let d = input.floatChannelData {
-            return Array(UnsafeBufferPointer(start: d[0], count: Int(input.frameLength)))
-        }
-        guard let converter = AVAudioConverter(from: file.processingFormat, to: target),
-              let output = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: AVAudioFrameCount(Double(input.frameLength) * 16000 / file.processingFormat.sampleRate) + 1024) else {
+        guard let converter = AVAudioConverter(from: format, to: target),
+              let output = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: AVAudioFrameCount(Double(input.frameLength) * 16000 / format.sampleRate) + 1024) else {
             throw ASRError.badAudio
         }
         nonisolated(unsafe) var pending: AVAudioPCMBuffer? = input

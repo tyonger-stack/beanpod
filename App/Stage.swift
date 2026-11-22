@@ -62,7 +62,7 @@ struct RecordStage: View {
                 .opacity(paused ? 1 : 0.55 + 0.45 * Double(level))
                 .animation(.easeOut(duration: 0.25), value: level)
             Text(paused ? "已暂停" : "正在录音").font(.callout.weight(.semibold)).tracking(1.5)
-            Text(store.recordingOnMac ? String(localized: "这台 Mac · \(store.macSource.name)") : store.displayDeviceName + (store.info.map { " · \($0.micBattery)%" } ?? ""))
+            Text(store.sourceName + (!store.recordingOnMac && !store.xiaomiRecording ? (store.info.map { " · \($0.micBattery)%" } ?? "") : ""))
                 .font(.callout).foregroundStyle(Theme.paper.opacity(0.45))
             Spacer()
             Button { nav.stageOpen = false } label: {
@@ -76,9 +76,15 @@ struct RecordStage: View {
 
     private var timer: some View {
         HStack(alignment: .center, spacing: 22) {
-            DevicePhotoView()
-                .frame(width: 230, height: 230)
-                .accessibilityHidden(true)
+            if store.xiaomiRecording {
+                Image(systemName: "appletvremote.gen4.fill")
+                    .font(.system(size: 100, weight: .light)).foregroundStyle(Theme.paper.opacity(0.65))
+                    .frame(width: 230, height: 230).accessibilityHidden(true)
+            } else {
+                DevicePhotoView()
+                    .frame(width: 230, height: 230)
+                    .accessibilityHidden(true)
+            }
             TimelineView(.periodic(from: .now, by: 0.1)) { context in
                 let t = store.elapsed(at: context.date)
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
@@ -102,10 +108,14 @@ struct RecordStage: View {
                     Text(store.settings.liveTidy ? stripFillers(last.text) : last.text)
                         .font(.system(size: 26, weight: .medium)).lineLimit(2).multilineTextAlignment(.center)
                         .id(last.id).transition(.opacity.combined(with: .offset(y: 8)))
-                    if store.recordingOnMac, let note = store.liveNote {
+                    if store.xiaomiRecording {
+                        Text(store.xiaomiLiveStatus).font(.callout).foregroundStyle(Theme.paper.opacity(0.55))
+                    } else if store.recordingOnMac, let note = store.liveNote {
                         Text(note).font(.callout).foregroundStyle(Theme.paper.opacity(0.55))
                     }
                 }
+            } else if store.xiaomiRecording {
+                Text(store.xiaomiLiveStatus).font(.title3).foregroundStyle(Theme.paper.opacity(0.65))
             } else if let note = store.liveNote {
                 Text(note).font(.title3).foregroundStyle(Theme.amber)
             } else if store.recordingOnMac {
@@ -139,7 +149,7 @@ struct RecordStage: View {
                         .id(seg.id)
                         .transition(.opacity.combined(with: .offset(y: 8)))
                     }
-                    Text(paused ? String(localized: "已暂停") : (store.liveNote ?? String(localized: "在听…"))).font(.title3).foregroundStyle(Theme.paper.opacity(0.4))
+                    Text(paused ? String(localized: "已暂停") : (store.xiaomiRecording ? store.xiaomiLiveStatus : (store.liveNote ?? String(localized: "在听…")))).font(.title3).foregroundStyle(Theme.paper.opacity(0.4))
                         .padding(.leading, 64).id("tail")
                 }
                 .padding(.vertical, 22)
@@ -159,13 +169,15 @@ struct RecordStage: View {
             }
             .buttonStyle(.glass).tint(Theme.amber).controlSize(.extraLarge)
             .disabled(paused)
-            .help("这句话很重要：打个标记，回听时一点就到（⌘D）。在密盒上按标记键也一样")
+            .help(store.xiaomiRecording ? "打个重点标记，方便回听（⌘D）" : "这句话很重要：打个标记，回听时一点就到（⌘D）。在密盒上按标记键也一样")
 
-            Button { paused ? store.resumeRecording() : store.pauseRecording() } label: {
-                Label(paused ? "继续" : "暂停", systemImage: paused ? "play.fill" : "pause.fill").padding(.horizontal, 10)
+            if !store.xiaomiRecording {
+                Button { paused ? store.resumeRecording() : store.pauseRecording() } label: {
+                    Label(paused ? "继续" : "暂停", systemImage: paused ? "play.fill" : "pause.fill").padding(.horizontal, 10)
+                }
+                .buttonStyle(.glass).controlSize(.extraLarge)
+                .help(paused ? "接着录进同一条（⌘R）" : "先停一下，稍后接着录进同一条（⌘R）")
             }
-            .buttonStyle(.glass).controlSize(.extraLarge)
-            .help(paused ? "接着录进同一条（⌘R）" : "先停一下，稍后接着录进同一条（⌘R）")
 
             Spacer()
 
@@ -195,7 +207,7 @@ struct RecordStage: View {
                 Label("结束", systemImage: "stop.fill").padding(.horizontal, 10)
             }
             .buttonStyle(.glassProminent).tint(Theme.rec).controlSize(.extraLarge)
-            .help("结束这条录音（⌘.）。结束后会自动下载并整理成纪要")
+            .help(store.xiaomiRecording ? "结束遥控器录音并保存（⌘.），也可松开语音键结束" : "结束这条录音（⌘.）。结束后会自动下载并整理成纪要")
         }
     }
 }

@@ -56,6 +56,9 @@ extension BeanStore {
 
     func startMacRecording(_ source: MacSource? = nil) {
         guard dictationCaptureID == nil else { toast("waveform", String(localized: "语音输入正在进行，请稍后再录音")); return }
+        #if os(macOS)
+        guard !xiaomiRecording else { return }
+        #endif
         guard macRec == .off, !macStarting else { return }
         let source = source ?? macSource
         macSource = source
@@ -136,7 +139,7 @@ extension BeanStore {
             liveNote = captionNote
             #if os(macOS)
             macMicrophone = microphone
-            if let microphone { beginMacCaptions(microphone.sink) }
+            if let microphone { beginLocalCaptions(microphone.sink) }
             #endif
             addLog("开始用\(Self.thisDevice)录音：\(source.name)")
             macMeter?.cancel()
@@ -170,7 +173,7 @@ extension BeanStore {
     }
 
     #if os(macOS)
-    func beginMacCaptions(_ sink: MacMicrophoneCapture.Sink) {
+    func beginLocalCaptions(_ sink: MacMicrophoneCapture.Sink, maximumSeconds: Int = 12) {
         let session = UUID()
         macCaptionSession = session
         let server = settings.llamaServerPath, selection = settings.localASRModel
@@ -182,7 +185,7 @@ extension BeanStore {
             }
             while !Task.isCancelled {
                 guard let self, self.macCaptionSession == session else { break }
-                guard let chunk = sink.takeChunk(final: self.macRec == .paused) else {
+                guard let chunk = sink.takeChunk(final: self.macRec == .paused, maximumSeconds: maximumSeconds) else {
                     do { try await Task.sleep(for: .milliseconds(350)) } catch { break }
                     continue
                 }
@@ -198,7 +201,7 @@ extension BeanStore {
                 } catch {
                     guard !Task.isCancelled, self.macCaptionSession == session else { break }
                     self.liveNote = String(localized: "实时字幕识别失败，录音继续，结束后会重新转写。")
-                    self.addLog("麦克风字幕识别失败：\(error.localizedDescription)")
+                    self.addLog("本机字幕识别失败：\(error.localizedDescription)")
                     do { try await Task.sleep(for: .seconds(2)) } catch { break }
                 }
             }

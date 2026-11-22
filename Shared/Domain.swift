@@ -414,13 +414,14 @@ nonisolated struct Recording: Identifiable, Equatable, Codable {
     /// 从哪儿来的：哪台设备录的，还是导入的。由 origin 推出来，不另存——
     /// 录音豆下载的从来不写 origin；Mac/iPhone 录的写「Mac · 麦克风」这样；录音卡、导入、语音输入各有固定的写法。
     enum Source: String, CaseIterable, Identifiable {
-        case bean, card, feishu, mac, iphone, imported, note, dictation, link
+        case bean, card, feishu, xiaomi, mac, iphone, imported, note, dictation, link
         var id: String { rawValue }
         var name: String {
             switch self {
             case .bean: String(localized: "密盒")
             case .card: String(localized: "录音卡")
             case .feishu: String(localized: "飞书")
+            case .xiaomi: String(localized: "小米遥控器")
             case .mac: "Mac"
             case .iphone: "iPhone"
             case .imported: String(localized: "导入")
@@ -434,6 +435,7 @@ nonisolated struct Recording: Identifiable, Equatable, Codable {
             case .bean: "headphones"
             case .card: "rectangle.portrait"
             case .feishu: "cloud"
+            case .xiaomi: "appletvremote.gen4.fill"
             case .mac: "laptopcomputer"
             case .iphone: "iphone"
             case .imported: "square.and.arrow.down"
@@ -448,6 +450,7 @@ nonisolated struct Recording: Identifiable, Equatable, Codable {
             case .bean: String(localized: "在密盒上录的，连上后同步过来")
             case .card: String(localized: "在得到录音卡上录的，连上后同步过来")
             case .feishu: String(localized: "手机设备配套 App 同步进飞书妙记的，从飞书拉回来")
+            case .xiaomi: String(localized: "用小米蓝牙语音遥控器录的")
             case .mac: String(localized: "用这台 Mac 录的")
             case .iphone: String(localized: "用 iPhone 录的")
             case .imported: String(localized: "从文件导入的音频")
@@ -464,6 +467,7 @@ nonisolated struct Recording: Identifiable, Equatable, Codable {
         guard let o = origin else { return .bean }
         if o == "得到录音卡" { return .card }
         if o == "飞书妙记" { return .feishu }
+        if o.hasPrefix("小米蓝牙语音遥控器 ") { return .xiaomi }
         if o.hasPrefix("Mac") { return .mac }
         if o.hasPrefix("iPhone") { return .iphone }
         if o == "文字笔记" { return .note }
@@ -472,6 +476,7 @@ nonisolated struct Recording: Identifiable, Equatable, Codable {
 
     /// 来源后面的细节：Mac 录的写录了哪一路（「麦克风」「麦克风和电脑声音」），其它没有。
     var sourceDetail: String? {
+        if recordedOn == .xiaomi, let origin { return String(origin.dropFirst("小米蓝牙语音遥控器 ".count)) }
         guard let o = origin, [.mac, .iphone].contains(recordedOn) else { return nil }
         let rest = o.components(separatedBy: " · ").dropFirst().joined(separator: " · ")
         return rest.isEmpty ? nil : rest
