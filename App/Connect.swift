@@ -284,7 +284,7 @@ struct ConnectView: View {
                         Label("密盒助手的命令行工具还没装好（应该在 ~/.local/bin/beanpod），下面的连接暂时都用不了。", systemImage: "exclamationmark.triangle.fill")
                             .foregroundStyle(Theme.accent).frame(maxWidth: .infinity, alignment: .leading)
                         if BeanStore.bundledCLI != nil {
-                            Button("装上") {
+                            RemoteButton("装上") {
                                 if store.installCLI() { Task { await connector.refresh() } }
                                 else { store.toast("exclamationmark.triangle", String(localized: "没装上，详情看日志")) }
                             }
@@ -324,7 +324,7 @@ struct ConnectView: View {
         HStack {
             Text(text).font(.callout.monospaced()).textSelection(.enabled).lineLimit(1).truncationMode(.middle)
             Spacer()
-            Button("拷贝") { copy(text); store.toast("doc.on.doc", String(localized: "已拷贝")) }
+            RemoteButton("拷贝") { copy(text); store.toast("doc.on.doc", String(localized: "已拷贝")) }
         }
         .padding(.horizontal, 10).padding(.vertical, 7)
         .background(.quaternary.opacity(0.45), in: .rect(cornerRadius: Theme.Radius.card))
@@ -350,11 +350,11 @@ struct ConnectView: View {
                 if busy { ProgressView().controlSize(.small) }
                 if state.installed {
                     if state.connected == true {
-                        Button("试一下") { Task { await connector.test(a) } }.disabled(busy)
-                        Button("断开") { Task { await connector.disconnect(a) } }.disabled(busy)
+                        RemoteButton("试一下") { Task { await connector.test(a) } }.disabled(busy)
+                        RemoteButton("断开") { Task { await connector.disconnect(a) } }.disabled(busy)
                     } else {
-                        if a == .grok { Button("试一下") { Task { await connector.test(a) } }.disabled(busy) }
-                        Button(a == .grok ? "拷贝地址并打开" : "连接") { Task { await connector.connect(a) } }
+                        if a == .grok { RemoteButton("试一下") { Task { await connector.test(a) } }.disabled(busy) }
+                        RemoteButton(a == .grok ? "拷贝地址并打开" : "连接") { Task { await connector.connect(a) } }
                             .buttonStyle(.glassProminent).disabled(busy || !connector.cliInstalled)
                     }
                 }

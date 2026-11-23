@@ -4,17 +4,25 @@ import Foundation
 extension BeanStore {
     struct XiaomiCapture {
         let name: String
-        let started: Date
+        var started: Date?
+        var elapsedBeforePause: TimeInterval = 0
         let url: URL
         let sink: MacMicrophoneCapture.Sink
         let captions: Bool
         let audioQueue = DispatchQueue(label: "com.andyhu.beanpod.xiaomi-audio", qos: .userInitiated)
+
+        func elapsed(at now: Date) -> TimeInterval {
+            elapsedBeforePause + (started.map { max(0, now.timeIntervalSince($0)) } ?? 0)
+        }
     }
 
     var xiaomiRecording: Bool { xiaomiCapture != nil }
 
     var xiaomiLiveStatus: String {
         if xiaomiRecording {
+            if recState == .paused {
+                return String(localized: "已暂停。按住语音键继续，在录音舞台按确认键（回车）结束并保存。")
+            }
             return liveNote ?? String(localized: "正在等待遥控器传送声音…")
         }
         if !settings.liveTranscribe {
@@ -26,20 +34,26 @@ extension BeanStore {
     func attachXiaomi() {
         xiaomi.onLink = { [weak self] link in
             guard let self else { return }
+            if self.xiaomiLink == .ready, link != .ready { self.finishXiaomiRecording() }
             if link != .connecting { self.xiaomiName = self.xiaomi.connectedName }
             self.xiaomiLink = link
             if link == .ready, let name = self.xiaomiName {
+                self.xiaomiBackButton.start()
                 self.toast("checkmark.circle.fill", String(localized: "\(name) 已连接"))
+            } else {
+                self.xiaomiBackButton.stop()
             }
         }
         xiaomi.onFound = { [weak self] in self?.xiaomiFound = $0 }
+        xiaomi.onFailure = { [weak self] in self?.xiaomiFailure = $0 }
+        xiaomiBackButton.onPress = RemoteKeyInput.sendBack
         xiaomi.onStart = { [weak self] in self?.beginXiaomiRecording() }
         xiaomi.onSamples = { [weak self] samples in
-            guard let capture = self?.xiaomiCapture else { return }
+            guard let capture = self?.xiaomiCapture, capture.started != nil else { return }
             let sink = capture.sink, captions = capture.captions
             capture.audioQueue.async { sink.ingestMono16k(samples, captions: captions) }
         }
-        xiaomi.onEnd = { [weak self] in self?.finishXiaomiRecording() }
+        xiaomi.onEnd = { [weak self] in self?.pauseXiaomiRecording() }
         xiaomi.onLog = { [weak self] in self?.addLog($0) }
         xiaomi.start()
     }
@@ -54,6 +68,13 @@ extension BeanStore {
     }
 
     private func beginXiaomiRecording() {
+        if let capture = xiaomiCapture {
+            if capture.started == nil {
+                xiaomiCapture?.started = .now
+                addLog("遥控器继续录音")
+            }
+            return
+        }
         guard let name = xiaomiName, recState == .idle, !macStarting, dictationCaptureID == nil, live == nil else {
             toast("waveform", String(localized: "有录音或语音输入正在进行，结束后再按住遥控器语音键。"))
             return
@@ -83,6 +104,7 @@ extension BeanStore {
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .milliseconds(100)) } catch { break }
                 guard let self, !Task.isCancelled, self.xiaomiRecording else { break }
+                guard self.recState == .recording else { continue }
                 let status = sink.status()
                 self.liveLevels = Array((self.liveLevels + [status.level]).suffix(240))
                 self.liveLevelTotal += 1
@@ -95,10 +117,19 @@ extension BeanStore {
         }
     }
 
+    private func pauseXiaomiRecording() {
+        guard var capture = xiaomiCapture, capture.started != nil else { return }
+        capture.elapsedBeforePause = capture.elapsed(at: .now)
+        capture.started = nil
+        xiaomiCapture = capture
+        addLog("遥控器录音已暂停")
+    }
+
     func finishXiaomiRecording() {
         guard let capture = xiaomiCapture else { return }
         xiaomiCapture = nil
-        // STOP follows the final audio notification. Close after the queued writes have drained.
+        xiaomi.stopVoice()
+        // Close after the audio received before the end action has been written.
         capture.audioQueue.sync { capture.sink.close() }
         macMeter?.cancel()
         macMeter = nil

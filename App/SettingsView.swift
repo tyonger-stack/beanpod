@@ -2,13 +2,14 @@ import SwiftUI
 
 /// 设置窗口的五个页签共用一套窗口尺寸，超出一屏的内容在页签内滚动。
 struct SettingsView: View {
-    enum Pane: String { case general, dictation, models, vocabulary, connect }
+    enum Pane: String, CaseIterable { case general, dictation, models, vocabulary, connect }
 
     @Environment(BeanStore.self) private var store
     @AppStorage("settingsPane") private var pane = Pane.general
     @State private var paneHeight = SettingsWindowPosition.paneHeight(
         on: SettingsWindowPosition.pointerScreen ?? NSScreen.main
     )
+    var remoteBack: () -> Void = {}
 
     var body: some View {
         TabView(selection: $pane) {
@@ -24,6 +25,12 @@ struct SettingsView: View {
         }
         .preferredColorScheme(store.settings.appearance.scheme)
         .onAppear { store.refreshASRAvailability() }
+        .modifier(RemoteWindowNavigation(back: remoteBack, moveBetweenPanes: { key in
+            let panes = Pane.allCases
+            guard let index = panes.firstIndex(of: pane) else { return }
+            let next = index + (key == .left ? -1 : 1)
+            if panes.indices.contains(next) { pane = panes[next] }
+        }))
     }
 }
 
@@ -125,7 +132,7 @@ struct ModelSettingsLink: View {
     var title = String(localized: "去设置")
 
     var body: some View {
-        Button(title) { SettingsView.open(.models, with: openSettings) }
+        RemoteButton(title) { SettingsView.open(.models, with: openSettings) }
     }
 }
 
@@ -269,18 +276,23 @@ private struct GeneralPane: View {
             SettingsGroup(String(localized: "录音的时候和录完之后")) {
                 SettingRow(icon: "captions.bubble", title: String(localized: "边录边出字"), detail: String(localized: "录音时在舞台上实时显示文字。")) {
                     Toggle("边录边出字", isOn: $settings.liveTranscribe).labelsHidden().toggleStyle(.switch)
+                        .remoteFocusable { settings.liveTranscribe.toggle() }
                 }
                 SettingRow(icon: "doc.on.clipboard", title: String(localized: "识别剪贴板里的视频链接"), detail: String(localized: "复制了抖音、B 站、YouTube 这些链接，切回密盒助手时提示一键导入。只看链接，不存剪贴板内容。")) {
                     Toggle("识别剪贴板里的视频链接", isOn: $settings.watchClipboard).labelsHidden().toggleStyle(.switch)
+                        .remoteFocusable { settings.watchClipboard.toggle() }
                 }
                 SettingRow(icon: "questionmark.bubble", title: String(localized: "录完先问一句留不留"), detail: String(localized: "录完弹一张小卡片，不要的话当场删掉，哪里都不留。十秒不理它就默认留着。")) {
                     Toggle("录完先问一句留不留", isOn: $settings.askKeep).labelsHidden().toggleStyle(.switch)
+                        .remoteFocusable { settings.askKeep.toggle() }
                 }
                 SettingRow(icon: "arrow.down.circle", title: String(localized: "自动从密盒下载"), detail: String(localized: "录完一条、或者重新连上密盒时，把还没下载的拉到这台 Mac 上。")) {
                     Toggle("自动从密盒下载", isOn: $settings.autoDownload).labelsHidden().toggleStyle(.switch)
+                        .remoteFocusable { settings.autoDownload.toggle() }
                 }
                 SettingRow(icon: "wand.and.sparkles", title: String(localized: "自动转写并整理"), detail: String(localized: "下载后直接出文字稿、纪要和待办。")) {
                     Toggle("自动转写并整理", isOn: $settings.autoProcess).labelsHidden().toggleStyle(.switch)
+                        .remoteFocusable { settings.autoProcess.toggle() }
                 }
             }
         }
@@ -294,7 +306,7 @@ private struct AppearanceTile: View {
     var action: () -> Void
 
     var body: some View {
-        Button(action: action) {
+        RemoteButton(action: action) {
             VStack(spacing: 8) {
                 preview
                     .frame(height: 74)
@@ -399,7 +411,7 @@ private struct DictationPane: View {
                         }
                     }
                     .labelsHidden().fixedSize()
-                    Button(dictation.recordingKey ? "取消" : "换一个键…") {
+                    RemoteButton(dictation.recordingKey ? "取消" : "换一个键…") {
                         dictation.recordingKey.toggle()
                         dictation.refresh()
                     }
@@ -407,9 +419,11 @@ private struct DictationPane: View {
                 }
                 SettingRow(icon: "text.badge.checkmark", title: String(localized: "把口语理顺再输入"), detail: String(localized: "去掉嗯啊和重复，句子更通顺。要多等几秒。")) {
                     Toggle("把口语理顺再输入", isOn: $settings.dictationPolish).labelsHidden().toggleStyle(.switch)
+                        .remoteFocusable { settings.dictationPolish.toggle() }
                 }
                 SettingRow(icon: "keyboard", title: String(localized: "记下说过的话"), detail: String(localized: "打字的同时，把这句话记进侧栏的「语音输入」（声音 + 文字），能回听、拷贝、搜索。不进录音列表，也不做 AI 整理。")) {
                     Toggle("记下说过的话", isOn: $settings.dictationSave).labelsHidden().toggleStyle(.switch)
+                        .remoteFocusable { settings.dictationSave.toggle() }
                 }
                 SettingRow(icon: "waveform.badge.minus", title: String(localized: "原声保留"), detail: String(localized: "到期只删声音，文字一直留着。")) {
                     Picker("原声保留", selection: $settings.dictationAudioDays) {
@@ -420,10 +434,11 @@ private struct DictationPane: View {
                 .disabled(!settings.dictationSave)
                 SettingRow(icon: "books.vertical", title: String(localized: "知识库里也搜"), detail: String(localized: "问知识库、AI 助手查询时，把语音输入说过的话也算进去。默认不算，免得零碎的话干扰回答。")) {
                     Toggle("知识库里也搜", isOn: $settings.dictationInKnowledge).labelsHidden().toggleStyle(.switch)
+                        .remoteFocusable { settings.dictationInKnowledge.toggle() }
                 }
                 .disabled(!settings.dictationSave)
                 SettingRow(icon: "play.circle", title: String(localized: "先试一次"), detail: String(localized: "按当前声音来源录 5 秒，只显示识别结果，不会打进别的 App。选麦克风时说句话，选电脑里的声音时播放一段人声。")) {
-                    Button("试一次") { dictation.tryOnce() }
+                    RemoteButton("试一次") { dictation.tryOnce() }
                 }
             }
             .disabled(!on)
@@ -435,8 +450,8 @@ private struct DictationPane: View {
                         StatusPill(ok: true, text: String(localized: "已允许"))
                     } else {
                         StatusPill(ok: false, text: String(localized: "未允许"))
-                        Button("去授权") { dictation.requestAccessibility() }
-                        Button("重新检查", action: refreshAccessibility)
+                        RemoteButton("去授权") { dictation.requestAccessibility() }
+                        RemoteButton("重新检查", action: refreshAccessibility)
                     }
                 }
             }
@@ -510,11 +525,11 @@ private struct ModelsPane: View {
                     } else if let server {
                         Text(server.path.hasPrefix("/Applications/") ? String(localized: "借用 \(server.pathComponents.dropFirst(2).first ?? String(localized: "其他 App"))") : String(localized: "已安装"))
                             .foregroundStyle(.secondary)
-                        Button("重新检查") { store.refreshASRAvailability() }
+                        RemoteButton("重新检查") { store.refreshASRAvailability() }
                     } else {
                         Text("没找到").foregroundStyle(.secondary)
                         if BeanStore.brewPath != nil {
-                            Button("安装") { store.installLlamaServer() }.buttonStyle(.glassProminent).tint(Theme.accent)
+                            RemoteButton("安装") { store.installLlamaServer() }.buttonStyle(.glassProminent).tint(Theme.accent)
                         } else {
                             Link("怎么安装", destination: URL(string: "https://github.com/ggml-org/llama.cpp#quick-start")!)
                         }
@@ -583,14 +598,14 @@ private struct ModelsPane: View {
                     line(String(localized: "密盒转写服务")) {
                         Text(settings.miBoxASRConfig == nil ? String(localized: "还没设置") : settings.miBoxASRModel)
                             .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                        Button("设置…") { miBoxSheet = .asr }
+                        RemoteButton("设置…") { miBoxSheet = .asr }
                     }
                 }
                 if settings.engine != .miBox {
                     Divider()
                     line(settings.engine == .cloud ? String(localized: "云端转写服务") : String(localized: "云端重转")) {
                         Text(asrSummary).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                        Button(settings.asrConfig == nil ? "设置…" : "更改…") { asrSheet = true }
+                        RemoteButton(settings.asrConfig == nil ? "设置…" : "更改…") { asrSheet = true }
                     }
                     if settings.engine != .cloud {
                         Text("本机转得不准的录音，可以在录音页的「⋯」菜单里按需交给云端再转一遍。").font(.callout).foregroundStyle(.secondary)
@@ -613,7 +628,7 @@ private struct ModelsPane: View {
                     line(String(localized: "密盒整理服务")) {
                         Text(settings.miBoxLLMConfig == nil ? String(localized: "还没设置") : settings.miBoxLLMModel)
                             .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                        Button("设置…") { miBoxSheet = .analysis }
+                        RemoteButton("设置…") { miBoxSheet = .analysis }
                     }
                 } else {
                     HStack(alignment: .top, spacing: 18) {
@@ -628,12 +643,12 @@ private struct ModelsPane: View {
                                 jobDetail(job, title: settings.localAnalysisModel.analysisName)
                             } else if LocalLLM.modelURL(selection: settings.localAnalysisModel) != nil {
                                 Text(LocalLLM.modelLabel(selection: settings.localAnalysisModel)).font(.body.weight(.medium)).lineLimit(1).truncationMode(.middle)
-                                Button("打开模型文件夹", action: openFolder)
+                                RemoteButton("打开模型文件夹", action: openFolder)
                             } else {
                                 Text("\(settings.localAnalysisModel.analysisName) · 还没下载").font(.body.weight(.medium))
                                 HStack {
-                                    Button("下载（\(settings.localAnalysisModel.analysisSize)）") { store.downloadLocalLLM() }
-                                    Button("打开模型文件夹", action: openFolder)
+                                    RemoteButton("下载（\(settings.localAnalysisModel.analysisSize)）") { store.downloadLocalLLM() }
+                                    RemoteButton("打开模型文件夹", action: openFolder)
                                 }
                             }
                         }
@@ -641,9 +656,9 @@ private struct ModelsPane: View {
                         half(String(localized: "云端服务"), dim: settings.analysisMode == .local) {
                             Text(cloudSummary).font(.body.weight(.medium)).lineLimit(1).truncationMode(.middle)
                             HStack {
-                                Button(settings.llmConfigured ? "更改…" : "设置…") { cloudSheet = true }
+                                RemoteButton(settings.llmConfigured ? "更改…" : "设置…") { cloudSheet = true }
                                 if settings.llmConfigured {
-                                    Button("测试") { test() }.disabled(testing)
+                                    RemoteButton("测试") { test() }.disabled(testing)
                                     if testing { ProgressView().controlSize(.small) }
                                 }
                             }
@@ -677,6 +692,7 @@ private struct ModelsPane: View {
                 }
                 Divider()
                 Toggle("外语素材整理完自动翻译", isOn: $settings.autoTranslate).toggleStyle(.switch)
+                    .remoteFocusable { settings.autoTranslate.toggle() }
                 Text("用上面选定的整理模型逐句翻译。").font(.callout).foregroundStyle(.secondary)
             }
         }
@@ -705,7 +721,7 @@ private struct ModelsPane: View {
         } else if ready {
             Text(readyText).foregroundStyle(.secondary)
         } else {
-            Button("下载（\(size)）", action: start)
+            RemoteButton("下载（\(size)）", action: start)
         }
     }
 
@@ -728,11 +744,11 @@ private struct ModelsPane: View {
         }
         HStack {
             switch job.state {
-            case .running: Button("暂停") { job.pause() }
-            case .paused, .failed: Button("继续") { job.start() }
+            case .running: RemoteButton("暂停") { job.pause() }
+            case .paused, .failed: RemoteButton("继续") { job.start() }
             case .verifying: EmptyView()
             }
-            Button("取消") { job.cancel() }.disabled(job.state == .verifying)
+            RemoteButton("取消") { job.cancel() }.disabled(job.state == .verifying)
         }
         .controlSize(.small)
     }
@@ -873,7 +889,7 @@ private struct MiBoxServiceSheet: View {
                         } label: { Image(systemName: "chevron.down") }
                         .menuIndicator(.hidden).fixedSize()
                         if modelRequestID != nil { ProgressView().controlSize(.small) }
-                        Button("刷新列表") { loadModels() }
+                        RemoteButton("刷新列表") { loadModels() }
                             .buttonStyle(.link).foregroundStyle(Theme.accent)
                             .disabled(AppSettings.miBoxEndpoint(baseURL.wrappedValue) == nil || modelRequestID != nil)
                     }
@@ -891,8 +907,8 @@ private struct MiBoxServiceSheet: View {
                 }
                 Spacer()
                 if testState.isTesting { ProgressView().controlSize(.small) }
-                Button("测试一下") { test() }.disabled(!configured || testState.isTesting)
-                Button("完成") { dismiss() }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
+                RemoteButton("测试一下") { test() }.disabled(!configured || testState.isTesting)
+                RemoteButton("完成") { dismiss() }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
             }
             .controlSize(.large)
         }
@@ -1010,7 +1026,7 @@ private struct CloudServiceSheet: View {
                         } label: { Image(systemName: "chevron.down") }
                         .menuIndicator(.hidden).fixedSize().disabled(settings.llmBaseURL.isEmpty)
                     }
-                    Button("刷新列表") { Task { await loadModels() } }.buttonStyle(.link).foregroundStyle(Theme.accent).disabled(settings.llmBaseURL.isEmpty)
+                    RemoteButton("刷新列表") { Task { await loadModels() } }.buttonStyle(.link).foregroundStyle(Theme.accent).disabled(settings.llmBaseURL.isEmpty)
                 }
                 if !settings.llmIsLocal {
                     GridRow {
@@ -1030,8 +1046,8 @@ private struct CloudServiceSheet: View {
                 }
                 Spacer()
                 if testing { ProgressView().controlSize(.small) }
-                Button("测试一下") { test() }.disabled(!settings.llmConfigured || testing)
-                Button("完成") { dismiss() }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
+                RemoteButton("测试一下") { test() }.disabled(!settings.llmConfigured || testing)
+                RemoteButton("完成") { dismiss() }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
             }
             .controlSize(.large)
         }
@@ -1056,7 +1072,7 @@ private struct CloudServiceSheet: View {
 
     private func tile(_ p: AppSettings.Provider) -> some View {
         let picked = store.settings.llmBaseURL == p.url && !custom
-        return Button { pick(p) } label: {
+        return RemoteButton { pick(p) } label: {
             VStack(spacing: 8) {
                 Text(p.badge).font(.system(size: 15, weight: .semibold)).foregroundStyle(.secondary)
                     .frame(width: 34, height: 34).background(Color.secondary.opacity(0.14), in: .circle)
@@ -1075,7 +1091,7 @@ private struct CloudServiceSheet: View {
     }
 
     private func chip(_ title: String, picked: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        RemoteButton(action: action) {
             Text(title).font(.callout).padding(.horizontal, 14).padding(.vertical, 6)
                 .overlay(Capsule().strokeBorder(picked ? Theme.accent : Color.secondary.opacity(0.3), lineWidth: picked ? 1.5 : 0.5))
                 .contentShape(.capsule)
@@ -1135,7 +1151,7 @@ private struct CloudASRSheet: View {
             HStack(spacing: 8) {
                 ForEach(CloudASR.presets, id: \.url) { p in
                     let picked = settings.asrBaseURL == p.url
-                    Button {
+                    RemoteButton {
                         settings.asrBaseURL = p.url; settings.asrModel = p.model; result = nil
                     } label: {
                         Text(p.name).font(.callout).padding(.horizontal, 14).padding(.vertical, 6)
@@ -1185,8 +1201,8 @@ private struct CloudASRSheet: View {
                 }
                 Spacer()
                 if testing { ProgressView().controlSize(.small) }
-                Button("测试一下") { test() }.disabled(settings.asrConfig == nil || testing)
-                Button("完成") { dismiss() }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
+                RemoteButton("测试一下") { test() }.disabled(settings.asrConfig == nil || testing)
+                RemoteButton("完成") { dismiss() }.buttonStyle(.glassProminent).keyboardShortcut(.defaultAction)
             }
             .controlSize(.large)
         }
@@ -1229,7 +1245,7 @@ private struct VocabularyPane: View {
                     Image(systemName: "arrow.right").font(.callout).foregroundStyle(.tertiary).accessibilityHidden(true)
                     TextField("应该是", text: $right, prompt: Text("应该是，比如：密盒助手")).textFieldStyle(.roundedBorder)
                         .focused($focus, equals: .right).onSubmit(add)
-                    Button("记住", action: add).disabled(!canAdd)
+                    RemoteButton("记住", action: add).disabled(!canAdd)
                 }
                 if settings.vocabulary.isEmpty {
                     Text("还没有记住任何词。").foregroundStyle(.secondary)
@@ -1243,7 +1259,7 @@ private struct VocabularyPane: View {
                                     Image(systemName: "arrow.right").font(.caption).foregroundStyle(.tertiary).accessibilityHidden(true)
                                     Text(entry.right)
                                     Spacer()
-                                    Button("删除「\(entry.wrong)」", systemImage: "minus.circle") { settings.vocabulary.removeAll { $0 == entry } }
+                                    RemoteButton("删除「\(entry.wrong)」", systemImage: "minus.circle") { settings.vocabulary.removeAll { $0 == entry } }
                                         .labelStyle(.iconOnly).buttonStyle(.borderless)
                                 }
                                 .padding(.vertical, 7)
@@ -1279,10 +1295,10 @@ private struct ConnectPane: View {
             SettingsGroup(String(localized: "AI 助手"), footer: String(localized: "连上之后，在它们那边就能直接查你的录音、纪要和待办，也能把文字和音频存进密盒助手。")) {
                 SettingRow(icon: "link", title: String(localized: "Claude、Codex、OpenClaw、TeleAgent、Grok Bot"),
                            detail: connector.connectedCount > 0 ? String(localized: "已经连上 \(connector.connectedCount) 个。") : String(localized: "还没有连上任何一个。")) {
-                    Button("打开连接页面…") { openWindow(id: "connect") }
+                    RemoteButton("打开连接页面…") { openWindow(id: "connect") }
                 }
                 SettingRow(icon: "film", title: String(localized: "Renoise（做视频）"), detail: String(localized: "把改写好的稿子做成口播视频要用它。安装和登录也在连接页面里。")) {
-                    Button("去看看…") { openWindow(id: "connect") }
+                    RemoteButton("去看看…") { openWindow(id: "connect") }
                 }
             }
 
@@ -1291,7 +1307,7 @@ private struct ConnectPane: View {
             SettingsGroup(String(localized: "给其他工具用"), footer: String(localized: "这个地址只在这台电脑上能访问，而且只有密盒助手开着的时候才通。")) {
                 SettingRow(icon: "network", title: String(localized: "接入地址")) {
                     Text(BeanStore.mcpAddress).font(.callout.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)
-                    Button(copied ? "已拷贝" : "拷贝") {
+                    RemoteButton(copied ? "已拷贝" : "拷贝") {
                         copy(BeanStore.mcpAddress)
                         copied = true
                         Task { try? await Task.sleep(for: .seconds(1.5)); copied = false }
@@ -1320,7 +1336,7 @@ private struct LoginsGroup: View {
             }
             ForEach(list, id: \.self) { platform in
                 SettingRow(icon: "person.crop.circle.badge.checkmark", title: platform) {
-                    Button("退出登录") { store.forgetLogin(platform); refresh += 1 }
+                    RemoteButton("退出登录") { store.forgetLogin(platform); refresh += 1 }
                 }
             }
         }

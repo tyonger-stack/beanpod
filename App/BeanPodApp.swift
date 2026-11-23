@@ -144,17 +144,20 @@ struct BeanPodApp: App {
         Window("连接 AI 助手", id: "connect") {
             ConnectView().environment(store).environment(connector).environment(renoise)
                 .frame(minWidth: 620, minHeight: 520)
+                .modifier(RemoteWindowNavigation(back: returnFromSecondaryWindow))
         }
         .defaultSize(width: 720, height: 760)
 
         // 「做成视频」单开一个窗口看（预览菜单里使用；正常入口是录音「改写」页里的按钮，弹出单）
         Window("做成视频", id: "video-preview") {
             VideoSheet().environment(store).environment(maker)
+                .modifier(RemoteWindowNavigation(back: returnFromSecondaryWindow))
         }
         .windowResizability(.contentSize)
 
         Window("诊断日志", id: "log") {
             LogView().environment(store)
+                .modifier(RemoteWindowNavigation(back: returnFromSecondaryWindow))
         }
         .defaultSize(width: 720, height: 480)
 
@@ -166,8 +169,14 @@ struct BeanPodApp: App {
         }
 
         Settings {
-            SettingsView().environment(store).environment(dictation).environment(connector)
+            SettingsView(remoteBack: returnFromSecondaryWindow).environment(store).environment(dictation).environment(connector)
         }
+    }
+
+    private func returnFromSecondaryWindow() {
+        NSApp.keyWindow?.close()
+        nav.goHome()
+        openWindow(id: "main")
     }
 }
 
@@ -177,7 +186,7 @@ struct MenuBarContent: View {
 
     var body: some View {
         if store.xiaomiRecording {
-            Text(String(localized: "\(store.sourceName) 正在录音"))
+            Text(store.recState == .paused ? String(localized: "\(store.sourceName) 录音已暂停") : String(localized: "\(store.sourceName) 正在录音"))
             Button("结束录音") { store.finishRecording() }
         } else if store.link == .ready {
             Text(store.recState == .paused ? String(localized: "\(store.displayDeviceName) 录音已暂停") : store.isRecording ? String(localized: "\(store.displayDeviceName) 正在录音") : String(localized: "\(store.displayDeviceName) 已连接") + (store.info.map { " · \($0.micBattery)%" } ?? ""))

@@ -54,7 +54,7 @@ struct KnowledgeView: View {
         .navigationSubtitle(store.recordings.contains(where: \.isAnalyzed) ? "来自 \(store.recordings.filter(\.isAnalyzed).count) 条录音" : "")
         .searchable(text: $query, prompt: "找原话：搜标题、要点和文字稿")
         .toolbar {
-            Button("导出 Markdown", systemImage: "square.and.arrow.up") { store.exportMarkdown(store.recordings.filter(\.isAnalyzed)) }
+            RemoteButton("导出 Markdown", systemImage: "square.and.arrow.up") { store.exportMarkdown(store.recordings.filter(\.isAnalyzed)) }
                 .disabled(!store.recordings.contains(where: \.isAnalyzed))
                 .help("每条录音导出成一个 Markdown 文件，可以放进 Obsidian 等笔记库")
         }
@@ -85,7 +85,7 @@ struct KnowledgeView: View {
                     .onSubmit { submit(question) }
                     .disabled(!store.analysisAvailable)
                 if store.asking { ProgressView().controlSize(.small) }
-                Button { submit(question) } label: { Image(systemName: "arrow.up").fontWeight(.bold).frame(width: 18, height: 18) }
+                RemoteButton { submit(question) } label: { Image(systemName: "arrow.up").fontWeight(.bold).frame(width: 18, height: 18) }
                     .buttonStyle(.glassProminent).controlSize(.large)
                     .disabled(question.trimmingCharacters(in: .whitespaces).isEmpty || !store.analysisAvailable || store.asking)
                     .help("提问（回车）").accessibilityLabel("提问")
@@ -102,7 +102,7 @@ struct KnowledgeView: View {
                 // 还没问过：给几个现成的问题，点一下就问
                 FlowLayout(spacing: 6) {
                     ForEach(suggestions, id: \.self) { q in
-                        Button { submit(q) } label: {
+                        RemoteButton { submit(q) } label: {
                             Text(q).font(.callout).padding(.horizontal, 12).padding(.vertical, 6)
                                 .background(Theme.accent.opacity(0.12), in: .capsule)
                                 .overlay(Capsule().strokeBorder(Theme.accent.opacity(0.35), lineWidth: 0.5))
@@ -126,7 +126,7 @@ struct KnowledgeView: View {
                                 FlowLayout(spacing: 6) {
                                     ForEach(Array(store.answerSources.enumerated()), id: \.offset) { n, id in
                                         if let r = store.recordings.first(where: { $0.id == id }) {
-                                            Button { nav.open(id) } label: {
+                                            RemoteButton { nav.open(id) } label: {
                                                 // 前面的编号对应回答里的 [1] [2]
                                                 (Text("\(n + 1)  ").foregroundStyle(Theme.accent).fontWeight(.semibold) + Text(r.displayTitle)).font(.callout).lineLimit(1)
                                                     .padding(.horizontal, 10).padding(.vertical, 5)
@@ -141,8 +141,8 @@ struct KnowledgeView: View {
                         HStack {
                             Text("回答由模型根据上面的录音生成，可能有错，请点开原录音核实。").font(.caption).foregroundStyle(.tertiary)
                             Spacer()
-                            Button("拷贝") { copy(answer); store.toast("doc.on.doc", String(localized: "已拷贝")) }.buttonStyle(.plain).foregroundStyle(Theme.accent).font(.callout)
-                            Button("清掉") { store.answer = nil; store.answerSources = []; asked = "" }.buttonStyle(.plain).foregroundStyle(.secondary).font(.callout)
+                            RemoteButton("拷贝") { copy(answer); store.toast("doc.on.doc", String(localized: "已拷贝")) }.buttonStyle(.plain).foregroundStyle(Theme.accent).font(.callout)
+                            RemoteButton("清掉") { store.answer = nil; store.answerSources = []; asked = "" }.buttonStyle(.plain).foregroundStyle(.secondary).font(.callout)
                         }
                     }
                 }
@@ -159,7 +159,7 @@ struct KnowledgeView: View {
         // 三张一排的摘要卡
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12, alignment: .top)], spacing: 12) {
             ForEach(store.recordings.filter(\.isAnalyzed).prefix(9)) { r in
-                Button { nav.open(r.id) } label: {
+                RemoteButton { nav.open(r.id) } label: {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack(spacing: 7) {
                             Image(systemName: (r.scene ?? .other).icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.accent)
@@ -181,7 +181,7 @@ struct KnowledgeView: View {
     /// 一条录音一张卡：标题、时间、摘要；搜索时再带上命中的那几句原话。
     private func recordingCard(_ r: Recording, snippets: [BeanStore.SearchHit]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button { nav.open(r.id) } label: {
+            RemoteButton { nav.open(r.id) } label: {
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: (r.scene ?? .other).icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.accent)
                         .frame(width: 30, height: 30).background(Theme.accent.opacity(0.14), in: .rect(cornerRadius: Theme.Radius.card))
@@ -199,7 +199,7 @@ struct KnowledgeView: View {
             }
             .buttonStyle(.plain)
             ForEach(snippets.prefix(3)) { hit in
-                Button {
+                RemoteButton {
                     nav.open(hit.recordingID)
                     if let t = hit.time { store.play(hit.recordingID, at: t) }
                 } label: {
@@ -239,14 +239,14 @@ struct KnowledgeView: View {
                 ForEach(store.allPeople, id: \.self) { Text($0).tag(String?.some($0)) }
             }
             .disabled(store.allPeople.isEmpty)
-            if !filter.isEmpty { Button("清除") { filter = .init() }.buttonStyle(.plain).foregroundStyle(Theme.accent) }
+            if !filter.isEmpty { RemoteButton("清除") { filter = .init() }.buttonStyle(.plain).foregroundStyle(Theme.accent) }
             Spacer()
         }
         .labelsHidden().fixedSize(horizontal: false, vertical: true)
     }
 
     private func chip(_ text: String, selected: Bool, color: Color = Theme.accent, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        RemoteButton(action: action) {
             Text(text).font(.callout)
                 .padding(.horizontal, 10).padding(.vertical, 5)
                 .foregroundStyle(selected ? .white : .primary)
@@ -266,9 +266,9 @@ struct KnowledgeView: View {
                 Text(query.isEmpty ? "符合条件的 \(order.count) 条录音" : "「\(query)」出现在 \(order.count) 条录音里").font(.headline)
                 Spacer()
                 if !query.isEmpty, store.analysisAvailable {
-                    Button("让 AI 总结这些") { submit(String(localized: "关于「\(query)」都说过什么？")) }.buttonStyle(.plain).foregroundStyle(Theme.accent)
+                    RemoteButton("让 AI 总结这些") { submit(String(localized: "关于「\(query)」都说过什么？")) }.buttonStyle(.plain).foregroundStyle(Theme.accent)
                 }
-                if !query.isEmpty { Button("清除") { query = "" }.buttonStyle(.plain).foregroundStyle(.secondary) }
+                if !query.isEmpty { RemoteButton("清除") { query = "" }.buttonStyle(.plain).foregroundStyle(.secondary) }
             }
             .padding(.top, 4)
             LazyVStack(spacing: 10) {

@@ -575,7 +575,7 @@ struct VideoSheet: View {
             HStack {
                 Label("请确认 TeleAgent 已连接 Renoise MCP。", systemImage: "exclamationmark.triangle.fill").foregroundStyle(Theme.accent)
                 Spacer()
-                Button("复制 MCP 地址") { maker.copyRenoiseMCP() }
+                RemoteButton("复制 MCP 地址") { maker.copyRenoiseMCP() }
             }
         }
         if !maker.setupNote.isEmpty { Text(maker.setupNote).font(.callout).foregroundStyle(.secondary) }
@@ -584,9 +584,9 @@ struct VideoSheet: View {
             Text(maker.recording == 0 ? "这是预览，不能提交。要做视频，从录音的「改写」页打开" : maker.hosts.isEmpty ? "先添加一个主播" : "请在 TeleAgent 新建会话并粘贴任务，报价确认后才花积分")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             Spacer()
-            Button("先不做") { dismiss() }
+            RemoteButton("先不做") { dismiss() }
             if maker.library.busy { ProgressView().controlSize(.small) }
-            Button("交给 TeleAgent 做") { Task { await handOff() } }
+            RemoteButton("交给 TeleAgent 做") { Task { await handOff() } }
                 .buttonStyle(.glassProminent).disabled(maker.recording == 0 || maker.host?.usable != true || maker.teleAgentAppMissing || maker.library.busy)
         }
         .controlSize(.large)
@@ -633,7 +633,7 @@ struct VideoSheet: View {
 
     private func styleCard(_ s: VideoMaker.Style) -> some View {
         let picked = maker.style == s
-        return Button { maker.style = s } label: {
+        return RemoteButton { maker.style = s } label: {
             VStack(spacing: 8) {
                 StylePreview(style: s).frame(maxWidth: .infinity).frame(height: 112).clipShape(.rect(cornerRadius: Theme.Radius.card))
                 Text(s.label).font(.callout.weight(.semibold))
@@ -739,15 +739,15 @@ struct VideoSheet: View {
 
     private func footer(stop: Bool) -> some View {
         HStack {
-            Button("工程目录") { maker.showProject() }.buttonStyle(.borderless)
+            RemoteButton("工程目录") { maker.showProject() }.buttonStyle(.borderless)
             if stop {
-                Button("不跟这条了") { maker.abandon(store: store) }.buttonStyle(.borderless)
+                RemoteButton("不跟这条了") { maker.abandon(store: store) }.buttonStyle(.borderless)
                     .help("密盒助手不再跟进这条。TeleAgent 里那个会话要在 TeleAgent 里停")
             }
             Spacer()
-            if maker.phase == .waiting { Button("复制任务指令") { maker.copyTask() } }
-            Button("回到 TeleAgent") { maker.showTeleAgent() }
-            Button("关闭") { dismiss() }.buttonStyle(.glassProminent)
+            if maker.phase == .waiting { RemoteButton("复制任务指令") { maker.copyTask() } }
+            RemoteButton("回到 TeleAgent") { maker.showTeleAgent() }
+            RemoteButton("关闭") { dismiss() }.buttonStyle(.glassProminent)
         }
         .controlSize(.large)
     }
@@ -770,8 +770,8 @@ struct VideoSheet: View {
         HStack {
             Label("做好了，带包装，已经放到这条录音的「改写」下面。", systemImage: "checkmark.circle.fill").foregroundStyle(Theme.ok)
             Spacer()
-            Button("在访达中显示") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
-            Button("打开") { NSWorkspace.shared.open(url); dismiss() }.buttonStyle(.glassProminent)
+            RemoteButton("在访达中显示") { NSWorkspace.shared.activateFileViewerSelecting([url]) }
+            RemoteButton("打开") { NSWorkspace.shared.open(url); dismiss() }.buttonStyle(.glassProminent)
         }
     }
 
@@ -779,10 +779,10 @@ struct VideoSheet: View {
         VStack(alignment: .leading, spacing: 10) {
             Label(why, systemImage: "exclamationmark.circle.fill").foregroundStyle(Theme.accent).fixedSize(horizontal: false, vertical: true)
             HStack {
-                Button("工程目录") { maker.showProject() }.buttonStyle(.borderless)
+                RemoteButton("工程目录") { maker.showProject() }.buttonStyle(.borderless)
                 Spacer()
-                Button("重新选") { maker.phase = .choosing }
-                Button("关闭") { dismiss() }
+                RemoteButton("重新选") { maker.phase = .choosing }
+                RemoteButton("关闭") { dismiss() }
             }
         }
     }

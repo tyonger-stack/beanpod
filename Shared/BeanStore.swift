@@ -15,9 +15,11 @@ final class BeanStore {
     var found: [FoundDevice] = []
     #if os(macOS)
     @ObservationIgnored let xiaomi = XiaomiRemoteClient()
+    @ObservationIgnored let xiaomiBackButton = XiaomiRemoteBackButton()
     var xiaomiLink: BLEClient.Link = .idle
     var xiaomiFound: [FoundDevice] = []
     var xiaomiName: String?
+    var xiaomiFailure: XiaomiRemoteClient.Failure?
     var xiaomiCapture: XiaomiCapture?
     #endif
     var deviceName = String(localized: "密盒")
@@ -475,7 +477,7 @@ final class BeanStore {
 
     var isRecording: Bool {
         #if os(macOS)
-        if xiaomiRecording { return true }
+        if let xiaomiCapture { return xiaomiCapture.started != nil }
         #endif
         return macRec == .recording || (link == .ready && info?.recording == true)
     }
@@ -525,7 +527,7 @@ final class BeanStore {
     /// 录音豆现在的状态：没在录、正在录、录到一半暂停着。
     var recState: RecState {
         #if os(macOS)
-        if xiaomiRecording { return .recording }
+        if let xiaomiCapture { return xiaomiCapture.started == nil ? .paused : .recording }
         #endif
         if macRec != .off { return macRec == .recording ? .recording : .paused }
         guard link == .ready else { return .idle }
@@ -536,7 +538,7 @@ final class BeanStore {
     /// 已经录了多久（暂停的时间不算）。
     func elapsed(at now: Date = .now) -> TimeInterval {
         #if os(macOS)
-        if let xiaomiCapture { return max(0, now.timeIntervalSince(xiaomiCapture.started)) }
+        if let xiaomiCapture { return xiaomiCapture.elapsed(at: now) }
         #endif
         return elapsedBase + (recordingSince.map { max(0, now.timeIntervalSince($0)) } ?? 0)
     }
@@ -573,6 +575,9 @@ final class BeanStore {
     }
 
     func resumeRecording() {
+        #if os(macOS)
+        guard !xiaomiRecording else { return }
+        #endif
         guard dictationCaptureID == nil else { toast("waveform", String(localized: "语音输入正在进行，请稍后再录音")); return }
         if macRec != .off { resumeMacRecording(); return }
         guard recState == .paused else { return }

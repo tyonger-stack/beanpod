@@ -18,7 +18,7 @@ struct TrashView: View {
                     }
                     Spacer(minLength: 16)
                     if !store.trash.isEmpty {
-                        Button("全部清空") { confirmEmpty = true }
+                        RemoteButton("全部清空") { confirmEmpty = true }
                             .buttonStyle(.glass).foregroundStyle(Theme.accent).controlSize(.large)
                     }
                 }
@@ -74,7 +74,7 @@ struct TrashView: View {
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 .background((left <= 1 ? Theme.amber : Theme.warm400).opacity(0.14), in: .capsule)
                 .fixedSize()
-            Button("恢复") {
+            RemoteButton("恢复") {
                 store.restore([entry.id])
                 store.toast("arrow.uturn.backward", String(localized: "已恢复「\(rec.displayTitle)」"))
             }

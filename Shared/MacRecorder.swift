@@ -185,7 +185,7 @@ extension BeanStore {
             }
             while !Task.isCancelled {
                 guard let self, self.macCaptionSession == session else { break }
-                guard let chunk = sink.takeChunk(final: self.macRec == .paused, maximumSeconds: maximumSeconds) else {
+                guard let chunk = sink.takeChunk(final: self.recState == .paused, maximumSeconds: maximumSeconds) else {
                     do { try await Task.sleep(for: .milliseconds(350)) } catch { break }
                     continue
                 }

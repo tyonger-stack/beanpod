@@ -48,6 +48,12 @@ final class Navigator {
     var deletingProject: UUID?
 
     func open(_ id: UInt32) { route = .all; selection = id }
+
+    func goHome() {
+        stageOpen = false
+        route = .dashboard
+        selection = nil
+    }
 }
 
 struct RootView: View {
@@ -58,18 +64,25 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var nav = nav
+        let stageVisible = nav.stageOpen && store.recState != .idle
+        let keepCardVisible = store.justRecorded != nil && !stageVisible
         NavigationSplitView {
             Sidebar()
+                .environment(\.remoteFocusScope, .sidebar)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         } detail: {
-            switch nav.route {
-            case .dashboard: DashboardView().background(Backdrop())
-            case .knowledge: KnowledgeView().background(Backdrop())
-            case .device: DeviceView().background(Backdrop())
-            case .trash: TrashView().background(Backdrop())
-            case .dictation: DictationView().background(Backdrop())
-            case .all, .starred, .scene, .materials, .project, .tag: RecordingsView().background(Backdrop())
+            Group {
+                switch nav.route {
+                case .dashboard: DashboardView()
+                case .knowledge: KnowledgeView()
+                case .device: DeviceView()
+                case .trash: TrashView()
+                case .dictation: DictationView()
+                case .all, .starred, .scene, .materials, .project, .tag: RecordingsView()
+                }
             }
+            .background(Backdrop())
+            .environment(\.remoteFocusScope, .mainContent)
         }
         .accessibilityHidden(nav.stageOpen && store.recState != .idle)
         .preferredColorScheme(store.settings.appearance.scheme)
@@ -79,10 +92,14 @@ struct RootView: View {
             if !urls.isEmpty { nav.route = .all }
             return !urls.isEmpty
         }
-        .overlay(alignment: .bottom) { if !nav.stageOpen { RecordDock().padding(.bottom, 16) } }
+        .overlay(alignment: .bottom) {
+            if !nav.stageOpen { RecordDock().environment(\.remoteFocusScope, .mainContent).padding(.bottom, 16) }
+        }
         .overlay {
             if nav.stageOpen, store.recState != .idle {
-                RecordStage().transition(.opacity.combined(with: .scale(scale: 1.03)))
+                RecordStage()
+                    .environment(\.remoteFocusScope, .recordingStage)
+                    .transition(.opacity.combined(with: .scale(scale: 1.03)))
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 1), value: nav.stageOpen)
@@ -94,7 +111,7 @@ struct RootView: View {
                     Label(banner.text, systemImage: banner.icon)
                     if !banner.undo.isEmpty {
                         Divider().frame(height: 14)
-                        Button("撤销") { store.restore(banner.undo); store.banner = nil }
+                        RemoteButton("撤销") { store.restore(banner.undo); store.banner = nil }
                             .buttonStyle(.plain).foregroundStyle(Theme.accent).fontWeight(.semibold)
                             .keyboardShortcut("z", modifiers: .command)
                     }
@@ -159,7 +176,10 @@ struct RootView: View {
             }
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: clipboard.offer?.url)
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in clipboard.check(store) }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            clipboard.check(store)
+            if store.xiaomiLink == .ready { store.xiaomiBackButton.start() }
+        }
         .task {
             // 豆仓开在前台时，复制了一条链接再切回来之前也能看到：在前台每两秒看一眼剪贴板有没有变
             while !Task.isCancelled {
@@ -201,6 +221,11 @@ struct RootView: View {
         }
         .sheet(isPresented: $nav.welcomeOpen) { WelcomeView() }
         .modifier(ProjectDialogs())
+        .modifier(RemoteWindowNavigation(back: {
+            if keepCardVisible { store.keepJustRecorded() }
+            nav.goHome()
+        }, keepCardVisible: keepCardVisible, stageVisible: stageVisible, hasSplitPanes: true, voiceStage: stageVisible && store.xiaomiRecording,
+        finishVoice: { store.finishRecording() }))
         .onAppear {
             if !UserDefaults.standard.bool(forKey: "welcomed"), store.recordings.isEmpty { nav.welcomeOpen = true }
         }
@@ -228,7 +253,7 @@ struct RecordControls: View {
     var body: some View {
         switch store.recState {
         case .idle:
-            Button { store.startRecording() } label: {
+            RemoteButton { store.startRecording() } label: {
                 Label(size == .regular ? String(localized: "action.record", defaultValue: "录音") : String(localized: "开始录音"), systemImage: "record.circle.fill").labelStyle(.titleAndIcon).fixedSize()
                     .padding(.horizontal, size == .regular ? 0 : 8)
             }
@@ -250,7 +275,7 @@ struct RecordControls: View {
                 .padding(.horizontal, 8)
 
                 if !store.xiaomiRecording {
-                    Button { paused ? store.resumeRecording() : store.pauseRecording() } label: {
+                    RemoteButton { paused ? store.resumeRecording() : store.pauseRecording() } label: {
                         Label(paused ? "继续" : "暂停", systemImage: paused ? "play.fill" : "pause.fill")
                             .labelStyle(size == .regular ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
                     }
@@ -258,13 +283,13 @@ struct RecordControls: View {
                     .help(paused ? "继续录（⌘R）" : "暂停，稍后可以接着录进同一条（⌘R）")
                 }
 
-                Button { store.finishRecording() } label: {
+                RemoteButton { store.finishRecording() } label: {
                     Label("结束", systemImage: "stop.fill")
                         .labelStyle(size == .regular ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
                 }
                 .buttonStyle(size == .regular ? AnyButtonStyle(.borderless) : AnyButtonStyle(.glassProminent))
                 .tint(Theme.rec).foregroundStyle(size == .regular ? AnyShapeStyle(Theme.rec) : AnyShapeStyle(.white)).controlSize(size)
-                    .help(store.xiaomiRecording ? "结束遥控器录音并保存（⌘.），也可松开语音键结束" : "结束这条录音（⌘.）。结束后会自动下载并整理成纪要。")
+                    .help(store.xiaomiRecording ? "结束并保存遥控器录音。也可在录音舞台按确认键（回车），或按 ⌘.。" : "结束这条录音（⌘.）。结束后会自动下载并整理成纪要。")
             }
         }
     }
@@ -374,7 +399,7 @@ struct Sidebar: View {
             // 最近删除：里面有东西（或者正开着）才出现
             if !store.trash.isEmpty || nav.route == .trash {
                 let on = nav.route == .trash
-                Button { nav.route = .trash } label: {
+                RemoteButton { nav.route = .trash } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "trash").font(.system(size: 12)).frame(width: 20)
                             .foregroundStyle(on ? Theme.accent : Theme.warm400)
@@ -413,7 +438,7 @@ struct Sidebar: View {
             HStack {
                 Text("项目").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.warm500)
                 Spacer()
-                Button { nav.pendingMove = []; nav.newProject = true } label: {
+                RemoteButton { nav.pendingMove = []; nav.newProject = true } label: {
                     Image(systemName: "plus").font(.system(size: 11, weight: .semibold)).foregroundStyle(Theme.warm500)
                         .frame(width: 22, height: 22).contentShape(Rectangle())
                 }
@@ -429,7 +454,7 @@ struct Sidebar: View {
                 VStack(spacing: 2) {
                     ForEach(store.projects) { p in
                         let on = nav.route == .project(p.id)
-                        Button { nav.route = .project(p.id) } label: {
+                        RemoteButton { nav.route = .project(p.id) } label: {
                             HStack(spacing: 10) {
                                 Image(systemName: on ? "folder.fill" : "folder").font(.system(size: 13)).frame(width: 20)
                                     .foregroundStyle(on ? Theme.accent : Theme.warm500)
@@ -458,7 +483,7 @@ struct Sidebar: View {
 
     private func item(_ title: String, _ icon: String, _ index: Int, count: Int = 0, action: @escaping () -> Void) -> some View {
         let on = section == index
-        return Button(action: action) {
+        return RemoteButton(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: icon).font(.system(size: 14)).frame(width: 20)
                     .foregroundStyle(on ? Theme.accent : Theme.warm500)
@@ -490,7 +515,7 @@ struct SidebarRecord: View {
     var body: some View {
         VStack(spacing: 6) {
             if store.recState == .idle {
-                Button { store.startRecording() } label: {
+                RemoteButton { store.startRecording() } label: {
                     HStack(spacing: 8) {
                         PulsingDot()
                         Text("开始录音").font(.system(size: 14, weight: .medium)).tracking(0.5)
@@ -507,7 +532,7 @@ struct SidebarRecord: View {
             } else {
                 let paused = store.recState == .paused
                 // 录音中：同一个位置换成计时，点一下回到录音舞台
-                Button { nav.stageOpen = true } label: {
+                RemoteButton { nav.stageOpen = true } label: {
                     HStack(spacing: 7) {
                         Circle().fill(paused ? Theme.accent : Theme.rec).frame(width: 8, height: 8)
                         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -567,7 +592,7 @@ struct SettingsChip: View {
     @State private var hover = false
 
     var body: some View {
-        Button { openSettings() } label: {
+        RemoteButton { openSettings() } label: {
             Image(systemName: "gearshape")
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(hover ? Theme.warm900 : Theme.warm500)
@@ -591,7 +616,7 @@ struct DeviceChip: View {
 
     var body: some View {
         let on = nav.route == .device
-        Button { nav.route = .device } label: {
+        RemoteButton { nav.route = .device } label: {
             // 侧栏窄：名字要整行放得下（「soundcore Work」原先被右边的箭头挤成「soundcor…」）。
             // 整张卡本身就是按钮、选中时有描边，不再放箭头；只有正在下载时右边放进度圈
             HStack(spacing: 8) {
@@ -654,7 +679,7 @@ struct XiaomiDeviceChip: View {
     @Environment(Navigator.self) private var nav
 
     var body: some View {
-        Button { nav.route = .device } label: {
+        RemoteButton { nav.route = .device } label: {
             HStack(spacing: 8) {
                 Image(systemName: "appletvremote.gen4.fill")
                     .font(.system(size: 18)).foregroundStyle(Theme.accent)
@@ -663,7 +688,7 @@ struct XiaomiDeviceChip: View {
                     Text(store.xiaomiName ?? "小米语音遥控器")
                         .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.warm900)
                         .lineLimit(2)
-                    Text(store.xiaomiRecording ? "正在录音 · 松开语音键结束" : store.xiaomiLink == .ready ? "已连接 · 按住语音键说话" : "正在连接…")
+                    Text(store.xiaomiRecording ? (store.recState == .paused ? "已暂停 · 按住语音键继续" : "正在录音 · 松开语音键暂停") : store.xiaomiLink == .ready ? "已连接 · 按住语音键说话" : "正在连接…")
                         .font(.system(size: 10.5)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
@@ -927,7 +952,7 @@ struct RecordingsView: View {
 
     /// 一个小筛选块：选中的是深色，其他是浅灰。
     private func chip(_ text: String, on: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        RemoteButton(action: action) {
             Text(text).font(.system(size: 12, weight: on ? .medium : .regular))
                 .padding(.horizontal, 12).padding(.vertical, 4)
                 .foregroundStyle(on ? Theme.warm50 : Theme.warm700)
@@ -967,7 +992,7 @@ struct RecordingsView: View {
             Image(systemName: "link").font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.warm400)
             TextField("粘贴视频链接或分享口令", text: $linkText).textFieldStyle(.plain).font(.system(size: 13))
                 .onSubmit(importPasted)
-            Button(action: importPasted) {
+            RemoteButton(action: importPasted) {
                 Text("导入").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
                     .padding(.horizontal, 12).padding(.vertical, 5)
                     .background(LinkTools.urls(in: linkText).isEmpty ? Theme.warm400 : Theme.accent, in: .rect(cornerRadius: Theme.Radius.card))
@@ -994,7 +1019,7 @@ struct RecordingsView: View {
                         Text(title).font(.system(size: 18, weight: .bold)).foregroundStyle(Theme.warm900)
                         Spacer()
                         Text("\(items.count) 条").font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.warm500).monospacedDigit()
-                        Button(selecting ? "完成" : "选择") {
+                        RemoteButton(selecting ? "完成" : "选择") {
                             selecting.toggle(); picked = []
                         }
                         .buttonStyle(.plain).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.accent)
@@ -1009,7 +1034,7 @@ struct RecordingsView: View {
                         Image(systemName: "magnifyingglass").font(.system(size: 13)).foregroundStyle(Theme.warm400)
                         TextField("搜标题、内容、话题", text: $query).textFieldStyle(.plain).font(.system(size: 13))
                         if !query.isEmpty {
-                            Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.warm400) }
+                            RemoteButton { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.warm400) }
                                 .buttonStyle(.plain).help("清空").accessibilityLabel("清空搜索")
                         }
                     }
@@ -1052,6 +1077,7 @@ struct RecordingsView: View {
                                                  checked: selecting ? picked.contains(rec.id) : nil, showProject: !isProjectPage)
                                         .id(rec.id)
                                         .onTapGesture { tap(rec.id) }
+                                        .remoteFocusable { tap(rec.id) }
                                         // 读屏和辅助功能点按走同一个动作
                                         .accessibilityAction { tap(rec.id) }
                                         .contextMenu { rowMenu(rec) }
@@ -1091,7 +1117,7 @@ struct RecordingsView: View {
                         Text(emptyTitle).font(.title3.weight(.semibold)).foregroundStyle(Theme.warm900)
                         Text(emptyDetail).foregroundStyle(Theme.warm500).multilineTextAlignment(.center).frame(maxWidth: 380)
                         if !(nav.route == .materials && query.isEmpty && quick == .all) {
-                            Button("看全部录音") { showAll() }.buttonStyle(.glass).controlSize(.large).padding(.top, 4)
+                            RemoteButton("看全部录音") { showAll() }.buttonStyle(.glass).controlSize(.large).padding(.top, 4)
                         }
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1185,11 +1211,11 @@ struct RecordingsView: View {
                 Label("移到项目", systemImage: "folder").font(.system(size: 12, weight: .medium))
             }
             .menuStyle(.button).buttonStyle(.plain).fixedSize()
-            Button { store.setStar(picked, !picked.allSatisfy { id in store.recordings.first { $0.id == id }?.starred == true }) } label: {
+            RemoteButton { store.setStar(picked, !picked.allSatisfy { id in store.recordings.first { $0.id == id }?.starred == true }) } label: {
                 Label("星标", systemImage: "star").font(.system(size: 12, weight: .medium))
             }
             .buttonStyle(.plain)
-            Button {
+            RemoteButton {
                 store.trashWithUndo(picked.filter { id in store.recordings.first(where: { $0.id == id })?.downloaded == true })
                 picked = []; selecting = false
             } label: {
@@ -1478,7 +1504,7 @@ struct RecordingDetail: View {
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 6) {
                                 ForEach(recording.marks, id: \.self) { m in
-                                    Button { store.play(recording.id, at: max(0, m - 2)) } label: {
+                                    RemoteButton { store.play(recording.id, at: max(0, m - 2)) } label: {
                                         Label(clock(m), systemImage: "flag.fill").font(.system(size: 12, weight: .medium).monospacedDigit())
                                             .padding(.horizontal, 10).padding(.vertical, 4)
                                             .foregroundStyle(Theme.accent)
@@ -1644,7 +1670,7 @@ struct RecordingDetail: View {
     private var notProcessed: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("这条录音还没转写。").foregroundStyle(.secondary)
-            Button("转写并整理", systemImage: "sparkles") { store.process(recording.id) }
+            RemoteButton("转写并整理", systemImage: "sparkles") { store.process(recording.id) }
                 .controlSize(.large).buttonStyle(.borderedProminent)
         }
     }
@@ -1660,7 +1686,7 @@ struct RecordingDetail: View {
                     ProgressView(value: pull.fraction) { Text("正在通过蓝牙下载 \(Int(pull.fraction * 100))%") }
                     Text("蓝牙比较慢，长录音要等几分钟。期间请让密盒留在电脑旁边。").font(.callout).foregroundStyle(.secondary)
                     HStack {
-                        Button("取消") { store.cancelDownloads() }
+                        RemoteButton("取消") { store.cancelDownloads() }
                         if store.wifiSyncWorthOffering { Button("改用 Wi‑Fi 快传…") { nav.confirmWiFiSync = true } }
                     }
                 }
@@ -1668,7 +1694,7 @@ struct RecordingDetail: View {
                 Label("排队中，等前面的下载完", systemImage: "clock").foregroundStyle(.secondary)
             } else {
                 Text("这条录音还在密盒里。下载后会自动转写并整理。").foregroundStyle(.secondary)
-                Button("下载到这台 Mac", systemImage: "arrow.down.circle") { store.download(recording.id) }
+                RemoteButton("下载到这台 Mac", systemImage: "arrow.down.circle") { store.download(recording.id) }
                     .controlSize(.large).buttonStyle(.borderedProminent)
                     .disabled(store.link != .ready || !store.encryptionReady)
             }
@@ -1739,7 +1765,7 @@ struct IconTool: View {
     }
 
     var body: some View {
-        Button(action: action) {
+        RemoteButton(action: action) {
             Image(systemName: icon).font(.system(size: 13, weight: .medium))
                 .foregroundStyle(tint ?? Theme.warm600)
                 .frame(width: 36, height: 36)
@@ -1786,7 +1812,7 @@ struct PaneSwitch: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(Array(titles.enumerated()), id: \.offset) { i, t in
-                Button { withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) { selection = i } } label: {
+                RemoteButton { withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) { selection = i } } label: {
                     Text(t).font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(selection == i ? Theme.warm900 : Theme.warm500)
                         .padding(.horizontal, 16).padding(.vertical, 6)
@@ -1822,7 +1848,7 @@ struct PlayerBar: View {
     var body: some View {
         let active = store.playingID == recording.id
         HStack(spacing: compact ? 10 : 14) {
-            Button { store.togglePlay(recording.id) } label: {
+            RemoteButton { store.togglePlay(recording.id) } label: {
                 Image(systemName: active && store.isPlaying ? "pause.fill" : "play.fill").font(.system(size: 14, weight: .bold))
                     .foregroundStyle(.white).offset(x: active && store.isPlaying ? 0 : 1)
                     .frame(width: 40, height: 40)
@@ -1834,10 +1860,10 @@ struct PlayerBar: View {
             .help(active && store.isPlaying ? "暂停（空格）" : "播放（空格）")
             .accessibilityLabel(active && store.isPlaying ? "暂停" : "播放")
             if !compact {
-                Button { store.skip(recording.id, by: -15) } label: { Image(systemName: "gobackward.15").font(.title3) }
+                RemoteButton { store.skip(recording.id, by: -15) } label: { Image(systemName: "gobackward.15").font(.title3) }
                     .buttonStyle(.plain).foregroundStyle(.secondary).help("往回 15 秒（⌥⌘←）")
                     .accessibilityLabel("往回 15 秒")
-                Button { store.skip(recording.id, by: 15) } label: { Image(systemName: "goforward.15").font(.title3) }
+                RemoteButton { store.skip(recording.id, by: 15) } label: { Image(systemName: "goforward.15").font(.title3) }
                     .buttonStyle(.plain).foregroundStyle(.secondary).help("往后 15 秒（⌥⌘→）")
                     .accessibilityLabel("往后 15 秒")
             }
@@ -1855,7 +1881,7 @@ struct PlayerBar: View {
             Text(compact ? clock(active ? store.playhead : 0) : "\(clock(active ? store.playhead : 0)) / \(clock(recording.duration))")
                 .font(.system(size: 12, weight: .semibold)).monospacedDigit().foregroundStyle(Theme.warm700)
             // 点一下换下一档速度
-            Button {
+            RemoteButton {
                 let i = BeanStore.rates.firstIndex(of: store.playRate) ?? 1
                 store.setRate(BeanStore.rates[(i + 1) % BeanStore.rates.count])
             } label: {
@@ -1945,7 +1971,7 @@ struct RecordDock: View {
         Group {
             if store.recState == .idle {
                 if !hiddenWhenIdle {
-                    Button { store.startRecording() } label: {
+                    RemoteButton { store.startRecording() } label: {
                         Label(store.link == .ready ? "开始录音" : "用 Mac 录音", systemImage: "record.circle.fill").padding(.horizontal, 6)
                     }
                     .buttonStyle(.glassProminent).tint(Theme.rec).controlSize(.extraLarge)
@@ -1969,7 +1995,7 @@ struct RecordDock: View {
                         .font(.system(size: 20, weight: .semibold, design: .rounded)).monospacedDigit()
                 }
             }
-            Button { nav.stageOpen = true } label: {
+            RemoteButton { nav.stageOpen = true } label: {
                 FlowWave(levels: store.liveLevels, total: store.liveLevelTotal, marks: store.liveMarks,
                          elapsed: { store.elapsed(at: $0) }, paused: paused, color: .primary)
                     .frame(width: 220, height: 30)
@@ -1979,18 +2005,18 @@ struct RecordDock: View {
             if paused { Text("已暂停").font(.callout).foregroundStyle(.secondary) }
 
             if !store.xiaomiRecording {
-                Button { paused ? store.resumeRecording() : store.pauseRecording() } label: {
+                RemoteButton { paused ? store.resumeRecording() : store.pauseRecording() } label: {
                     Image(systemName: paused ? "play.fill" : "pause.fill").frame(width: 18, height: 18)
                 }
                 .buttonStyle(.glass).controlSize(.large)
                 .help(paused ? "继续录（⌘R）" : "暂停，稍后可以接着录进同一条（⌘R）")
             }
 
-            Button { store.finishRecording() } label: {
+            RemoteButton { store.finishRecording() } label: {
                 Label("结束", systemImage: "stop.fill")
             }
             .buttonStyle(.glassProminent).tint(Theme.rec).controlSize(.large)
-            .help(store.xiaomiRecording ? "结束遥控器录音并保存（⌘.），也可松开语音键结束" : "结束这条录音（⌘.）。结束后会自动下载并整理成纪要。")
+            .help(store.xiaomiRecording ? "结束并保存遥控器录音。也可在录音舞台按确认键（回车），或按 ⌘.。" : "结束这条录音（⌘.）。结束后会自动下载并整理成纪要。")
         }
         .padding(.leading, 20).padding(.trailing, 10).padding(.vertical, 9)
         .glassEffect(.regular, in: .capsule)
@@ -2035,7 +2061,7 @@ struct RewriteView: View {
                     .lineLimit(1...4)
                     .textFieldStyle(.roundedBorder)
                 HStack {
-                    Button { store.rewrite(recording.id, template: template, extra: extra) } label: {
+                    RemoteButton { store.rewrite(recording.id, template: template, extra: extra) } label: {
                         Label(busy ? "正在写…" : "生成", systemImage: "sparkles")
                     }
                     .buttonStyle(.glassProminent).controlSize(.large)
@@ -2054,7 +2080,7 @@ struct RewriteView: View {
                     Text(maker.statusLine)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Button("看进度") { makingVideo = true }
+                    RemoteButton("看进度") { makingVideo = true }
                 }
                 .padding(12).panel(radius: Theme.Radius.card)
             }
@@ -2068,16 +2094,16 @@ struct RewriteView: View {
                         Text(item.name).font(.headline)
                         Text(item.date.formatted(date: .omitted, time: .shortened)).font(.caption).foregroundStyle(.secondary)
                         Spacer()
-                        Button {
+                        RemoteButton {
                             makingVideo = true
                             maker.prepare(text: item.text, recording: recording.id, title: recording.displayTitle, template: item.name)
                         } label: { Label("做成视频", systemImage: "play.rectangle.on.rectangle") }
                             .buttonStyle(.glass).tint(Theme.accent)
                             .disabled(maker.busy && maker.recording != recording.id)
                             .help("交给 Claude 桌面版，用 Renoise 的数字人和口播剪辑 skill 做成带包装的成片。会先报价，确认了才开始")
-                        Button("拷贝", systemImage: "doc.on.doc") { copy(item.text); store.toast("doc.on.doc", String(localized: "已拷贝")) }
+                        RemoteButton("拷贝", systemImage: "doc.on.doc") { copy(item.text); store.toast("doc.on.doc", String(localized: "已拷贝")) }
                             .labelStyle(.iconOnly).buttonStyle(.borderless)
-                        Button("删除", systemImage: "trash") { store.deleteRewrite(recording.id, item.id) }
+                        RemoteButton("删除", systemImage: "trash") { store.deleteRewrite(recording.id, item.id) }
                             .labelStyle(.iconOnly).buttonStyle(.borderless)
                     }
                     MarkdownView(text: item.text)
@@ -2155,7 +2181,7 @@ struct NotesView: View {
                 Card {
                     Label("这条只按关键词粗略分了类，还没有完整纪要。", systemImage: "info.circle").foregroundStyle(.secondary)
                     if store.analysisAvailable {
-                        Button("用分析模型整理", systemImage: "sparkles") { store.process(recording.id) }
+                        RemoteButton("用分析模型整理", systemImage: "sparkles") { store.process(recording.id) }
                             .buttonStyle(.glassProminent).controlSize(.large)
                             .disabled(store.stages[recording.id] != nil)
                     } else {
@@ -2257,7 +2283,7 @@ struct TranscriptView: View {
                     Image(systemName: "character.bubble").foregroundStyle(Theme.accent)
                     Text("这条不是\(store.settings.translateTo)的。要逐句翻译成\(store.settings.translateTo)吗？").font(.callout).foregroundStyle(Theme.warm700)
                     Spacer()
-                    Button("翻译（\(store.settings.translateStyle.name)）") { store.translate(recording.id) }
+                    RemoteButton("翻译（\(store.settings.translateStyle.name)）") { store.translate(recording.id) }
                         .buttonStyle(.borderedProminent).disabled(!store.analysisAvailable)
                 }
                 .padding(.horizontal, 14).padding(.vertical, 10)
@@ -2364,11 +2390,11 @@ struct TranscriptView: View {
                     .keyboardShortcut("l", modifiers: .option)
                     .help("开着时点哪句就一直重复那句，适合听不清、跟读（⌥L）")
                 Divider().frame(height: 16)
-                Button { step(-1) } label: { Label("上一句", systemImage: "arrow.up") }
+                RemoteButton { step(-1) } label: { Label("上一句", systemImage: "arrow.up") }
                     .keyboardShortcut(.upArrow, modifiers: .option).help("上一句（⌥↑）")
-                Button { step(1) } label: { Label("下一句", systemImage: "arrow.down") }
+                RemoteButton { step(1) } label: { Label("下一句", systemImage: "arrow.down") }
                     .keyboardShortcut(.downArrow, modifiers: .option).help("下一句（⌥↓）")
-                Button { replayCurrent() } label: { Label("这句再听", systemImage: "gobackward") }
+                RemoteButton { replayCurrent() } label: { Label("这句再听", systemImage: "gobackward") }
                     .keyboardShortcut("r", modifiers: .option).help("从句首再听一遍这句（⌥R）")
                 Spacer(minLength: 8)
                 Toggle(isOn: $follow) { Text("跟着滚动") }
@@ -2406,7 +2432,7 @@ struct TranscriptView: View {
         Toggle(isOn: $editing) { Label("修改", systemImage: "pencil") }
             .toggleStyle(.button).fixedSize()
             .help("打开后可以直接改每一句的文字")
-        Button { replacing.toggle() } label: { Label("替换词语", systemImage: "arrow.left.arrow.right") }
+        RemoteButton { replacing.toggle() } label: { Label("替换词语", systemImage: "arrow.left.arrow.right") }
             .fixedSize()
             .popover(isPresented: $replacing, arrowEdge: .bottom) { replaceForm }
     }
@@ -2419,7 +2445,7 @@ struct TranscriptView: View {
         if let t = translation {
             Text("\(t.language) · \(t.style)").font(.caption).foregroundStyle(Theme.warm500).fixedSize()
         }
-        Button { translateOpen.toggle() } label: {
+        RemoteButton { translateOpen.toggle() } label: {
             Label(translation == nil ? "翻译" : "重新翻译", systemImage: "character.bubble").labelStyle(.titleAndIcon)
         }
         .buttonStyle(.borderedProminent).fixedSize()
@@ -2447,7 +2473,7 @@ struct TranscriptView: View {
             Toggle("所有录音都改，不只这一条", isOn: $everywhere)
             HStack {
                 Spacer()
-                Button("替换") {
+                RemoteButton("替换") {
                     let n = store.replaceWord(wrong, with: right, in: recording.id, everywhere: everywhere, remember: remember)
                     store.toast("checkmark.circle.fill", n > 0 ? String(localized: "改了 \(n) 处") : (remember ? String(localized: "这里没有这个词，已记进词库") : String(localized: "这里没有这个词")))
                     wrong = ""; right = ""; replacing = false
@@ -2484,7 +2510,7 @@ struct TranscriptView: View {
         let playingThis = canListen && currentIndex == index
         let looping = playingThis && store.loopSpan != nil
         return HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Button(clock(seg.start)) { store.play(recording.id, at: seg.start) }
+            RemoteButton(clock(seg.start)) { store.play(recording.id, at: seg.start) }
                 .buttonStyle(.plain).foregroundStyle(Theme.accent).font(.callout.monospacedDigit())
                 .frame(width: 46, alignment: .leading)
                 .help("从这里开始播放")
@@ -2515,6 +2541,7 @@ struct TranscriptView: View {
                 // 点句子本身就从这句播（文字还能拖选拷贝）
                 .contentShape(.rect)
                 .onTapGesture { if canListen, !editing { listen(index) } }
+                .remoteFocusable { if canListen, !editing { listen(index) } }
                 .accessibilityAction(named: "从这句播") { if canListen { listen(index) } }
                 if looping {
                     Label("第 \(store.loopCount) 遍", systemImage: "repeat").labelStyle(.titleAndIcon)
@@ -2703,7 +2730,7 @@ struct DeviceView: View {
                 CardPanel()
                 // 手机 App 把录音同步进飞书后，从飞书拉回来（FeishuPanel.swift）
                 FeishuPanel()
-                Button("诊断日志") { openWindow(id: "log") }.buttonStyle(.plain).foregroundStyle(.tertiary).font(.caption)
+                RemoteButton("诊断日志") { openWindow(id: "log") }.buttonStyle(.plain).foregroundStyle(.tertiary).font(.caption)
                     .frame(maxWidth: .infinity)
             }
             .padding(24)
@@ -2720,22 +2747,57 @@ struct DeviceView: View {
             case .ready:
                 Text(store.xiaomiName ?? "小米语音遥控器").font(.headline).textSelection(.enabled)
                 Label("已连接", systemImage: "checkmark.circle.fill").foregroundStyle(Theme.ok)
-                Text("按住遥控器语音键说话，松开结束。字幕会显示在录音舞台。")
+                Text("按住语音键录音，松开暂停。在录音舞台按确认键（回车）结束并保存。字幕会显示在录音舞台。")
                     .font(.callout).foregroundStyle(.secondary)
                 Text(store.xiaomiLiveStatus).font(.callout).foregroundStyle(.secondary)
-                Button("断开遥控器") { store.disconnectXiaomi() }.buttonStyle(.glass)
+                switch store.xiaomiBackButton.status {
+                case .needsPermission:
+                    Text("在输入监控里允许密盒助手，即可使用遥控器的返回键。")
+                        .font(.callout).foregroundStyle(.secondary)
+                    RemoteButton("打开输入监控设置") {
+                        if let message = store.xiaomiBackButton.requestPermission() {
+                            store.toast("exclamationmark.triangle", message)
+                        }
+                    }
+                case .waitingForDevice:
+                    Text("已授权，正在等待小米遥控器的键盘连接。")
+                        .font(.callout).foregroundStyle(.secondary)
+                    RemoteButton("重新检查返回键") { store.xiaomiBackButton.start() }
+                case .multipleDevices:
+                    Text("检测到多个小米遥控器。请在蓝牙设置里只保留一个连接，再检查返回键。")
+                        .font(.callout).foregroundStyle(.secondary)
+                    RemoteButton("重新检查返回键") { store.xiaomiBackButton.start() }
+                case .unavailable:
+                    Text("返回键监听启动失败。请重新检查。")
+                        .font(.callout).foregroundStyle(.secondary)
+                    RemoteButton("重新检查返回键") { store.xiaomiBackButton.start() }
+                case .listening:
+                    Label("遥控器返回键已启用", systemImage: "checkmark.circle.fill").foregroundStyle(Theme.ok)
+                }
+                RemoteButton("断开遥控器") { store.disconnectXiaomi() }.buttonStyle(.glass)
             case .connecting:
                 ProgressView("正在连接小米语音遥控器…").controlSize(.small)
-                Button("取消") { store.disconnectXiaomi() }
+                RemoteButton("取消") { store.disconnectXiaomi() }
             case .off:
                 Text("打开 Mac 蓝牙后可搜索遥控器。").font(.callout).foregroundStyle(.secondary)
             case .unauthorized:
                 Text("请在系统设置的蓝牙权限中允许「密盒助手」。").font(.callout).foregroundStyle(.secondary)
             case .idle, .scanning:
-                Text("将遥控器放在 Mac 旁边。同时按住主页键和菜单键进入配对，再搜索遥控器。")
-                    .font(.callout).foregroundStyle(.secondary)
+                if store.xiaomiFailure == .pairingLost {
+                    Label("遥控器的蓝牙配对已失效", systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout.weight(.semibold)).foregroundStyle(Theme.amber)
+                    Text("在 Mac 的蓝牙设置中忽略原来的小米遥控器，然后重新配对，再回到这里搜索。")
+                        .font(.callout).foregroundStyle(.secondary)
+                } else {
+                    if case .other(let reason) = store.xiaomiFailure {
+                        Label(reason, systemImage: "exclamationmark.triangle.fill")
+                            .font(.callout).foregroundStyle(Theme.amber)
+                    }
+                    Text("首次使用时，同时按住遥控器的主页键和菜单键，在 Mac 的蓝牙设置中连接。配对后再回这里搜索。")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
                 ForEach(store.xiaomiFound) { device in
-                    Button { store.connectXiaomi(device) } label: {
+                    RemoteButton { store.connectXiaomi(device) } label: {
                         HStack {
                             Image(systemName: "appletvremote.gen4.fill").foregroundStyle(Theme.accent)
                             Text(device.name).fontWeight(.medium)
@@ -2751,8 +2813,13 @@ struct DeviceView: View {
                 if store.xiaomiLink == .scanning, store.xiaomiFound.isEmpty {
                     ProgressView("正在搜索小米语音遥控器…").controlSize(.small)
                 }
-                Button(store.xiaomiLink == .scanning ? "停止搜索" : "搜索遥控器") {
-                    if store.xiaomiLink == .scanning { store.xiaomi.stopScan() } else { store.xiaomi.scan() }
+                HStack {
+                    RemoteButton("打开蓝牙设置") {
+                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.BluetoothSettings")!)
+                    }
+                    RemoteButton(store.xiaomiLink == .scanning ? "停止搜索" : "搜索遥控器") {
+                        if store.xiaomiLink == .scanning { store.xiaomi.stopScan() } else { store.xiaomi.scan() }
+                    }
                 }
             }
         }
@@ -2765,7 +2832,7 @@ struct DeviceView: View {
                 Text(store.waitingForKnownDevice ? "正在等「\(store.displayDeviceName)」出现" : "正在连接…").font(.headline)
                 Text("确认密盒已开机，放在电脑旁边。\n手机连着它的话，先关掉手机蓝牙。")
                     .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                Button("取消") { store.disconnect() }
+                RemoteButton("取消") { store.disconnect() }
             }
             .frame(maxWidth: .infinity)
         }
@@ -2788,7 +2855,7 @@ struct DeviceView: View {
                     .padding(.top, 2)
                 }
                 ForEach(beans) { device in
-                    Button { store.autoConnectAllowed = true; store.connect(device) } label: {
+                    RemoteButton { store.autoConnectAllowed = true; store.connect(device) } label: {
                         HStack {
                             Image(systemName: "mic.circle.fill").font(.title2).foregroundStyle(Theme.accent)
                             Text(device.name).fontWeight(.medium)
@@ -2800,7 +2867,7 @@ struct DeviceView: View {
                     .buttonStyle(.plain)
                     .transition(.scale(scale: 0.9).combined(with: .opacity))
                 }
-                Button(store.link == .scanning ? "停止搜索" : "开始搜索") {
+                RemoteButton(store.link == .scanning ? "停止搜索" : "开始搜索") {
                     if store.link == .scanning { store.stopScan() } else { store.autoConnectAllowed = true; store.scan() }
                 }
             }
@@ -2832,7 +2899,7 @@ struct DeviceView: View {
                         Circle().fill(Theme.ok).frame(width: 9, height: 9)
                         Text(store.recState == .recording && !store.recordingOnMac && !store.xiaomiRecording ? "已连接 · 正在录音" : store.inCase ? "已连接 · 正在充电" : "已连接").font(.title3).foregroundStyle(.secondary)
                     }
-                    Button("断开连接") { store.disconnect() }.buttonStyle(.glass).controlSize(.large)
+                    RemoteButton("断开连接") { store.disconnect() }.buttonStyle(.glass).controlSize(.large)
                         .padding(.top, 10)
                 }
             }
@@ -2871,8 +2938,8 @@ struct DeviceView: View {
                         HStack {
                             Text("有 \(waiting) 条录音还在密盒里。").foregroundStyle(.secondary)
                             Spacer()
-                            if store.wifiSyncWorthOffering { Button("Wi‑Fi 快传…") { nav.confirmWiFiSync = true } }
-                            Button("全部下载") { store.downloadAll() }.disabled(store.pull != nil || !store.encryptionReady)
+                            if store.wifiSyncWorthOffering { RemoteButton("Wi‑Fi 快传…") { nav.confirmWiFiSync = true } }
+                            RemoteButton("全部下载") { store.downloadAll() }.disabled(store.pull != nil || !store.encryptionReady)
                         }
                     }
                 }
@@ -2962,7 +3029,7 @@ struct LogView: View {
             .onChange(of: store.log.count) { proxy.scrollTo(store.log.count - 1, anchor: .bottom) }
         }
         .toolbar {
-            Button("拷贝全部", systemImage: "doc.on.doc") { copy(store.log.joined(separator: "\n")) }
+            RemoteButton("拷贝全部", systemImage: "doc.on.doc") { copy(store.log.joined(separator: "\n")) }
         }
     }
 }
@@ -3003,6 +3070,8 @@ struct Radar: View {
 struct KeepCard: View {
     @Environment(BeanStore.self) private var store
     let just: JustRecorded
+    private enum Choice { case discard, keep }
+    @State private var choice: Choice = .keep
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -3028,14 +3097,21 @@ struct KeepCard: View {
                     Button("不要这条") { store.discardJustRecorded() }
                         .buttonStyle(.plain).foregroundStyle(Theme.rec).fontWeight(.medium)
                         .frame(maxWidth: .infinity, minHeight: 34).contentShape(.rect)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card)
+                            .strokeBorder(choice == .discard ? Theme.rec : .clear, lineWidth: 2))
+                        .accessibilityAddTraits(choice == .discard ? .isSelected : [])
                     Button { store.keepJustRecorded() } label: { Text("留着").fontWeight(.semibold).frame(maxWidth: .infinity, minHeight: 22) }
                         .buttonStyle(.glassProminent).controlSize(.large)
-                        .keyboardShortcut(.defaultAction)
+                        .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card)
+                            .strokeBorder(choice == .keep ? Theme.accent : .clear, lineWidth: 2))
+                        .accessibilityAddTraits(choice == .keep ? .isSelected : [])
                 }
             } else {
                 Button { store.undoDiscard() } label: { Text("撤销，还是留着").fontWeight(.semibold).frame(maxWidth: .infinity, minHeight: 22) }
                     .buttonStyle(.glass).controlSize(.large)
-                    .keyboardShortcut(.cancelAction)
+                    .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card)
+                        .strokeBorder(Theme.accent, lineWidth: 2))
+                    .accessibilityAddTraits(.isSelected)
             }
 
             // 倒计时：一条越走越短的细线，旁边一句话说到点会怎样
@@ -3063,6 +3139,27 @@ struct KeepCard: View {
         .overlay(RoundedRectangle(cornerRadius: Theme.Radius.panel).strokeBorder(.separator.opacity(0.5), lineWidth: 0.5))
         .shadow(color: .black.opacity(0.18), radius: 24, y: 10)
         .animation(.spring(response: 0.35, dampingFraction: 0.9), value: just.discardAt != nil)
+        .onChange(of: just.id) { choice = .keep }
+        .onChange(of: just.discardAt) { choice = .keep }
+        .background(RemoteKeyInput(whileEditing: true) { key in
+            switch key {
+            case .left:
+                if just.discardAt == nil { choice = .discard }
+                return true
+            case .right:
+                choice = .keep
+                return true
+            case .confirm:
+                if just.discardAt != nil { store.undoDiscard() }
+                else if choice == .discard { store.discardJustRecorded() }
+                else { store.keepJustRecorded() }
+                return true
+            case .up, .down:
+                return true
+            case .back, .voice:
+                return false
+            }
+        }.allowsHitTesting(false).accessibilityHidden(true))
     }
 }
 

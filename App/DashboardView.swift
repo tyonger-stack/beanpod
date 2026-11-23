@@ -43,7 +43,7 @@ struct DashboardView: View {
 
                 // 数字和图表收在最下面，想看再展开：首页先回答「现在该做什么」
                 if !store.ownRecordings.isEmpty {
-                    Button { withAnimation(.spring(response: 0.35, dampingFraction: 1)) { showStats.toggle() } } label: {
+                    RemoteButton { withAnimation(.spring(response: 0.35, dampingFraction: 1)) { showStats.toggle() } } label: {
                         HStack(spacing: 6) {
                             Image(systemName: "chevron.right").font(.caption.weight(.semibold)).rotationEffect(.degrees(showStats ? 90 : 0))
                             Text("\(store.ownRecordings.count) 条录音 · \(hours(store.ownRecordings.reduce(0) { $0 + $1.duration })) · 近 7 天 \(week.count) 条")
@@ -77,7 +77,7 @@ struct DashboardView: View {
                             VStack(spacing: 8) {
                                 let top = sceneCounts.map(\.count).max() ?? 1
                                 ForEach(sceneCounts, id: \.scene) { item in
-                                    Button { nav.route = .scene(item.scene) } label: {
+                                    RemoteButton { nav.route = .scene(item.scene) } label: {
                                         HStack(spacing: 8) {
                                             Image(systemName: item.scene.icon).foregroundStyle(.secondary).frame(width: 18)
                                             Text(item.scene.name).frame(width: 44, alignment: .leading)
@@ -135,13 +135,13 @@ struct DashboardView: View {
                 ForEach(Array(todos.prefix(5).enumerated()), id: \.element.todo.id) { n, item in
                     if n > 0 { Divider() }
                     HStack(alignment: .top, spacing: 12) {
-                        Button { store.toggleTodo(item.recording.id, item.todo.id) } label: {
+                        RemoteButton { store.toggleTodo(item.recording.id, item.todo.id) } label: {
                             Circle().strokeBorder(.tertiary, lineWidth: 1.5).frame(width: 20, height: 20).contentShape(Circle())
                         }
                         .buttonStyle(.plain).help("做完了，勾掉").accessibilityLabel("勾掉：\(item.todo.text)")
                         VStack(alignment: .leading, spacing: 3) {
                             Text(item.todo.text).font(.body.weight(.medium)).lineLimit(2)
-                            Button("来自「\(item.recording.displayTitle)」") { nav.open(item.recording.id) }
+                            RemoteButton("来自「\(item.recording.displayTitle)」") { nav.open(item.recording.id) }
                                 .buttonStyle(.plain).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
                     }
@@ -159,7 +159,7 @@ struct DashboardView: View {
                     Text("录一段试试，录完会出现在这里。").foregroundStyle(.secondary).padding(.vertical, 10)
                 }
                 ForEach(store.ownRecordings.prefix(4)) { r in
-                    Button { nav.open(r.id) } label: {
+                    RemoteButton { nav.open(r.id) } label: {
                         HStack(spacing: 12) {
                             Image(systemName: (r.scene ?? .other).icon).font(.system(size: 16, weight: .medium)).foregroundStyle(Theme.accent)
                                 .frame(width: 36, height: 36)
@@ -194,22 +194,22 @@ struct DashboardView: View {
                     HStack {
                         Label("密盒里有 \(toDownload) 条录音还没下载", systemImage: "icloud.and.arrow.down")
                         Spacer()
-                        if store.wifiSyncWorthOffering { Button("Wi‑Fi 快传…") { nav.confirmWiFiSync = true } }
-                        Button("全部下载") { store.downloadAll() }.disabled(store.pull != nil || !store.encryptionReady)
+                        if store.wifiSyncWorthOffering { RemoteButton("Wi‑Fi 快传…") { nav.confirmWiFiSync = true } }
+                        RemoteButton("全部下载") { store.downloadAll() }.disabled(store.pull != nil || !store.encryptionReady)
                     }
                 }
                 if toProcess > 0 {
                     HStack {
                         Label("\(toProcess) 条录音还没转写整理", systemImage: "sparkles")
                         Spacer()
-                        Button("全部处理") { store.processAllPending() }
+                        RemoteButton("全部处理") { store.processAllPending() }
                     }
                 }
                 if rough > 0, store.analysisAvailable, working == 0 {
                     HStack {
                         Label("\(rough) 条录音只有粗略分类，还没出完整纪要", systemImage: "sparkles")
                         Spacer()
-                        Button("全部整理") { store.upgradeRoughNotes() }
+                        RemoteButton("全部整理") { store.upgradeRoughNotes() }
                     }
                 }
                 if working > 0 {
@@ -339,11 +339,11 @@ struct Hero: View {
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     if store.link != .ready, store.wifi == nil {
-                        Button { nav.route = .device } label: { Label("连接密盒", systemImage: "antenna.radiowaves.left.and.right").fixedSize() }
+                        RemoteButton { nav.route = .device } label: { Label("连接密盒", systemImage: "antenna.radiowaves.left.and.right").fixedSize() }
                     }
-                    Button { store.chooseFilesToImport() } label: { Label("导入录音", systemImage: "square.and.arrow.down").fixedSize() }
+                    RemoteButton { store.chooseFilesToImport() } label: { Label("导入录音", systemImage: "square.and.arrow.down").fixedSize() }
                     if store.recordings.contains(where: \.isAnalyzed) {
-                        Button { nav.route = .knowledge } label: { Label("问问知识库", systemImage: "sparkles").fixedSize() }
+                        RemoteButton { nav.route = .knowledge } label: { Label("问问知识库", systemImage: "sparkles").fixedSize() }
                     }
                 }
                 .buttonStyle(.glass).controlSize(.large)
@@ -372,13 +372,13 @@ struct LinkModule: View {
                 Image(systemName: "link").font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.accent)
                 Text("从链接导入").font(.system(size: 14, weight: .bold)).foregroundStyle(Theme.warm900)
                 Spacer()
-                Button("查看全部素材") { nav.route = .materials }
+                RemoteButton("查看全部素材") { nav.route = .materials }
                     .buttonStyle(.plain).font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.warm500)
             }
             HStack(spacing: 8) {
                 TextField("粘贴视频链接或分享口令，下载声音、转成文字稿", text: $text).textFieldStyle(.plain).font(.system(size: 13))
                     .onSubmit(go)
-                Button(action: go) {
+                RemoteButton(action: go) {
                     Text("导入").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
                         .padding(.horizontal, 14).padding(.vertical, 6)
                         .background(ready ? Theme.accent : Theme.warm400, in: .rect(cornerRadius: Theme.Radius.card))
@@ -393,7 +393,7 @@ struct LinkModule: View {
             if !recent.isEmpty {
                 HStack(spacing: 10) {
                     ForEach(recent) { r in
-                        Button { nav.route = .materials; nav.selection = r.id } label: {
+                        RemoteButton { nav.route = .materials; nav.selection = r.id } label: {
                             HStack(spacing: 10) {
                                 Image(systemName: "play.fill").font(.system(size: 10, weight: .semibold)).foregroundStyle(Theme.amber)
                                     .frame(width: 26, height: 26).background(Theme.amber.opacity(0.12), in: .rect(cornerRadius: Theme.Radius.chip))

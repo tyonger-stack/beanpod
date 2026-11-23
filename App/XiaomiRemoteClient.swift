@@ -4,6 +4,16 @@ import Foundation
 
 @MainActor
 final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelegate, @preconcurrency CBPeripheralDelegate {
+    enum Failure: Equatable {
+        case pairingLost
+        case other(String)
+    }
+
+    var onFailure: (Failure?) -> Void = { _ in }
+    private(set) var failure: Failure? {
+        didSet { if failure != oldValue { onFailure(failure) } }
+    }
+
     var onLink: (BLEClient.Link) -> Void = { _ in }
     var onFound: ([FoundDevice]) -> Void = { _ in }
     var onStart: () -> Void = {}
@@ -76,9 +86,10 @@ final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelega
     }
 
     func connect(_ id: UUID) {
+        failure = nil
         guard let central, central.state == .poweredOn, active == nil else { return }
         guard let peripheral = peripherals[id] ?? central.retrievePeripherals(withIdentifiers: [id]).first else {
-            discoverAfterFailure("系统已无法找到上次的遥控器")
+            fail("系统已无法找到上次的遥控器", rediscover: true)
             return
         }
         stopScan()
@@ -94,11 +105,18 @@ final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelega
     }
 
     func disconnect(forget: Bool) {
+        failure = nil
         stopScan()
         if forget { UserDefaults.standard.removeObject(forKey: Self.rememberedKey) }
         if let active { central?.cancelPeripheralConnection(active) }
         teardown()
         link = central?.state == .poweredOn ? .idle : .off
+    }
+
+    func stopVoice() {
+        guard case .streaming(let sessionID) = session else { return }
+        write([0x0D, sessionID])
+        endSession()
     }
 
     private func add(_ peripheral: CBPeripheral, name: String, rssi: Int, bound: Bool) {
@@ -133,17 +151,26 @@ final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelega
         discoveryRemaining = 0
     }
 
-    private func fail(_ message: String, rediscover: Bool = false) {
-        let searchAgain = rediscover || link == .connecting
-        onLog(message)
+    private func fail(_ message: String, error: Error? = nil, rediscover: Bool = false) {
+        let nsError = error as NSError?
+        let pairingLost = nsError?.domain == CBErrorDomain &&
+            nsError?.code == CBError.peerRemovedPairingInformation.rawValue
+        let searchAgain = !pairingLost && (rediscover || link == .connecting)
+        if let nsError {
+            onLog("\(message) [\(nsError.domain):\(nsError.code)]")
+        } else {
+            onLog(message)
+        }
+        if pairingLost { stopScan() }
         if let active { central?.cancelPeripheralConnection(active) }
         teardown()
+        failure = pairingLost ? .pairingLost : .other(message)
         link = central?.state == .poweredOn ? .idle : .off
         if searchAgain { discoverAfterFailure(message) }
     }
 
     private func discoverAfterFailure(_ message: String) {
-        guard central?.state == .poweredOn else { return }
+        guard failure != .pairingLost, central?.state == .poweredOn else { return }
         onLog("\(message)。正在重新搜索，请唤醒遥控器后从设备列表连接")
         scan()
     }
@@ -163,6 +190,7 @@ final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelega
             return
         }
         link = .idle
+        guard failure != .pairingLost else { return }
         if wantsScan { scan(); return }
         if let saved = UserDefaults.standard.string(forKey: Self.rememberedKey), let id = UUID(uuidString: saved) {
             connect(id)
@@ -188,14 +216,12 @@ final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelega
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         guard peripheral.identifier == active?.identifier else { return }
-        fail(error?.localizedDescription ?? "无法连接遥控器", rediscover: true)
+        fail("无法连接遥控器", error: error, rediscover: true)
     }
 
     func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
         guard peripheral.identifier == active?.identifier else { return }
-        teardown()
-        link = central.state == .poweredOn ? .idle : .off
-        discoverAfterFailure("遥控器连接已断开")
+        fail("遥控器连接已断开", error: error, rediscover: true)
     }
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
@@ -203,7 +229,7 @@ final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelega
         guard error == nil, let services = peripheral.services,
               services.contains(where: { $0.uuid == Self.serviceID }),
               services.contains(where: { $0.uuid == Self.informationID }) else {
-            fail("遥控器未提供 ATVV 或设备型号服务"); return
+            fail("遥控器未提供 ATVV 或设备型号服务", error: error); return
         }
         discoveryRemaining = services.count
         for service in services { peripheral.discoverCharacteristics(nil, for: service) }
@@ -211,7 +237,7 @@ final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelega
 
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard peripheral.identifier == active?.identifier else { return }
-        guard error == nil else { fail("无法读取遥控器通道"); return }
+        guard error == nil else { fail("无法读取遥控器通道", error: error); return }
         for characteristic in service.characteristics ?? [] {
             switch characteristic.uuid {
             case Self.transmitID: transmit = characteristic
@@ -234,7 +260,7 @@ final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelega
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {
         guard peripheral.identifier == active?.identifier else { return }
-        guard error == nil, characteristic.isNotifying else { fail("无法订阅遥控器语音通道"); return }
+        guard error == nil, characteristic.isNotifying else { fail("无法订阅遥控器语音通道", error: error); return }
         negotiateIfPossible()
     }
 
@@ -247,12 +273,12 @@ final class XiaomiRemoteClient: NSObject, @preconcurrency CBCentralManagerDelega
 
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         guard peripheral.identifier == active?.identifier, let error else { return }
-        fail("遥控器指令失败：\(error.localizedDescription)")
+        fail("遥控器指令失败", error: error)
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
         guard peripheral.identifier == active?.identifier else { return }
-        guard error == nil, let value = characteristic.value else { fail("遥控器数据读取失败"); return }
+        guard error == nil, let value = characteristic.value else { fail("遥控器数据读取失败", error: error); return }
         if characteristic.uuid == Self.modelID {
             let model = String(decoding: value, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines.union(.controlCharacters)).uppercased()
             guard let name = Self.canonicalName(for: model) else {

@@ -41,7 +41,7 @@ struct DictationView: View {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                         TextField("搜说过的话", text: $query).textFieldStyle(.plain)
                         if !query.isEmpty {
-                            Button { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
+                            RemoteButton { query = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary) }
                                 .buttonStyle(.plain).accessibilityLabel("清空搜索")
                         }
                     }
@@ -116,10 +116,10 @@ private struct DictationRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 14) {
                 if !recording.textOnly {
-                    Button { store.togglePlay(recording.id) } label: { Image(systemName: playing ? "pause" : "play") }
+                    RemoteButton { store.togglePlay(recording.id) } label: { Image(systemName: playing ? "pause" : "play") }
                         .help(playing ? "暂停" : "播放原声").accessibilityLabel(playing ? "暂停" : "播放原声")
                 }
-                Button {
+                RemoteButton {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(recording.transcript ?? "", forType: .string)
                     store.toast("doc.on.doc", String(localized: "已拷贝"))
